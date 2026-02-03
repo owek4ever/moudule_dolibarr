@@ -142,20 +142,18 @@ if ($resql) {
 }
 
 // Page header
-llxHeader('', $langs->trans("DriversList"), '');
+llxHeader('', $langs->trans("DrivervsList"), '');
 
 // Page title and buttons
 $newCardButton = '';
 if ($user->rights->flotte->write) {
-    $newCardButton = dolGetButtonTitle($langs->trans('NewDriver'), '', 'fa fa-plus-circle', dol_buildpath('/flotte/driver_card.php', 1).'?action=create', '', $user->rights->flotte->read);
+    $newCardButton = dolGetButtonTitle($langs->trans('New Driver'), '', 'fa fa-plus-circle', dol_buildpath('/flotte/driver_card.php', 1).'?action=create', '', $user->rights->flotte->read);
 }
-
-print load_fiche_titre($langs->trans("DriversList"), $newCardButton, 'user');
 
 // Actions bar
 print '<div class="tabsAction">'."\n";
 if ($user->rights->flotte->write) {
-    print '<a class="butAction" href="'.dol_buildpath('/flotte/driver_card.php', 1).'?action=create">'.$langs->trans("NewDriver").'</a>'."\n";
+    print '<a class="butAction" href="'.dol_buildpath('/flotte/driver_card.php', 1).'?action=create">'.$langs->trans("New Driver").'</a>'."\n";
 }
 if ($user->rights->flotte->read) {
     print '<a class="butAction" href="'.dol_buildpath('/flotte/driver_list.php', 1).'?action=export">'.$langs->trans("Export").'</a>'."\n";
@@ -182,7 +180,7 @@ print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
 print '<input type="hidden" name="page" value="'.$page.'">';
 
 // Print barre liste
-print_barre_liste($langs->trans("DriversList"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, 'user', 0, $newCardButton, '', $limit, 0, 0, 1);
+print_barre_liste($langs->trans("Drivers List"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, 'user', 0);
 
 print '<div class="div-table-responsive">';
 print '<table class="tagtable liste" id="tablelines">'."\n";
