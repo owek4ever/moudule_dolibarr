@@ -1,0 +1,42 @@
+# Translation file
+
+#
+# Generic
+#
+
+# Module label 'ModuleFlotteName'
+ModuleFlotteName = Flotte
+# Module description 'ModuleFlotteDesc'
+ModuleFlotteDesc = Flotte description
+
+#
+# Admin page
+#
+FlotteSetup = Flotte setup
+Settings = Settings
+FlotteSetupPage = Flotte setup page
+NewSection=New section
+FLOTTE_MYPARAM1 = My param 1
+FLOTTE_MYPARAM1Tooltip = My param 1 tooltip
+FLOTTE_MYPARAM2=My param 2
+FLOTTE_MYPARAM2Tooltip=My param 2 tooltip
+
+
+#
+# About page
+#
+About = About
+FlotteAbout = About Flotte
+FlotteAboutPage = Flotte about page
+
+#
+# Sample page
+#
+FlotteArea = Home Flotte
+MyPageName = My page name
+
+#
+# Sample widget
+#
+MyWidget = My widget
+MyWidgetDescription = My widget description
