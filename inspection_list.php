@@ -138,9 +138,6 @@ llxHeader('', $langs->trans("InspectionsList"), '');
 
 // Page title and buttons
 $newCardButton = '';
-if ($user->rights->flotte->write) {
-    $newCardButton = dolGetButtonTitle($langs->trans('NewInspection'), '', 'fa fa-plus-circle', dol_buildpath('/flotte/inspection_card.php', 1).'?action=create', '', $user->rights->flotte->read);
-}
 
 print load_fiche_titre($langs->trans("InspectionsList"), $newCardButton, 'clipboard-list');
 
