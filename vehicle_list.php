@@ -130,21 +130,21 @@ if ($resql) {
 }
 
 // Page header
-llxHeader('', $langs->trans("VehiclesList"), '');
+llxHeader('', $langs->trans("Vehicles List"), '');
 
 // Page title and buttons
-print load_fiche_titre($langs->trans("VehiclesList"), $newCardButton, 'vehicle@flotte');
+print load_fiche_titre($langs->trans("Vehicles List"), $newCardButton, 'vehicle@flotte');
 
 // Buttons
 $newCardButton = '';
 if ($user->rights->flotte->write) {
-    $newCardButton = dolGetButtonTitle($langs->trans('NewVehicle'), '', 'fa fa-plus-circle', dol_buildpath('/flotte/vehicle_card.php', 1).'?action=create', '', $permissiontoread);
+    $newCardButton = dolGetButtonTitle($langs->trans('New Vehicle'), '', 'fa fa-plus-circle', dol_buildpath('/flotte/vehicle_card.php', 1).'?action=create', '', $permissiontoread);
 }
 
 // Actions bar
 print '<div class="tabsAction">'."\n";
 if ($user->rights->flotte->write) {
-    print '<a class="butAction" href="'.dol_buildpath('/flotte/vehicle_card.php', 1).'?action=create">'.$langs->trans("NewVehicle").'</a>'."\n";
+    print '<a class="butAction" href="'.dol_buildpath('/flotte/vehicle_card.php', 1).'?action=create">'.$langs->trans("New Vehicle").'</a>'."\n";
 }
 if ($user->rights->flotte->read) {
     print '<a class="butAction" href="'.dol_buildpath('/flotte/vehicle_list.php', 1).'?action=export">'.$langs->trans("Export").'</a>'."\n";
@@ -163,7 +163,7 @@ print '<input type="hidden" name="page" value="'.$page.'">';
 print '<input type="hidden" name="contextpage" value="'.$contextpage.'">';
 
 // Search criteria
-print_barre_liste($langs->trans("VehiclesList"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, 'vehicle@flotte', 0, $newCardButton, '', $limit, 0, 0, 1);
+print_barre_liste($langs->trans("Vehicles List"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, 'vehicle@flotte', 0);
 
 print '<div class="div-table-responsive">';
 print '<table class="tagtable liste'.($moreforfilter ? " listwithfilterbefore" : "").'" id="tablelines">'."\n";
