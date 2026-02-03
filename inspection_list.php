@@ -83,6 +83,22 @@ if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter.x'
     $search_date_in = '';
 }
 
+// Delete action
+if ($action == 'confirm_delete' && $confirm == 'yes' && $user->rights->flotte->write) {
+    $id = GETPOST('id', 'int');
+    if ($id > 0) {
+        $sql = "DELETE FROM ".MAIN_DB_PREFIX."flotte_inspection WHERE rowid = ".(int)$id;
+        $result = $db->query($sql);
+        if ($result) {
+            setEventMessages($langs->trans("RecordDeleted"), null, 'mesgs');
+            header("Location: ".$_SERVER['PHP_SELF']);
+            exit;
+        } else {
+            setEventMessages($langs->trans("Error"), null, 'errors');
+        }
+    }
+}
+
 // Build and execute select
 $sql = 'SELECT i.rowid, i.ref, i.registration_number, i.meter_out, i.meter_in, i.fuel_out, i.fuel_in,';
 $sql .= ' i.datetime_out, i.datetime_in, i.petrol_card, i.lights_indicators, i.inverter_cigarette,';
@@ -159,6 +175,13 @@ if (!empty($search_vehicle))       $param .= '&search_vehicle='.urlencode($searc
 if (!empty($search_registration))  $param .= '&search_registration='.urlencode($search_registration);
 if (!empty($search_date_out))      $param .= '&search_date_out='.urlencode($search_date_out);
 if (!empty($search_date_in))       $param .= '&search_date_in='.urlencode($search_date_in);
+
+// Confirmation to delete
+if ($action == 'delete') {
+    $id = GETPOST('id', 'int');
+    $formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$id.$param, $langs->trans('DeleteInspection'), $langs->trans('ConfirmDeleteInspection'), 'confirm_delete', '', 0, 1);
+    print $formconfirm;
+}
 
 // Search form
 print '<form method="POST" action="'.$_SERVER["PHP_SELF"].'">'."\n";
@@ -297,8 +320,8 @@ if ($resql && $num > 0) {
         
         // Actions
         print '<td class="nowrap center">';
-        if ($user->rights->flotte->read) {
-            print '<a class="editfielda" href="'.dol_buildpath('/flotte/inspection_card.php', 1).'?id='.$obj->rowid.'" title="'.$langs->trans("View").'">'.img_view($langs->trans("View")).'</a>';
+        if ($user->rights->flotte->write) {
+            print '<a class="editfielda reposition" href="'.$_SERVER["PHP_SELF"].'?id='.$obj->rowid.'&action=delete&token='.newToken().'" title="'.$langs->trans("Delete").'">'.img_delete($langs->trans("Delete")).'</a>';
         }
         if ($user->rights->flotte->write) {
             print '<a class="editfielda" href="'.dol_buildpath('/flotte/inspection_card.php', 1).'?id='.$obj->rowid.'&action=edit" title="'.$langs->trans("Edit").'">'.img_edit($langs->trans("Edit")).'</a>';
