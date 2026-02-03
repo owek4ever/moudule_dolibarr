@@ -92,6 +92,29 @@ if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter.x'
     $search_license_number = '';
 }
 
+// Handle confirmed delete from list page
+if ($action == 'confirm_delete' && GETPOST('confirm', 'alpha') == 'yes') {
+    $id_to_delete = GETPOST('id', 'int');
+    if ($id_to_delete > 0) {
+        $db->begin();
+        $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."flotte_driver WHERE rowid = ".(int)$id_to_delete." AND entity IN (".getEntity('flotte').")";
+        $resql_del = $db->query($sql_del);
+        if ($resql_del) {
+            // Delete associated files
+            $uploadDir = $conf->flotte->dir_output . '/drivers/' . $id_to_delete . '/';
+            if (is_dir($uploadDir)) {
+                dol_delete_dir_recursive($uploadDir);
+            }
+            $db->commit();
+            setEventMessages($langs->trans("DriverDeletedSuccessfully"), null, 'mesgs');
+        } else {
+            $db->rollback();
+            setEventMessages("Error in SQL: ".$db->lasterror(), null, 'errors');
+        }
+    }
+    $action = 'list';
+}
+
 // Build and execute select
 $sql = 'SELECT t.rowid, t.ref, t.firstname, t.middlename, t.lastname, t.phone, t.email, t.status, t.license_number, t.employee_id, t.department, t.gender, t.join_date, t.fk_vehicle';
 $sql .= ', v.ref as vehicle_ref, v.maker as vehicle_maker, v.model as vehicle_model';
@@ -150,6 +173,15 @@ if ($user->rights->flotte->write) {
     $newCardButton = dolGetButtonTitle($langs->trans('New Driver'), '', 'fa fa-plus-circle', dol_buildpath('/flotte/driver_card.php', 1).'?action=create', '', $user->rights->flotte->read);
 }
 
+// Show delete confirmation dialog if requested
+if ($action == 'delete') {
+    $id_to_delete = GETPOST('id', 'int');
+    if ($id_to_delete > 0) {
+        $formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$id_to_delete, $langs->trans('DeleteDriver'), $langs->trans('ConfirmDeleteDriver'), 'confirm_delete', '', 0, 1);
+        print $formconfirm;
+    }
+}
+
 // Actions bar
 print '<div class="tabsAction">'."\n";
 if ($user->rights->flotte->write) {
@@ -180,7 +212,7 @@ print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
 print '<input type="hidden" name="page" value="'.$page.'">';
 
 // Print barre liste
-print_barre_liste($langs->trans("Drivers List"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, 'user', 0);
+print_barre_liste($langs->trans("DriversList"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, '', 0);
 
 print '<div class="div-table-responsive">';
 print '<table class="tagtable liste" id="tablelines">'."\n";
@@ -195,7 +227,7 @@ print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name=
 print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name="search_license_number" value="'.dol_escape_htmltag($search_license_number).'"></td>';
 print '<td class="liste_titre"></td>'; // Department
 print '<td class="liste_titre"></td>'; // Vehicle
-print '<td class="liste_titre">';
+print '<td class="liste_titre center">';
 $statusarray = array(''=>'', 'active'=>$langs->trans('Active'), 'inactive'=>$langs->trans('Inactive'), 'suspended'=>$langs->trans('Suspended'));
 print $form->selectarray('search_status', $statusarray, $search_status, 0, 0, 0, '', 0, 0, 0, '', 'search_status width100 onrightofpage');
 print '</td>';
@@ -215,7 +247,12 @@ print_liste_field_titre("EmployeeID", $_SERVER["PHP_SELF"], "t.employee_id", "",
 print_liste_field_titre("LicenseNumber", $_SERVER["PHP_SELF"], "t.license_number", "", $param, '', $sortfield, $sortorder);
 print_liste_field_titre("Department", $_SERVER["PHP_SELF"], "t.department", "", $param, '', $sortfield, $sortorder);
 print_liste_field_titre("AssignedVehicle", $_SERVER["PHP_SELF"], "v.ref", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("Status", $_SERVER["PHP_SELF"], "t.status", "", $param, '', $sortfield, $sortorder);
+// Manually create centered header for status column like inspection list
+print '<td class="liste_titre center">';
+print '<a class="reposition" href="'.$_SERVER["PHP_SELF"].'?sortfield=t.status&sortorder='.($sortfield == 't.status' && $sortorder == 'ASC' ? 'DESC' : 'ASC').$param.'">';
+print $langs->trans("Status");
+if ($sortfield == 't.status') print img_picto('', 'sort'.strtolower($sortorder));
+print '</a></td>';
 print_liste_field_titre("Action", $_SERVER["PHP_SELF"], "", "", "", '', '', '', 'maxwidthsearch ');
 print '</tr>'."\n";
 
@@ -240,27 +277,26 @@ if ($resql && $num > 0) {
         print '<td>'.dol_escape_htmltag($obj->lastname).'</td>';
         
         // Phone
-        print '<td>'.dol_escape_htmltag($obj->phone).'</td>';
+        print '<td>'.dol_escape_htmltag($obj->phone ?: '-').'</td>';
         
         // Employee ID
-        print '<td>'.dol_escape_htmltag($obj->employee_id).'</td>';
+        print '<td>'.dol_escape_htmltag($obj->employee_id ?: '-').'</td>';
         
         // License Number
-        print '<td class="nowrap">'.dol_escape_htmltag($obj->license_number).'</td>';
+        print '<td>'.dol_escape_htmltag($obj->license_number ?: '-').'</td>';
         
         // Department
-        print '<td>'.dol_escape_htmltag($obj->department).'</td>';
+        print '<td>'.dol_escape_htmltag($obj->department ?: '-').'</td>';
         
         // Assigned Vehicle
         print '<td>';
-        if (!empty($obj->fk_vehicle)) {
-            $vehicle_name = $obj->vehicle_ref;
-            if (!empty($obj->vehicle_maker) && !empty($obj->vehicle_model)) {
-                $vehicle_name .= ' - '.$obj->vehicle_maker.' '.$obj->vehicle_model;
+        if ($obj->vehicle_ref) {
+            print dol_escape_htmltag($obj->vehicle_ref);
+            if ($obj->vehicle_maker || $obj->vehicle_model) {
+                print '<br><small style="color: #666;">'.dol_escape_htmltag(trim($obj->vehicle_maker . ' ' . $obj->vehicle_model)).'</small>';
             }
-            print '<a href="'.dol_buildpath('/flotte/vehicle_card.php', 1).'?id='.$obj->fk_vehicle.'">'.dol_escape_htmltag($vehicle_name).'</a>';
         } else {
-            print '<span class="opacitymedium">'.$langs->trans("NotAssigned").'</span>';
+            print '<em style="color: #999;">'.$langs->trans("NotAssigned").'</em>';
         }
         print '</td>';
         
@@ -284,7 +320,7 @@ if ($resql && $num > 0) {
             print '<a class="editfielda" href="'.dol_buildpath('/flotte/driver_card.php', 1).'?id='.$obj->rowid.'&action=edit" title="'.$langs->trans("Edit").'">'.img_edit($langs->trans("Edit")).'</a>';
         }
         if ($user->rights->flotte->delete) {
-            print '<a class="editfielda" href="'.dol_buildpath('/flotte/driver_card.php', 1).'?id='.$obj->rowid.'&action=delete&token='.newToken().'" title="'.$langs->trans("Delete").'">'.img_delete($langs->trans("Delete")).'</a>';
+            print '<a class="editfielda" href="'.dol_buildpath('/flotte/driver_list.php', 1).'?action=delete&id='.$obj->rowid.'&token='.newToken().'" title="'.$langs->trans("Delete").'">'.img_delete($langs->trans("Delete")).'</a>';
         }
         print '</td>';
         
