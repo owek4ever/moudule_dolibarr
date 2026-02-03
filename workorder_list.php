@@ -88,6 +88,22 @@ if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter.x'
     $search_required_by = '';
 }
 
+// Delete action
+if ($action == 'confirm_delete' && $confirm == 'yes' && $user->rights->flotte->write) {
+    $id = GETPOST('id', 'int');
+    if ($id > 0) {
+        $sql_delete = "DELETE FROM ".MAIN_DB_PREFIX."flotte_workorder WHERE rowid = ".(int)$id;
+        $result = $db->query($sql_delete);
+        if ($result) {
+            setEventMessages($langs->trans("RecordDeleted"), null, 'mesgs');
+            header("Location: ".$_SERVER['PHP_SELF']);
+            exit;
+        } else {
+            setEventMessages($langs->trans("Error"), null, 'errors');
+        }
+    }
+}
+
 // Build and execute select
 $sql = 'SELECT t.rowid, t.ref, t.required_by, t.reading, t.note, t.status, t.price, t.description,';
 $sql .= ' v.ref as vehicle_ref, v.maker, v.model,';
@@ -160,6 +176,13 @@ if (!empty($search_vendor))        $param .= '&search_vendor='.urlencode($search
 if (!empty($search_status))        $param .= '&search_status='.urlencode($search_status);
 if (!empty($search_required_by))   $param .= '&search_required_by='.urlencode($search_required_by);
 
+// Confirmation to delete
+if ($action == 'delete') {
+    $id = GETPOST('id', 'int');
+    $formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$id.$param, $langs->trans('DeleteWorkOrder'), $langs->trans('ConfirmDeleteWorkOrder'), 'confirm_delete', '', 0, 1);
+    print $formconfirm;
+}
+
 // Search form
 print '<form method="POST" action="'.$_SERVER["PHP_SELF"].'">'."\n";
 print '<input type="hidden" name="token" value="'.newToken().'">';
@@ -170,7 +193,7 @@ print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
 print '<input type="hidden" name="page" value="'.$page.'">';
 
 // Print barre liste
-print_barre_liste($langs->trans("WorkOrdersList"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, 'generic', 0);
+print_barre_liste($langs->trans("WorkOrdersList"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, 'clipboard-list', 0);
 
 print '<div class="div-table-responsive">';
 print '<table class="tagtable liste" id="tablelines">'."\n";
@@ -180,8 +203,10 @@ print '<tr class="liste_titre_filter">';
 print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name="search_ref" value="'.dol_escape_htmltag($search_ref).'"></td>';
 print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name="search_vehicle" value="'.dol_escape_htmltag($search_vehicle).'"></td>';
 print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name="search_vendor" value="'.dol_escape_htmltag($search_vendor).'"></td>';
-print '<td class="liste_titre"><input type="date" class="flat maxwidth100" name="search_required_by" value="'.dol_escape_htmltag($search_required_by).'"></td>';
-print '<td class="liste_titre">';
+print '<td class="liste_titre center"><input type="date" class="flat maxwidth100" name="search_required_by" value="'.dol_escape_htmltag($search_required_by).'" style="text-align: center;"></td>';
+print '<td class="liste_titre right">&nbsp;</td>'; // Reading column - no search
+print '<td class="liste_titre right">&nbsp;</td>'; // Price column - no search
+print '<td class="liste_titre center">';
 $statusarray = array(
     '' => '',
     'Pending' => $langs->trans('Pending'),
@@ -202,10 +227,30 @@ print '<tr class="liste_titre">';
 print_liste_field_titre("Ref", $_SERVER["PHP_SELF"], "t.ref", "", $param, '', $sortfield, $sortorder);
 print_liste_field_titre("Vehicle", $_SERVER["PHP_SELF"], "v.ref", "", $param, '', $sortfield, $sortorder);
 print_liste_field_titre("Vendor", $_SERVER["PHP_SELF"], "ven.name", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("RequiredBy", $_SERVER["PHP_SELF"], "t.required_by", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("Reading", $_SERVER["PHP_SELF"], "t.reading", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("Price", $_SERVER["PHP_SELF"], "t.price", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("Status", $_SERVER["PHP_SELF"], "t.status", "", $param, '', $sortfield, $sortorder);
+// Manually create centered header for RequiredBy column
+print '<td class="liste_titre center">';
+print '<a class="reposition" href="'.$_SERVER["PHP_SELF"].'?sortfield=t.required_by&sortorder='.($sortfield == 't.required_by' && $sortorder == 'ASC' ? 'DESC' : 'ASC').$param.'">';
+print $langs->trans("RequiredBy");
+if ($sortfield == 't.required_by') print img_picto('', 'sort'.strtolower($sortorder));
+print '</a></td>';
+// Manually create right-aligned header for Reading column
+print '<td class="liste_titre right">';
+print '<a class="reposition" href="'.$_SERVER["PHP_SELF"].'?sortfield=t.reading&sortorder='.($sortfield == 't.reading' && $sortorder == 'ASC' ? 'DESC' : 'ASC').$param.'">';
+print $langs->trans("Reading");
+if ($sortfield == 't.reading') print img_picto('', 'sort'.strtolower($sortorder));
+print '</a></td>';
+// Manually create right-aligned header for Price column
+print '<td class="liste_titre right">';
+print '<a class="reposition" href="'.$_SERVER["PHP_SELF"].'?sortfield=t.price&sortorder='.($sortfield == 't.price' && $sortorder == 'ASC' ? 'DESC' : 'ASC').$param.'">';
+print $langs->trans("Price");
+if ($sortfield == 't.price') print img_picto('', 'sort'.strtolower($sortorder));
+print '</a></td>';
+// Manually create centered header for Status column
+print '<td class="liste_titre center">';
+print '<a class="reposition" href="'.$_SERVER["PHP_SELF"].'?sortfield=t.status&sortorder='.($sortfield == 't.status' && $sortorder == 'ASC' ? 'DESC' : 'ASC').$param.'">';
+print $langs->trans("Status");
+if ($sortfield == 't.status') print img_picto('', 'sort'.strtolower($sortorder));
+print '</a></td>';
 print_liste_field_titre("Action", $_SERVER["PHP_SELF"], "", "", "", '', '', '', 'maxwidthsearch ');
 print '</tr>'."\n";
 
@@ -271,14 +316,11 @@ if ($resql && $num > 0) {
         
         // Actions
         print '<td class="nowrap center">';
-        if ($user->rights->flotte->read) {
-            print '<a class="editfielda" href="'.dol_buildpath('/flotte/workorder_card.php', 1).'?id='.$obj->rowid.'" title="'.$langs->trans("View").'">'.img_view($langs->trans("View")).'</a>';
+        if ($user->rights->flotte->write) {
+            print '<a class="editfielda reposition" href="'.$_SERVER["PHP_SELF"].'?id='.$obj->rowid.'&action=delete&token='.newToken().'" title="'.$langs->trans("Delete").'">'.img_delete($langs->trans("Delete")).'</a>';
         }
         if ($user->rights->flotte->write) {
             print '<a class="editfielda" href="'.dol_buildpath('/flotte/workorder_card.php', 1).'?id='.$obj->rowid.'&action=edit" title="'.$langs->trans("Edit").'">'.img_edit($langs->trans("Edit")).'</a>';
-        }
-        if ($user->rights->flotte->delete) {
-            print '<a class="editfielda" href="'.dol_buildpath('/flotte/workorder_card.php', 1).'?id='.$obj->rowid.'&action=delete&token='.newToken().'" title="'.$langs->trans("Delete").'">'.img_delete($langs->trans("Delete")).'</a>';
         }
         print '</td>';
         
