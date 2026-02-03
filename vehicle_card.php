@@ -300,7 +300,7 @@ print '<div class="fichecenter">';
 print '<div class="fichehalfleft">';
 
 // Basic Information
-print load_fiche_titre($langs->trans('BasicInformation'), '', '');
+print load_fiche_titre($langs->trans('Basic Information'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // Reference
@@ -362,11 +362,11 @@ print '</div>';
 print '<div class="fichehalfright">';
 
 // Vehicle Details
-print load_fiche_titre($langs->trans('VehicleDetails'), '', '');
+print load_fiche_titre($langs->trans('Vehicle Details'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // License Plate
-print '<tr><td class="titlefield">' . $langs->trans('LicensePlate') . '</td><td>';
+print '<tr><td class="titlefield">' . $langs->trans('License Plate') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat" name="license_plate" value="' . (isset($object->license_plate) ? $object->license_plate : '') . '" size="20">';
 } else {
@@ -396,10 +396,10 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Engine Type
-print '<tr><td>' . $langs->trans('EngineType') . '</td><td>';
+print '<tr><td>' . $langs->trans('Engine Type') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     $engine_options = array(
-        '' => $langs->trans('SelectEngineType'),
+        '' => $langs->trans('Select Engine Type'),
         'Petrol' => $langs->trans('Petrol'),
         'Diesel' => $langs->trans('Diesel'),
         'Electric' => $langs->trans('Electric'),
@@ -431,11 +431,11 @@ print '<div class="fichecenter">';
 print '<div class="fichehalfleft">';
 
 // Service Information
-print load_fiche_titre($langs->trans('ServiceInformation'), '', '');
+print load_fiche_titre($langs->trans('Service Information'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // Initial Mileage
-print '<tr><td class="titlefield">' . $langs->trans('InitialMileage') . '</td><td>';
+print '<tr><td class="titlefield">' . $langs->trans('Initial Mileage') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="number" class="flat" name="initial_mileage" value="' . (isset($object->initial_mileage) ? $object->initial_mileage : '') . '" min="0"> km';
 } else {
@@ -453,31 +453,41 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Registration Expiry
-print '<tr><td>' . $langs->trans('RegistrationExpiry') . '</td><td>';
+print '<tr><td>' . $langs->trans('Registration Expiry') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
-    // FIX: Removed the extra opening parenthesis
-    print $form->selectDate(isset($object->registration_expiry) ? $object->registration_expiry : '', 'registration_expiry', '', '', 1, '', 1, 0, 1);
+    // Simple date picker - no time selection
+    print $form->selectDate(
+        (!empty($object->registration_expiry) ? $object->registration_expiry : ''), 
+        'registration_expiry'
+    );
 } else {
-    if ($object->registration_expiry) {
+    if (!empty($object->registration_expiry)) {
         print dol_print_date($object->registration_expiry, 'day');
+    } else {
+        print '&nbsp;';
     }
 }
 print '</td></tr>';
 
 // License Expiry
-print '<tr><td>' . $langs->trans('LicenseExpiry') . '</td><td>';
+print '<tr><td>' . $langs->trans('License Expiry') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
-    // FIX: Removed the extra opening parenthesis
-    print $form->selectDate(isset($object->license_expiry) ? $object->license_expiry : '', 'license_expiry', '', '', 1, '', 1, 0, 1);
+    // Simple date picker - no time selection
+    print $form->selectDate(
+        (!empty($object->license_expiry) ? $object->license_expiry : ''), 
+        'license_expiry'
+    );
 } else {
-    if ($object->license_expiry) {
+    if (!empty($object->license_expiry)) {
         print dol_print_date($object->license_expiry, 'day');
+    } else {
+        print '&nbsp;';
     }
 }
 print '</td></tr>';
 
 // In Service
-print '<tr><td>' . $langs->trans('InService') . '</td><td>';
+print '<tr><td>' . $langs->trans('In Service') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print $form->selectyesno('in_service', (isset($object->in_service) ? $object->in_service : 1), 1);
 } else {
