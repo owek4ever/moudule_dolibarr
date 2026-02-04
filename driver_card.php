@@ -381,12 +381,6 @@ if ($action == 'edit') $title = $langs->trans("EditDriver");
 $help_url = '';
 llxHeader('', $title, $help_url);
 
-// Confirmation of action
-if ($action == 'delete') {
-    $formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$id, $langs->trans('DeleteDriver'), $langs->trans('ConfirmDeleteDriver'), 'confirm_delete', '', 0, 1);
-    print $formconfirm;
-}
-
 // Subheader
 $linkback = '<a href="' . DOL_URL_ROOT . '/flotte/driver_list.php">' . $langs->trans('BackToList') . '</a>';
 
@@ -397,7 +391,7 @@ $head[$h][1] = $langs->trans('Card');
 $head[$h][2] = 'card';
 $h++;
 
-dol_fiche_head($head, 'card', $langs->trans('Driver'), -1, 'user');
+dol_fiche_head($head, 'card', $langs->trans('Driver'), -1, '');
 
 // Show error messages
 if (!empty($errors)) {
@@ -429,7 +423,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // First Name
-print '<tr><td>' . $langs->trans('FirstName') . '</td><td>';
+print '<tr><td>' . $langs->trans('Firs Name') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat" name="firstname" value="' . (isset($driver_data['firstname']) ? $driver_data['firstname'] : '') . '" size="20" required>';
 } else {
@@ -438,7 +432,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Middle Name
-print '<tr><td>' . $langs->trans('MiddleName') . '</td><td>';
+print '<tr><td>' . $langs->trans('Middle Name') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat" name="middlename" value="' . (isset($driver_data['middlename']) ? $driver_data['middlename'] : '') . '" size="20">';
 } else {
@@ -447,7 +441,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Last Name
-print '<tr><td>' . $langs->trans('LastName') . '</td><td>';
+print '<tr><td>' . $langs->trans('Last Name') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat" name="lastname" value="' . (isset($driver_data['lastname']) ? $driver_data['lastname'] : '') . '" size="20" required>';
 } else {
@@ -474,7 +468,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Employee ID
-print '<tr><td>' . $langs->trans('EmployeeID') . '</td><td>';
+print '<tr><td>' . $langs->trans('Employee ID') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat" name="employee_id" value="' . (isset($driver_data['employee_id']) ? $driver_data['employee_id'] : '') . '" size="20">';
 } else {
@@ -483,7 +477,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Contract Number
-print '<tr><td>' . $langs->trans('ContractNumber') . '</td><td>';
+print '<tr><td>' . $langs->trans('Contract Number') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat" name="contract_number" value="' . (isset($driver_data['contract_number']) ? $driver_data['contract_number'] : '') . '" size="20">';
 } else {
@@ -492,7 +486,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // License Number
-print '<tr><td>' . $langs->trans('LicenseNumber') . '</td><td>';
+print '<tr><td>' . $langs->trans('License Number') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat" name="license_number" value="' . (isset($driver_data['license_number']) ? $driver_data['license_number'] : '') . '" size="20">';
 } else {
@@ -510,7 +504,7 @@ print load_fiche_titre($langs->trans('AdditionalInformation'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // License Issue Date
-print '<tr><td class="titlefield">' . $langs->trans('LicenseIssueDate') . '</td><td>';
+print '<tr><td class="titlefield">' . $langs->trans('License Issue Date') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     $license_issue_date = '';
     if (!empty($driver_data['license_issue_date'])) {
@@ -525,7 +519,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // License Expiry Date
-print '<tr><td>' . $langs->trans('LicenseExpiryDate') . '</td><td>';
+print '<tr><td>' . $langs->trans('License Expiry Date') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     $license_expiry_date = '';
     if (!empty($driver_data['license_expiry_date'])) {
@@ -540,7 +534,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Join Date
-print '<tr><td>' . $langs->trans('JoinDate') . '</td><td>';
+print '<tr><td>' . $langs->trans('Join Date') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     $join_date = '';
     if (!empty($driver_data['join_date'])) {
@@ -555,7 +549,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Leave Date
-print '<tr><td>' . $langs->trans('LeaveDate') . '</td><td>';
+print '<tr><td>' . $langs->trans('Leave Date') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     $leave_date = '';
     if (!empty($driver_data['leave_date'])) {
@@ -618,7 +612,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Emergency Contact
-print '<tr><td>' . $langs->trans('EmergencyContact') . '</td><td>';
+print '<tr><td>' . $langs->trans('Emergency Contact') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat" name="emergency_contact" value="' . (isset($driver_data['emergency_contact']) ? $driver_data['emergency_contact'] : '') . '" size="20">';
 } else {
@@ -627,7 +621,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Assigned Vehicle
-print '<tr><td>' . $langs->trans('AssignedVehicle') . '</td><td>';
+print '<tr><td>' . $langs->trans('Assigned Vehicle') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<select name="fk_vehicle" class="flat">';
     print '<option value="">' . $langs->trans('NoVehicleAssigned') . '</option>';
@@ -682,7 +676,7 @@ print load_fiche_titre($langs->trans('Files'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // Driver Image
-print '<tr><td class="titlefield">' . $langs->trans('DriverImage') . '</td><td>';
+print '<tr><td class="titlefield">' . $langs->trans('Driver Image') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="file" name="driver_image" accept="image/*">';
     if (!empty($driver_data['driver_image'])) {
@@ -698,7 +692,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // License Image
-print '<tr><td>' . $langs->trans('LicenseImage') . '</td><td>';
+print '<tr><td>' . $langs->trans('License Image') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="file" name="license_image" accept="image/*">';
     if (!empty($driver_data['license_image'])) {
@@ -736,21 +730,77 @@ print '</div>';
 
 print '<div class="clearboth"></div>';
 
+// Shared button sizing applied to every action button on this page
+print '<style>
+    .flotte-btn {
+        display: inline-block;
+        min-width: 120px;
+        height: 34px;
+        line-height: 34px;
+        padding: 0 20px;
+        text-align: center;
+        box-sizing: border-box;
+        font-size: 13px;
+        border-radius: 3px;
+        cursor: pointer;
+        text-decoration: none;
+        vertical-align: middle;
+        margin: 0 4px;
+    }
+    /* Submit / Create / Save — solid blue fill */
+    input.flotte-btn {
+        background: #3c6d9f;
+        border: 1px solid #2e5a85;
+        color: #fff;
+    }
+    input.flotte-btn:hover {
+        background: #2e5a85;
+    }
+    /* Modify — solid blue fill (same weight as submit) */
+    a.flotte-btn-primary {
+        background: #3c6d9f;
+        border: 1px solid #2e5a85;
+        color: #fff;
+    }
+    a.flotte-btn-primary:hover {
+        background: #2e5a85;
+        color: #fff;
+    }
+    /* Cancel — blue outline, white fill */
+    a.flotte-btn-cancel {
+        background: #fff;
+        border: 1px solid #3c6d9f;
+        color: #3c6d9f;
+    }
+    a.flotte-btn-cancel:hover {
+        background: #eef3f8;
+        color: #2e5a85;
+    }
+    /* Back to List — blue outline, white fill */
+    a.flotte-btn-back {
+        background: #fff;
+        border: 1px solid #3c6d9f;
+        color: #3c6d9f;
+    }
+    a.flotte-btn-back:hover {
+        background: #eef3f8;
+        color: #2e5a85;
+    }
+</style>'."\n";
+
 // Form buttons
 if ($action == 'create' || $action == 'edit') {
-    print '<div class="center">';
-    print '<input type="submit" class="button" value="' . ($action == 'create' ? $langs->trans('Create') : $langs->trans('Save')) . '">';
-    print '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
-    print '<a class="button button-cancel" href="' . ($id > 0 ? $_SERVER['PHP_SELF'] . '?id=' . $id : 'driver_list.php') . '">' . $langs->trans('Cancel') . '</a>';
+    print '<div class="center" style="margin-top: 20px; margin-bottom: 10px;">';
+    print '<input type="submit" class="flotte-btn" value="' . ($action == 'create' ? $langs->trans('Create') : $langs->trans('Save')) . '">';
+    print '<a class="flotte-btn flotte-btn-cancel" href="' . ($id > 0 ? $_SERVER['PHP_SELF'] . '?id=' . $id : 'driver_list.php') . '">' . $langs->trans('Cancel') . '</a>';
+    print '<a class="flotte-btn flotte-btn-back" href="' . dol_buildpath('/flotte/driver_list.php', 1) . '">' . $langs->trans('BackToList') . '</a>';
     print '</div>';
     print '</form>';
 } elseif ($id > 0) {
-    // Action buttons
-    print '<div class="tabsAction">';
-    print '<div class="inline-block divButAction">';
-    print '<a class="butAction" href="' . $_SERVER['PHP_SELF'] . '?id=' . $id . '&action=edit">' . $langs->trans('Modify') . '</a>';
-    print '<a class="butActionDelete" href="' . $_SERVER['PHP_SELF'] . '?id=' . $id . '&action=delete">' . $langs->trans('Delete') . '</a>';
-    print '</div>';
+    // Action buttons (view mode) - Delete button removed, handled from list page
+    print '<div class="center" style="margin-top: 20px; margin-bottom: 10px;">';
+    print '<a class="flotte-btn flotte-btn-primary" href="' . $_SERVER['PHP_SELF'] . '?id=' . $id . '&action=edit">' . $langs->trans('Modify') . '</a>';
+    print '<a class="flotte-btn flotte-btn-back" href="' . dol_buildpath('/flotte/driver_list.php', 1) . '">' . $langs->trans('BackToList') . '</a>';
     print '</div>';
 }
 
