@@ -67,6 +67,9 @@ if (!$sortorder) {
 // Security check
 restrictedArea($user, 'flotte');
 
+// Initialize form object
+$form = new Form($db);
+
 /*
  * Actions
  */
@@ -81,6 +84,24 @@ if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter.x'
     $search_model = '';
     $search_license_plate = '';
     $search_status = '';
+}
+
+// Handle confirmed delete from list page
+if ($action == 'confirm_delete' && GETPOST('confirm', 'alpha') == 'yes') {
+    $id_to_delete = GETPOST('id', 'int');
+    if ($id_to_delete > 0) {
+        $db->begin();
+        $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."flotte_vehicle WHERE rowid = ".(int)$id_to_delete." AND entity IN (".getEntity('flotte').")";
+        $resql_del = $db->query($sql_del);
+        if ($resql_del) {
+            $db->commit();
+            setEventMessages($langs->trans("VehicleDeletedSuccessfully"), null, 'mesgs');
+        } else {
+            $db->rollback();
+            setEventMessages("Error in SQL: ".$db->lasterror(), null, 'errors');
+        }
+    }
+    $action = 'list';
 }
 
 // Build and execute select
@@ -123,7 +144,6 @@ if ($resql) {
 $sql .= $db->plimit($limit + 1, $offset);
 $resql = $db->query($sql);
 
-$form = new Form($db);
 $num = 0;
 if ($resql) {
     $num = $db->num_rows($resql);
@@ -133,12 +153,18 @@ if ($resql) {
 llxHeader('', $langs->trans("Vehicles List"), '');
 
 // Page title and buttons
-print load_fiche_titre($langs->trans("Vehicles List"), $newCardButton, 'vehicle@flotte');
-
-// Buttons
 $newCardButton = '';
 if ($user->rights->flotte->write) {
-    $newCardButton = dolGetButtonTitle($langs->trans('New Vehicle'), '', 'fa fa-plus-circle', dol_buildpath('/flotte/vehicle_card.php', 1).'?action=create', '', $permissiontoread);
+    $newCardButton = dolGetButtonTitle($langs->trans('New Vehicle'), '', 'fa fa-plus-circle', dol_buildpath('/flotte/vehicle_card.php', 1).'?action=create', '', $user->rights->flotte->read);
+}
+
+// Show delete confirmation dialog if requested
+if ($action == 'delete') {
+    $id_to_delete = GETPOST('id', 'int');
+    if ($id_to_delete > 0) {
+        $formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$id_to_delete, $langs->trans('DeleteVehicle'), $langs->trans('ConfirmDeleteVehicle'), 'confirm_delete', '', 0, 1);
+        print $formconfirm;
+    }
 }
 
 // Actions bar
@@ -151,22 +177,28 @@ if ($user->rights->flotte->read) {
 }
 print '</div>'."\n";
 
+// Build param string for URL
+$param = '';
+if (!empty($search_ref))           $param .= '&search_ref='.urlencode($search_ref);
+if (!empty($search_maker))         $param .= '&search_maker='.urlencode($search_maker);
+if (!empty($search_model))         $param .= '&search_model='.urlencode($search_model);
+if (!empty($search_license_plate)) $param .= '&search_license_plate='.urlencode($search_license_plate);
+if (!empty($search_status))        $param .= '&search_status='.urlencode($search_status);
+
 // Search form
 print '<form method="POST" action="'.$_SERVER["PHP_SELF"].'">'."\n";
-if ($optioncss != '') print '<input type="hidden" name="optioncss" value="'.$optioncss.'">';
 print '<input type="hidden" name="token" value="'.newToken().'">';
 print '<input type="hidden" name="formfilteraction" id="formfilteraction" value="list">';
 print '<input type="hidden" name="action" value="list">';
 print '<input type="hidden" name="sortfield" value="'.$sortfield.'">';
 print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
 print '<input type="hidden" name="page" value="'.$page.'">';
-print '<input type="hidden" name="contextpage" value="'.$contextpage.'">';
 
-// Search criteria
-print_barre_liste($langs->trans("Vehicles List"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, 'vehicle@flotte', 0);
+// Print barre liste
+print_barre_liste($langs->trans("VehiclesList"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, '', 0);
 
 print '<div class="div-table-responsive">';
-print '<table class="tagtable liste'.($moreforfilter ? " listwithfilterbefore" : "").'" id="tablelines">'."\n";
+print '<table class="tagtable liste" id="tablelines">'."\n";
 
 // Search fields
 print '<tr class="liste_titre_filter">';
@@ -178,8 +210,8 @@ print '<td class="liste_titre"></td>'; // Year
 print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name="search_license_plate" value="'.dol_escape_htmltag($search_license_plate).'"></td>';
 print '<td class="liste_titre"></td>'; // Color
 print '<td class="liste_titre"></td>'; // VIN
-print '<td class="liste_titre"></td>'; // Mileage
-print '<td class="liste_titre">';
+print '<td class="liste_titre right"></td>'; // Mileage
+print '<td class="liste_titre center">';
 print $form->selectarray('search_status', array(''=>'', '1'=>$langs->trans('InService'), '0'=>$langs->trans('OutOfService')), $search_status);
 print '</td>';
 print '<td class="liste_titre maxwidthsearch">';
@@ -190,17 +222,39 @@ print '</tr>'."\n";
 
 // Table headers
 print '<tr class="liste_titre">';
-print_liste_field_titre("Ref", $_SERVER["PHP_SELF"], "t.ref", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("Maker", $_SERVER["PHP_SELF"], "t.maker", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre($langs->trans("VehicleModel"), $_SERVER["PHP_SELF"], "t.model", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("Type", $_SERVER["PHP_SELF"], "t.type", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("Year", $_SERVER["PHP_SELF"], "t.year", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("LicensePlate", $_SERVER["PHP_SELF"], "t.license_plate", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("Color", $_SERVER["PHP_SELF"], "t.color", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("VIN", $_SERVER["PHP_SELF"], "t.vin", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("Mileage", $_SERVER["PHP_SELF"], "t.initial_mileage", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("Status", $_SERVER["PHP_SELF"], "t.in_service", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("Action", $_SERVER["PHP_SELF"], "", "", "", '', '', '', 'maxwidthsearch ');
+print '<td class="liste_titre"><a class="reposition" href="'.$_SERVER["PHP_SELF"].'?sortfield=t.ref&sortorder='.($sortfield == 't.ref' && $sortorder == 'ASC' ? 'DESC' : 'ASC').'&'.$param.'">'.$langs->trans("Ref");
+if ($sortfield == 't.ref') print img_picto('', 'sort'.strtolower($sortorder));
+print '</a></td>';
+print '<td class="liste_titre"><a class="reposition" href="'.$_SERVER["PHP_SELF"].'?sortfield=t.maker&sortorder='.($sortfield == 't.maker' && $sortorder == 'ASC' ? 'DESC' : 'ASC').'&'.$param.'">'.$langs->trans("Maker");
+if ($sortfield == 't.maker') print img_picto('', 'sort'.strtolower($sortorder));
+print '</a></td>';
+print '<td class="liste_titre"><a class="reposition" href="'.$_SERVER["PHP_SELF"].'?sortfield=t.model&sortorder='.($sortfield == 't.model' && $sortorder == 'ASC' ? 'DESC' : 'ASC').'&'.$param.'">'.$langs->trans("VehicleModel");
+if ($sortfield == 't.model') print img_picto('', 'sort'.strtolower($sortorder));
+print '</a></td>';
+print '<td class="liste_titre"><a class="reposition" href="'.$_SERVER["PHP_SELF"].'?sortfield=t.type&sortorder='.($sortfield == 't.type' && $sortorder == 'ASC' ? 'DESC' : 'ASC').'&'.$param.'">'.$langs->trans("Type");
+if ($sortfield == 't.type') print img_picto('', 'sort'.strtolower($sortorder));
+print '</a></td>';
+print '<td class="liste_titre"><a class="reposition" href="'.$_SERVER["PHP_SELF"].'?sortfield=t.year&sortorder='.($sortfield == 't.year' && $sortorder == 'ASC' ? 'DESC' : 'ASC').'&'.$param.'">'.$langs->trans("Year");
+if ($sortfield == 't.year') print img_picto('', 'sort'.strtolower($sortorder));
+print '</a></td>';
+print '<td class="liste_titre"><a class="reposition" href="'.$_SERVER["PHP_SELF"].'?sortfield=t.license_plate&sortorder='.($sortfield == 't.license_plate' && $sortorder == 'ASC' ? 'DESC' : 'ASC').'&'.$param.'">'.$langs->trans("LicensePlate");
+if ($sortfield == 't.license_plate') print img_picto('', 'sort'.strtolower($sortorder));
+print '</a></td>';
+print '<td class="liste_titre"><a class="reposition" href="'.$_SERVER["PHP_SELF"].'?sortfield=t.color&sortorder='.($sortfield == 't.color' && $sortorder == 'ASC' ? 'DESC' : 'ASC').'&'.$param.'">'.$langs->trans("Color");
+if ($sortfield == 't.color') print img_picto('', 'sort'.strtolower($sortorder));
+print '</a></td>';
+print '<td class="liste_titre"><a class="reposition" href="'.$_SERVER["PHP_SELF"].'?sortfield=t.vin&sortorder='.($sortfield == 't.vin' && $sortorder == 'ASC' ? 'DESC' : 'ASC').'&'.$param.'">'.$langs->trans("VIN");
+if ($sortfield == 't.vin') print img_picto('', 'sort'.strtolower($sortorder));
+print '</a></td>';
+print '<td class="liste_titre right"><a class="reposition" href="'.$_SERVER["PHP_SELF"].'?sortfield=t.initial_mileage&sortorder='.($sortfield == 't.initial_mileage' && $sortorder == 'ASC' ? 'DESC' : 'ASC').'&'.$param.'">'.$langs->trans("Mileage");
+if ($sortfield == 't.initial_mileage') print img_picto('', 'sort'.strtolower($sortorder));
+print '</a></td>';
+print '<td class="liste_titre center">';
+print '<a class="reposition" href="'.$_SERVER["PHP_SELF"].'?sortfield=t.in_service&sortorder='.($sortfield == 't.in_service' && $sortorder == 'ASC' ? 'DESC' : 'ASC').$param.'">';
+print $langs->trans("Status");
+if ($sortfield == 't.in_service') print img_picto('', 'sort'.strtolower($sortorder));
+print '</a></td>';
+print '<td class="liste_titre maxwidthsearch">'.$langs->trans("Action").'</td>';
 print '</tr>'."\n";
 
 // Display data
@@ -248,22 +302,19 @@ if ($resql && $num > 0) {
         // Status
         print '<td class="center">';
         if ($obj->in_service == 1) {
-            print '<span class="badge badge-status4 badge-status">'.dolGetStatus($langs->trans('InService'), '', '', 'status4', 1).'</span>';
+            print dolGetStatus($langs->trans('InService'), '', '', 'status4', 1);
         } else {
-            print '<span class="badge badge-status8 badge-status">'.dolGetStatus($langs->trans('OutOfService'), '', '', 'status8', 1).'</span>';
+            print dolGetStatus($langs->trans('OutOfService'), '', '', 'status8', 1);
         }
         print '</td>';
         
         // Actions
         print '<td class="nowrap center">';
-        if ($user->rights->flotte->read) {
-            print '<a class="editfielda" href="'.dol_buildpath('/flotte/vehicle_card.php', 1).'?id='.$obj->rowid.'" title="'.$langs->trans("View").'">'.img_view($langs->trans("View")).'</a>';
-        }
         if ($user->rights->flotte->write) {
             print '<a class="editfielda" href="'.dol_buildpath('/flotte/vehicle_card.php', 1).'?id='.$obj->rowid.'&action=edit" title="'.$langs->trans("Edit").'">'.img_edit($langs->trans("Edit")).'</a>';
         }
         if ($user->rights->flotte->delete) {
-            print '<a class="editfielda" href="'.dol_buildpath('/flotte/vehicle_card.php', 1).'?id='.$obj->rowid.'&action=delete&token='.newToken().'" title="'.$langs->trans("Delete").'">'.img_delete($langs->trans("Delete")).'</a>';
+            print '<a class="editfielda" href="'.dol_buildpath('/flotte/vehicle_list.php', 1).'?action=delete&id='.$obj->rowid.'&token='.newToken().'" title="'.$langs->trans("Delete").'">'.img_delete($langs->trans("Delete")).'</a>';
         }
         print '</td>';
         
