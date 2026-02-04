@@ -92,6 +92,29 @@ if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter.x'
     $search_date_to = '';
 }
 
+// Handle confirmed delete from list page
+if ($action == 'confirm_delete' && GETPOST('confirm', 'alpha') == 'yes') {
+    $id_to_delete = GETPOST('id', 'int');
+    if ($id_to_delete > 0) {
+        $db->begin();
+        $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."flotte_booking WHERE rowid = ".(int)$id_to_delete." AND entity IN (".getEntity('flotte').")";
+        $resql_del = $db->query($sql_del);
+        if ($resql_del) {
+            // Delete associated files if any
+            $uploadDir = $conf->flotte->dir_output . '/bookings/' . $id_to_delete . '/';
+            if (is_dir($uploadDir)) {
+                dol_delete_dir_recursive($uploadDir);
+            }
+            $db->commit();
+            setEventMessages($langs->trans("BookingDeletedSuccessfully"), null, 'mesgs');
+        } else {
+            $db->rollback();
+            setEventMessages("Error in SQL: ".$db->lasterror(), null, 'errors');
+        }
+    }
+    $action = 'list';
+}
+
 // Build and execute select
 $sql = 'SELECT t.rowid, t.ref, t.booking_date, t.status, t.distance, t.arriving_address, t.departure_address, t.buying_amount, t.selling_amount,';
 $sql .= ' v.ref as vehicle_ref, v.maker, v.model, v.license_plate,';
@@ -129,7 +152,7 @@ if ($search_date_to) {
 $sql .= $db->order($sortfield, $sortorder);
 
 // Count total nb of records
-$sqlcount = preg_replace('/^SELECT[^F]*FROM/i', 'SELECT COUNT(*) as nb FROM', $sql);
+$sqlcount = preg_replace('/^SELECT[^,]+(,\s*[^,]+)*\s+FROM/', 'SELECT COUNT(*) as nb FROM', $sql);
 $resql = $db->query($sqlcount);
 $nbtotalofrecords = 0;
 if ($resql) {
@@ -146,20 +169,27 @@ if ($resql) {
 }
 
 // Page header
-llxHeader('', $langs->trans("BookingsList"), '');
+llxHeader('', $langs->trans("Bookings List"), '');
 
 // Page title and buttons
 $newCardButton = '';
 if ($user->rights->flotte->write) {
-    $newCardButton = dolGetButtonTitle($langs->trans('NewBooking'), '', 'fa fa-plus-circle', dol_buildpath('/flotte/booking_card.php', 1).'?action=create', '', $user->rights->flotte->read);
+    $newCardButton = dolGetButtonTitle($langs->trans('New Booking'), '', 'fa fa-plus-circle', dol_buildpath('/flotte/booking_card.php', 1).'?action=create', '', $user->rights->flotte->read);
 }
 
-print load_fiche_titre($langs->trans("BookingsList"), $newCardButton, 'calendar');
+// Show delete confirmation dialog if requested
+if ($action == 'delete') {
+    $id_to_delete = GETPOST('id', 'int');
+    if ($id_to_delete > 0) {
+        $formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$id_to_delete, $langs->trans('DeleteBooking'), $langs->trans('ConfirmDeleteBooking'), 'confirm_delete', '', 0, 1);
+        print $formconfirm;
+    }
+}
 
 // Actions bar
 print '<div class="tabsAction">'."\n";
 if ($user->rights->flotte->write) {
-    print '<a class="butAction" href="'.dol_buildpath('/flotte/booking_card.php', 1).'?action=create">'.$langs->trans("NewBooking").'</a>'."\n";
+    print '<a class="butAction" href="'.dol_buildpath('/flotte/booking_card.php', 1).'?action=create">'.$langs->trans("New Booking").'</a>'."\n";
 }
 if ($user->rights->flotte->read) {
     print '<a class="butAction" href="'.dol_buildpath('/flotte/booking_list.php', 1).'?action=export">'.$langs->trans("Export").'</a>'."\n";
@@ -185,21 +215,22 @@ print '<input type="hidden" name="sortfield" value="'.$sortfield.'">';
 print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
 print '<input type="hidden" name="page" value="'.$page.'">';
 
-// Print barre liste
-print_barre_liste($langs->trans("BookingsList"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, 'calendar', 0, $newCardButton, '', $limit, 0, 0, 1);
+// Print barre liste - removed 'calendar' icon parameter
+print_barre_liste($langs->trans("Bookings List"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, '', 0);
 
 print '<div class="div-table-responsive">';
 print '<table class="tagtable liste" id="tablelines">'."\n";
 
-// Search fields
+// Search fields - restructured to match driver_list.php style
 print '<tr class="liste_titre_filter">';
 print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name="search_ref" value="'.dol_escape_htmltag($search_ref).'"></td>';
 print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name="search_vehicle" value="'.dol_escape_htmltag($search_vehicle).'"></td>';
 print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name="search_driver" value="'.dol_escape_htmltag($search_driver).'"></td>';
 print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name="search_customer" value="'.dol_escape_htmltag($search_customer).'"></td>';
-print '<td class="liste_titre"><input type="date" class="flat maxwidth100" name="search_date_from" value="'.dol_escape_htmltag($search_date_from).'"></td>';
-print '<td class="liste_titre"><input type="date" class="flat maxwidth100" name="search_date_to" value="'.dol_escape_htmltag($search_date_to).'"></td>';
-print '<td class="liste_titre">';
+print '<td class="liste_titre"></td>'; // Booking Date
+print '<td class="liste_titre"></td>'; // Distance
+print '<td class="liste_titre"></td>'; // Amount
+print '<td class="liste_titre center">';
 $statusarray = array(
     '' => '',
     'pending' => $langs->trans('Pending'),
@@ -216,7 +247,7 @@ print $searchpicto;
 print '</td>';
 print '</tr>'."\n";
 
-// Table headers
+// Table headers - restructured to match driver_list.php style
 print '<tr class="liste_titre">';
 print_liste_field_titre("Ref", $_SERVER["PHP_SELF"], "t.ref", "", $param, '', $sortfield, $sortorder);
 print_liste_field_titre("Vehicle", $_SERVER["PHP_SELF"], "v.ref", "", $param, '', $sortfield, $sortorder);
@@ -225,7 +256,12 @@ print_liste_field_titre("Customer", $_SERVER["PHP_SELF"], "c.lastname", "", $par
 print_liste_field_titre("BookingDate", $_SERVER["PHP_SELF"], "t.booking_date", "", $param, '', $sortfield, $sortorder);
 print_liste_field_titre("Distance", $_SERVER["PHP_SELF"], "t.distance", "", $param, '', $sortfield, $sortorder);
 print_liste_field_titre("Amount", $_SERVER["PHP_SELF"], "t.selling_amount", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("Status", $_SERVER["PHP_SELF"], "t.status", "", $param, '', $sortfield, $sortorder);
+// Manually create centered header for status column like driver list
+print '<td class="liste_titre center">';
+print '<a class="reposition" href="'.$_SERVER["PHP_SELF"].'?sortfield=t.status&sortorder='.($sortfield == 't.status' && $sortorder == 'ASC' ? 'DESC' : 'ASC').$param.'">';
+print $langs->trans("Status");
+if ($sortfield == 't.status') print img_picto('', 'sort'.strtolower($sortorder));
+print '</a></td>';
 print_liste_field_titre("Action", $_SERVER["PHP_SELF"], "", "", "", '', '', '', 'maxwidthsearch ');
 print '</tr>'."\n";
 
@@ -238,34 +274,32 @@ if ($resql && $num > 0) {
         
         print '<tr class="oddeven">';
         
-        // Reference
+        // Reference - Removed the calendar icon
         print '<td class="nowrap"><a href="'.dol_buildpath('/flotte/booking_card.php', 1).'?id='.$obj->rowid.'">';
-        print img_object($langs->trans("ShowBooking"), "calendar", 'class="pictofixedwidth"');
         print '<strong>'.dol_escape_htmltag($obj->ref).'</strong></a></td>';
         
-        // Vehicle
+        // Vehicle - like driver_list.php style
         print '<td>';
         if (!empty($obj->vehicle_ref)) {
-            $vehicle_info = $obj->vehicle_ref;
-            if (!empty($obj->maker) && !empty($obj->model)) {
-                $vehicle_info .= ' - '.$obj->maker.' '.$obj->model;
+            print dol_escape_htmltag($obj->vehicle_ref);
+            if ($obj->maker || $obj->model) {
+                print '<br><small style="color: #666;">'.dol_escape_htmltag(trim($obj->maker . ' ' . $obj->model)).'</small>';
             }
-            print dol_escape_htmltag($vehicle_info);
         } else {
-            print '<span class="opacitymedium">'.$langs->trans("NotAssigned").'</span>';
+            print '<em style="color: #999;">'.$langs->trans("NotAssigned").'</em>';
         }
         print '</td>';
         
-        // Driver
+        // Driver - like driver_list.php style
         print '<td>';
         if (!empty($obj->driver_firstname) || !empty($obj->driver_lastname)) {
             print dol_escape_htmltag($obj->driver_firstname.' '.$obj->driver_lastname);
         } else {
-            print '<span class="opacitymedium">'.$langs->trans("NotAssigned").'</span>';
+            print '<em style="color: #999;">'.$langs->trans("NotAssigned").'</em>';
         }
         print '</td>';
         
-        // Customer
+        // Customer - like driver_list.php style
         print '<td>';
         if (!empty($obj->customer_firstname) || !empty($obj->customer_lastname) || !empty($obj->company_name)) {
             $customer_info = '';
@@ -281,7 +315,7 @@ if ($resql && $num > 0) {
             }
             print dol_escape_htmltag($customer_info);
         } else {
-            print '<span class="opacitymedium">'.$langs->trans("NotAssigned").'</span>';
+            print '<em style="color: #999;">'.$langs->trans("NotAssigned").'</em>';
         }
         print '</td>';
         
@@ -294,7 +328,7 @@ if ($resql && $num > 0) {
         // Amount
         print '<td class="right">'.($obj->selling_amount ? price($obj->selling_amount) : '-').'</td>';
         
-        // Status
+        // Status - centered like driver_list.php
         print '<td class="center">';
         if ($obj->status == 'pending') {
             print dolGetStatus($langs->trans('Pending'), '', '', 'status0', 1);
@@ -311,16 +345,13 @@ if ($resql && $num > 0) {
         }
         print '</td>';
         
-        // Actions
+        // Actions - like driver_list.php (only edit and delete, no view button)
         print '<td class="nowrap center">';
-        if ($user->rights->flotte->read) {
-            print '<a class="editfielda" href="'.dol_buildpath('/flotte/booking_card.php', 1).'?id='.$obj->rowid.'" title="'.$langs->trans("View").'">'.img_view($langs->trans("View")).'</a>';
-        }
         if ($user->rights->flotte->write) {
             print '<a class="editfielda" href="'.dol_buildpath('/flotte/booking_card.php', 1).'?id='.$obj->rowid.'&action=edit" title="'.$langs->trans("Edit").'">'.img_edit($langs->trans("Edit")).'</a>';
         }
         if ($user->rights->flotte->delete) {
-            print '<a class="editfielda" href="'.dol_buildpath('/flotte/booking_card.php', 1).'?id='.$obj->rowid.'&action=delete&token='.newToken().'" title="'.$langs->trans("Delete").'">'.img_delete($langs->trans("Delete")).'</a>';
+            print '<a class="editfielda" href="'.dol_buildpath('/flotte/booking_list.php', 1).'?action=delete&id='.$obj->rowid.'&token='.newToken().'" title="'.$langs->trans("Delete").'">'.img_delete($langs->trans("Delete")).'</a>';
         }
         print '</td>';
         
