@@ -346,7 +346,7 @@ $hookmanager->initHooks(array('bookingcard'));
 
 $title = $langs->trans('Booking');
 if ($action == 'create') {
-    $title = $langs->trans('NewBooking');
+    $title = $langs->trans('New Booking');
 } elseif ($action == 'edit') {
     $title = $langs->trans('EditBooking');
 } elseif ($id > 0) {
@@ -365,7 +365,7 @@ $head[$h][1] = $langs->trans('Card');
 $head[$h][2] = 'card';
 $h++;
 
-dol_fiche_head($head, 'card', $langs->trans('Booking'), -1, 'calendar');
+dol_fiche_head($head, 'card', $langs->trans('Booking'), -1, '');
 
 // Confirmation to delete
 if ($action == 'delete') {
@@ -598,23 +598,79 @@ print '</div>';
 
 print '<div class="clearboth"></div>';
 
-// Form buttons
+// Add the same button styling as driver_card.php
+print '<style>
+    .flotte-btn {
+        display: inline-block;
+        min-width: 120px;
+        height: 34px;
+        line-height: 34px;
+        padding: 0 20px;
+        text-align: center;
+        box-sizing: border-box;
+        font-size: 13px;
+        border-radius: 3px;
+        cursor: pointer;
+        text-decoration: none;
+        vertical-align: middle;
+        margin: 0 4px;
+    }
+    /* Submit / Create / Save — solid blue fill */
+    input.flotte-btn {
+        background: #3c6d9f;
+        border: 1px solid #2e5a85;
+        color: #fff;
+    }
+    input.flotte-btn:hover {
+        background: #2e5a85;
+    }
+    /* Modify — solid blue fill (same weight as submit) */
+    a.flotte-btn-primary {
+        background: #3c6d9f;
+        border: 1px solid #2e5a85;
+        color: #fff;
+    }
+    a.flotte-btn-primary:hover {
+        background: #2e5a85;
+        color: #fff;
+    }
+    /* Cancel — blue outline, white fill */
+    a.flotte-btn-cancel {
+        background: #fff;
+        border: 1px solid #3c6d9f;
+        color: #3c6d9f;
+    }
+    a.flotte-btn-cancel:hover {
+        background: #eef3f8;
+        color: #2e5a85;
+    }
+    /* Back to List — blue outline, white fill */
+    a.flotte-btn-back {
+        background: #fff;
+        border: 1px solid #3c6d9f;
+        color: #3c6d9f;
+    }
+    a.flotte-btn-back:hover {
+        background: #eef3f8;
+        color: #2e5a85;
+    }
+</style>'."\n";
+
+// Form buttons - Updated to match driver_card.php style
 if ($action == 'create' || $action == 'edit') {
-    print '<div class="center">';
-    print '<input type="submit" class="button" value="' . ($action == 'create' ? $langs->trans('Create') : $langs->trans('Save')) . '">';
-    print '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
-    print '<a class="button button-cancel" href="' . ($id > 0 ? $_SERVER['PHP_SELF'] . '?id=' . $id : 'booking_list.php') . '">' . $langs->trans('Cancel') . '</a>';
+    print '<div class="center" style="margin-top: 20px; margin-bottom: 10px;">';
+    print '<input type="submit" class="flotte-btn" value="' . ($action == 'create' ? $langs->trans('Create') : $langs->trans('Save')) . '">';
+    print '<a class="flotte-btn flotte-btn-cancel" href="' . ($id > 0 ? $_SERVER['PHP_SELF'] . '?id=' . $id : 'booking_list.php') . '">' . $langs->trans('Cancel') . '</a>';
+    print '<a class="flotte-btn flotte-btn-back" href="' . dol_buildpath('/flotte/booking_list.php', 1) . '">' . $langs->trans('BackToList') . '</a>';
     print '</div>';
     print '</form>';
 } elseif ($id > 0) {
-    // Action buttons
-    print '<div class="tabsAction">';
-    print '<div class="inline-block divButAction">';
-    print '<a class="butAction" href="' . $_SERVER['PHP_SELF'] . '?id=' . $id . '&action=edit">' . $langs->trans('Modify') . '</a>';
-    if (!empty($user->rights->flotte->delete)) {
-        print '<a class="butActionDelete" href="' . $_SERVER['PHP_SELF'] . '?id=' . $id . '&action=delete">' . $langs->trans('Delete') . '</a>';
+    // Action buttons (view mode) - Updated to match driver_card.php style
+    print '<div class="center" style="margin-top: 20px; margin-bottom: 10px;">';
+    if ($user->rights->flotte->write) {
+        print '<a class="flotte-btn flotte-btn-primary" href="' . $_SERVER['PHP_SELF'] . '?id=' . $id . '&action=edit">' . $langs->trans('Modify') . '</a>';
     }
-    print '</div>';
+    print '<a class="flotte-btn flotte-btn-back" href="' . dol_buildpath('/flotte/booking_list.php', 1) . '">' . $langs->trans('BackToList') . '</a>';
     print '</div>';
 }
 
