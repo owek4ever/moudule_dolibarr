@@ -93,6 +93,22 @@ if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter.x'
     $search_vendor = '';
 }
 
+// Delete action
+if ($action == 'confirm_delete' && $confirm == 'yes' && $user->rights->flotte->write) {
+    $id = GETPOST('id', 'int');
+    if ($id > 0) {
+        $sql = "DELETE FROM ".MAIN_DB_PREFIX."flotte_part WHERE rowid = ".(int)$id;
+        $result = $db->query($sql);
+        if ($result) {
+            setEventMessages($langs->trans("RecordDeleted"), null, 'mesgs');
+            header("Location: ".$_SERVER['PHP_SELF']);
+            exit;
+        } else {
+            setEventMessages($langs->trans("Error"), null, 'errors');
+        }
+    }
+}
+
 // Build and execute select
 $sql = 'SELECT t.rowid, t.ref, t.barcode, t.title, t.number, t.description, t.status, t.availability,';
 $sql .= ' t.fk_vendor, t.fk_category, t.manufacturer, t.year, t.model, t.qty_on_hand, t.unit_cost, t.note, t.picture,';
@@ -176,18 +192,10 @@ if ($resql) {
 // Page header
 llxHeader('', $langs->trans("PartsList"), '');
 
-// Page title and buttons
-$newCardButton = '';
-if ($user->rights->flotte->write) {
-    $newCardButton = dolGetButtonTitle($langs->trans('NewPart'), '', 'fa fa-plus-circle', dol_buildpath('/flotte/part_card.php', 1).'?action=create', '', $user->rights->flotte->read);
-}
-
-print load_fiche_titre($langs->trans("PartsList"), $newCardButton, 'generic');
-
 // Actions bar
 print '<div class="tabsAction">'."\n";
 if ($user->rights->flotte->write) {
-    print '<a class="butAction" href="'.dol_buildpath('/flotte/part_card.php', 1).'?action=create">'.$langs->trans("NewPart").'</a>'."\n";
+    print '<a class="butAction" href="'.dol_buildpath('/flotte/part_card.php', 1).'?action=create">'.$langs->trans("New Part").'</a>'."\n";
 }
 if ($user->rights->flotte->read) {
     print '<a class="butAction" href="'.dol_buildpath('/flotte/part_list.php', 1).'?action=export">'.$langs->trans("Export").'</a>'."\n";
@@ -207,6 +215,22 @@ if (!empty($search_availability))  $param .= '&search_availability='.urlencode($
 if (!empty($search_category))      $param .= '&search_category='.urlencode($search_category);
 if (!empty($search_vendor))        $param .= '&search_vendor='.urlencode($search_vendor);
 
+// Confirmation to delete
+if ($action == 'delete') {
+    $id = GETPOST('id', 'int');
+    $formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$id.$param, $langs->trans('DeletePart'), $langs->trans('ConfirmDeletePart'), 'confirm_delete', '', 0, 1);
+    print $formconfirm;
+    
+    // Clear the action from URL after showing confirmation to prevent reappearing on refresh
+    if (!empty($formconfirm)) {
+        echo '<script type="text/javascript">
+        if (window.history.replaceState) {
+            window.history.replaceState(null, null, "'.$_SERVER["PHP_SELF"].'?'.$param.'");
+        }
+        </script>';
+    }
+}
+
 // Search form
 print '<form method="POST" action="'.$_SERVER["PHP_SELF"].'">'."\n";
 print '<input type="hidden" name="token" value="'.newToken().'">';
@@ -217,7 +241,7 @@ print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
 print '<input type="hidden" name="page" value="'.$page.'">';
 
 // Print barre liste
-print_barre_liste($langs->trans("PartsList"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, 'generic', 0, $newCardButton, '', $limit, 0, 0, 1);
+print_barre_liste($langs->trans("PartsList"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, '0', 0);
 
 print '<div class="div-table-responsive">';
 print '<table class="tagtable liste" id="tablelines">'."\n";
@@ -229,20 +253,21 @@ print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name=
 print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name="search_number" value="'.dol_escape_htmltag($search_number).'"></td>';
 print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name="search_barcode" value="'.dol_escape_htmltag($search_barcode).'"></td>';
 print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name="search_manufacturer" value="'.dol_escape_htmltag($search_manufacturer).'"></td>';
-print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name="search_model" value="'.dol_escape_htmltag($search_model).'"></td>';
 print '<td class="liste_titre">';
+print $form->selectarray('search_category', $categories, $search_category, 1, 0, 0, '', 0, 0, 0, '', 'search_category width100 onrightofpage');
+print '</td>';
+print '<td class="liste_titre">';
+print $form->selectarray('search_vendor', $vendors, $search_vendor, 1, 0, 0, '', 0, 0, 0, '', 'search_vendor width100 onrightofpage');
+print '</td>';
+print '<td class="liste_titre right">&nbsp;</td>'; // Stock - no filter
+print '<td class="liste_titre right">&nbsp;</td>'; // UnitCost - no filter
+print '<td class="liste_titre center">';
 $statusarray = array(''=>'', 'Active'=>$langs->trans('Active'), 'Inactive'=>$langs->trans('Inactive'), 'Maintenance'=>$langs->trans('Maintenance'), 'Discontinued'=>$langs->trans('Discontinued'));
-print $form->selectarray('search_status', $statusarray, $search_status, 0, 0, 0, '', 0, 0, 0, '', 'search_status width100 onrightofpage');
+print $form->selectarray('search_status', $statusarray, $search_status, 1, 0, 0, '', 0, 0, 0, '', 'search_status width100 onrightofpage');
 print '</td>';
-print '<td class="liste_titre">';
+print '<td class="liste_titre center">';
 $availabilityarray = array(''=>'', '1'=>$langs->trans('Available'), '0'=>$langs->trans('NotAvailable'));
-print $form->selectarray('search_availability', $availabilityarray, $search_availability, 0, 0, 0, '', 0, 0, 0, '', 'search_availability width100 onrightofpage');
-print '</td>';
-print '<td class="liste_titre">';
-print $form->selectarray('search_category', $categories, $search_category, 0, 0, 0, '', 0, 0, 0, '', 'search_category width100 onrightofpage');
-print '</td>';
-print '<td class="liste_titre">';
-print $form->selectarray('search_vendor', $vendors, $search_vendor, 0, 0, 0, '', 0, 0, 0, '', 'search_vendor width100 onrightofpage');
+print $form->selectarray('search_availability', $availabilityarray, $search_availability, 1, 0, 0, '', 0, 0, 0, '', 'search_availability width100 onrightofpage');
 print '</td>';
 print '<td class="liste_titre maxwidthsearch">';
 $searchpicto = $form->showFilterButtons();
@@ -259,10 +284,10 @@ print_liste_field_titre("Barcode", $_SERVER["PHP_SELF"], "t.barcode", "", $param
 print_liste_field_titre("Manufacturer", $_SERVER["PHP_SELF"], "t.manufacturer", "", $param, '', $sortfield, $sortorder);
 print_liste_field_titre("Category", $_SERVER["PHP_SELF"], "c.category_name", "", $param, '', $sortfield, $sortorder);
 print_liste_field_titre("Vendor", $_SERVER["PHP_SELF"], "v.name", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("Stock", $_SERVER["PHP_SELF"], "t.qty_on_hand", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("UnitCost", $_SERVER["PHP_SELF"], "t.unit_cost", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("Status", $_SERVER["PHP_SELF"], "t.status", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("Available", $_SERVER["PHP_SELF"], "t.availability", "", $param, '', $sortfield, $sortorder);
+print_liste_field_titre("Stock", $_SERVER["PHP_SELF"], "t.qty_on_hand", "", $param, '', $sortfield, $sortorder, 'right ');
+print_liste_field_titre("UnitCost", $_SERVER["PHP_SELF"], "t.unit_cost", "", $param, '', $sortfield, $sortorder, 'right ');
+print_liste_field_titre("Status", $_SERVER["PHP_SELF"], "t.status", "", $param, '', $sortfield, $sortorder, 'center ');
+print_liste_field_titre("Available", $_SERVER["PHP_SELF"], "t.availability", "", $param, '', $sortfield, $sortorder, 'center ');
 print_liste_field_titre("Action", $_SERVER["PHP_SELF"], "", "", "", '', '', '', 'maxwidthsearch ');
 print '</tr>'."\n";
 
@@ -343,14 +368,11 @@ if ($resql && $num > 0) {
         
         // Actions
         print '<td class="nowrap center">';
-        if ($user->rights->flotte->read) {
-            print '<a class="editfielda" href="'.dol_buildpath('/flotte/part_card.php', 1).'?id='.$obj->rowid.'" title="'.$langs->trans("View").'">'.img_view($langs->trans("View")).'</a>';
+        if ($user->rights->flotte->delete) {
+            print '<a class="editfielda reposition" href="'.$_SERVER["PHP_SELF"].'?id='.$obj->rowid.'&action=delete&token='.newToken().$param.'" title="'.$langs->trans("Delete").'">'.img_delete($langs->trans("Delete")).'</a>';
         }
         if ($user->rights->flotte->write) {
             print '<a class="editfielda" href="'.dol_buildpath('/flotte/part_card.php', 1).'?id='.$obj->rowid.'&action=edit" title="'.$langs->trans("Edit").'">'.img_edit($langs->trans("Edit")).'</a>';
-        }
-        if ($user->rights->flotte->delete) {
-            print '<a class="editfielda" href="'.dol_buildpath('/flotte/part_card.php', 1).'?id='.$obj->rowid.'&action=delete&token='.newToken().'" title="'.$langs->trans("Delete").'">'.img_delete($langs->trans("Delete")).'</a>';
         }
         print '</td>';
         
