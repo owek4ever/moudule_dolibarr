@@ -267,7 +267,6 @@ if ($resql && $num > 0) {
         
         // Reference
         print '<td class="nowrap"><a href="'.dol_buildpath('/flotte/driver_card.php', 1).'?id='.$obj->rowid.'">';
-        print img_object($langs->trans("ShowDriver"), "user", 'class="pictofixedwidth"');
         print '<strong>'.dol_escape_htmltag($obj->ref).'</strong></a></td>';
         
         // First Name
