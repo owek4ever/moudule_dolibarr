@@ -65,6 +65,11 @@ if (!$sortorder) {
     $sortorder = "DESC";
 }
 
+// Initialize technical objects
+$form = new Form($db);
+$formcompany = new FormCompany($db);
+$hookmanager->initHooks(array('fuellist', 'globalcard'));
+
 // Security check
 restrictedArea($user, 'flotte');
 
@@ -83,6 +88,29 @@ if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter.x'
     $search_reference = '';
     $search_state = '';
     $search_fuel_source = '';
+}
+
+// Handle confirmed delete from list page
+if ($action == 'confirm_delete' && GETPOST('confirm', 'alpha') == 'yes') {
+    $id_to_delete = GETPOST('id', 'int');
+    if ($id_to_delete > 0) {
+        $db->begin();
+        $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."flotte_fuel WHERE rowid = ".(int)$id_to_delete." AND entity IN (".getEntity('flotte').")";
+        $resql_del = $db->query($sql_del);
+        if ($resql_del) {
+            // Delete associated files if any
+            $uploadDir = $conf->flotte->dir_output . '/fuel/' . $id_to_delete . '/';
+            if (is_dir($uploadDir)) {
+                dol_delete_dir_recursive($uploadDir);
+            }
+            $db->commit();
+            setEventMessages($langs->trans("FuelRecordDeletedSuccessfully"), null, 'mesgs');
+        } else {
+            $db->rollback();
+            setEventMessages("Error in SQL: ".$db->lasterror(), null, 'errors');
+        }
+    }
+    $action = 'list';
 }
 
 // Build and execute select
@@ -113,8 +141,8 @@ if ($search_fuel_source) {
 
 $sql .= $db->order($sortfield, $sortorder);
 
-// Count total nb of records
-$sqlcount = str_replace('SELECT t.rowid, t.ref, t.fk_vehicle, t.date, t.start_meter, t.reference, t.state, t.note, t.complete_fillup, t.fuel_source, t.qty, t.cost_unit, (t.qty * t.cost_unit) as total_cost, v.maker, v.model, v.license_plate', 'SELECT COUNT(*) as nb', $sql);
+// Count total nb of records - Updated to match driver_list.php
+$sqlcount = preg_replace('/^SELECT[^,]+(,\s*[^,]+)*\s+FROM/', 'SELECT COUNT(*) as nb FROM', $sql);
 $resql = $db->query($sqlcount);
 $nbtotalofrecords = 0;
 if ($resql) {
@@ -125,27 +153,33 @@ if ($resql) {
 $sql .= $db->plimit($limit + 1, $offset);
 $resql = $db->query($sql);
 
-$form = new Form($db);
 $num = 0;
 if ($resql) {
     $num = $db->num_rows($resql);
 }
 
 // Page header
-llxHeader('', $langs->trans("FuelRecordsList"), '');
+llxHeader('', $langs->trans("Fuel Records List"), '');
 
 // Page title and buttons
 $newCardButton = '';
 if ($user->rights->flotte->write) {
-    $newCardButton = dolGetButtonTitle($langs->trans('NewFuelRecord'), '', 'fa fa-plus-circle', dol_buildpath('/flotte/fuel_card.php', 1).'?action=create', '', $user->rights->flotte->read);
+    $newCardButton = dolGetButtonTitle($langs->trans('New Fuel Record'), '', 'fa fa-plus-circle', dol_buildpath('/flotte/fuel_card.php', 1).'?action=create', '', $user->rights->flotte->read);
 }
 
-print load_fiche_titre($langs->trans("FuelRecordsList"), $newCardButton, 'fuel');
+// Show delete confirmation dialog if requested
+if ($action == 'delete') {
+    $id_to_delete = GETPOST('id', 'int');
+    if ($id_to_delete > 0) {
+        $formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$id_to_delete, $langs->trans('DeleteFuelRecord'), $langs->trans('ConfirmDeleteFuelRecord'), 'confirm_delete', '', 0, 1);
+        print $formconfirm;
+    }
+}
 
 // Actions bar
 print '<div class="tabsAction">'."\n";
 if ($user->rights->flotte->write) {
-    print '<a class="butAction" href="'.dol_buildpath('/flotte/fuel_card.php', 1).'?action=create">'.$langs->trans("NewFuelRecord").'</a>'."\n";
+    print '<a class="butAction" href="'.dol_buildpath('/flotte/fuel_card.php', 1).'?action=create">'.$langs->trans("New Fuel Record").'</a>'."\n";
 }
 if ($user->rights->flotte->read) {
     print '<a class="butAction" href="'.dol_buildpath('/flotte/fuel_list.php', 1).'?action=export">'.$langs->trans("Export").'</a>'."\n";
@@ -170,27 +204,27 @@ print '<input type="hidden" name="sortfield" value="'.$sortfield.'">';
 print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
 print '<input type="hidden" name="page" value="'.$page.'">';
 
-// Print barre liste
-print_barre_liste($langs->trans("FuelRecordsList"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, 'fuel', 0, $newCardButton, '', $limit, 0, 0, 1);
+// Print barre liste - removed 'fuel' icon parameter
+print_barre_liste($langs->trans("Fuel Records List"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, '', 0);
 
 print '<div class="div-table-responsive">';
 print '<table class="tagtable liste" id="tablelines">'."\n";
 
-// Search fields
+// Search fields - restructured to match driver_list.php style
 print '<tr class="liste_titre_filter">';
 print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name="search_ref" value="'.dol_escape_htmltag($search_ref).'"></td>';
 print '<td class="liste_titre"><input type="text" class="flat maxwidth150" name="search_vehicle" value="'.dol_escape_htmltag($search_vehicle).'" placeholder="'.$langs->trans('VehicleSearch').'"></td>';
-print '<td class="liste_titre center"><input type="date" class="flat maxwidth100" name="search_date" value="'.dol_escape_htmltag($search_date).'"></td>';
-print '<td class="liste_titre center"></td>'; // Meter Reading
+print '<td class="liste_titre"></td>'; // Date
+print '<td class="liste_titre"></td>'; // Meter Reading
 print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name="search_reference" value="'.dol_escape_htmltag($search_reference).'"></td>';
-print '<td class="liste_titre center"></td>'; // Quantity
-print '<td class="liste_titre center"></td>'; // Cost/Unit
-print '<td class="liste_titre center"></td>'; // Total Cost
-print '<td class="liste_titre">';
+print '<td class="liste_titre"></td>'; // Quantity
+print '<td class="liste_titre"></td>'; // Cost/Unit
+print '<td class="liste_titre"></td>'; // Total Cost
+print '<td class="liste_titre center">';
 $fuelsourcearray = array(''=>'', 'Station'=>$langs->trans('Station'), 'Tank'=>$langs->trans('Tank'), 'Other'=>$langs->trans('Other'));
 print $form->selectarray('search_fuel_source', $fuelsourcearray, $search_fuel_source, 0, 0, 0, '', 0, 0, 0, '', 'search_fuel_source width100 onrightofpage');
 print '</td>';
-print '<td class="liste_titre">';
+print '<td class="liste_titre center">';
 $statearray = array(''=>'', 'pending'=>$langs->trans('Pending'), 'approved'=>$langs->trans('Approved'), 'rejected'=>$langs->trans('Rejected'), 'completed'=>$langs->trans('Completed'));
 print $form->selectarray('search_state', $statearray, $search_state, 0, 0, 0, '', 0, 0, 0, '', 'search_state width100 onrightofpage');
 print '</td>';
@@ -200,7 +234,7 @@ print $searchpicto;
 print '</td>';
 print '</tr>'."\n";
 
-// Table headers
+// Table headers - restructured to match driver_list.php style
 print '<tr class="liste_titre">';
 print_liste_field_titre("Ref", $_SERVER["PHP_SELF"], "t.ref", "", $param, '', $sortfield, $sortorder);
 print_liste_field_titre("Vehicle", $_SERVER["PHP_SELF"], "v.license_plate", "", $param, '', $sortfield, $sortorder);
@@ -210,8 +244,18 @@ print_liste_field_titre("Reference", $_SERVER["PHP_SELF"], "t.reference", "", $p
 print_liste_field_titre("Quantity", $_SERVER["PHP_SELF"], "t.qty", "", $param, '', $sortfield, $sortorder, 'center ');
 print_liste_field_titre("CostUnit", $_SERVER["PHP_SELF"], "t.cost_unit", "", $param, '', $sortfield, $sortorder, 'center ');
 print_liste_field_titre("TotalCost", $_SERVER["PHP_SELF"], "total_cost", "", $param, '', $sortfield, $sortorder, 'center ');
-print_liste_field_titre("FuelSource", $_SERVER["PHP_SELF"], "t.fuel_source", "", $param, '', $sortfield, $sortorder, 'center ');
-print_liste_field_titre("State", $_SERVER["PHP_SELF"], "t.state", "", $param, '', $sortfield, $sortorder, 'center ');
+// Manually create centered header for fuel source column like driver list
+print '<td class="liste_titre center">';
+print '<a class="reposition" href="'.$_SERVER["PHP_SELF"].'?sortfield=t.fuel_source&sortorder='.($sortfield == 't.fuel_source' && $sortorder == 'ASC' ? 'DESC' : 'ASC').$param.'">';
+print $langs->trans("FuelSource");
+if ($sortfield == 't.fuel_source') print img_picto('', 'sort'.strtolower($sortorder));
+print '</a></td>';
+// Manually create centered header for state column like driver list
+print '<td class="liste_titre center">';
+print '<a class="reposition" href="'.$_SERVER["PHP_SELF"].'?sortfield=t.state&sortorder='.($sortfield == 't.state' && $sortorder == 'ASC' ? 'DESC' : 'ASC').$param.'">';
+print $langs->trans("State");
+if ($sortfield == 't.state') print img_picto('', 'sort'.strtolower($sortorder));
+print '</a></td>';
 print_liste_field_titre("Action", $_SERVER["PHP_SELF"], "", "", "", '', '', '', 'maxwidthsearch ');
 print '</tr>'."\n";
 
@@ -224,12 +268,12 @@ if ($resql && $num > 0) {
         
         print '<tr class="oddeven">';
         
-        // Reference
+        // Reference - like driver_list.php style (removed icon)
         print '<td class="nowrap"><a href="'.dol_buildpath('/flotte/fuel_card.php', 1).'?id='.$obj->rowid.'">';
-        print img_object($langs->trans("ShowFuelRecord"), "fuel", 'class="pictofixedwidth"');
         print '<strong>'.dol_escape_htmltag($obj->ref).'</strong></a></td>';
         
-        // Vehicle
+        // Vehicle - like driver_list.php style
+        print '<td>';
         $vehicle_info = '';
         if ($obj->maker || $obj->model || $obj->license_plate) {
             $vehicle_parts = array();
@@ -238,27 +282,28 @@ if ($resql && $num > 0) {
             if ($obj->license_plate) $vehicle_parts[] = '['.$obj->license_plate.']';
             $vehicle_info = implode(' ', $vehicle_parts);
         }
-        print '<td>'.dol_escape_htmltag($vehicle_info).'</td>';
+        print dol_escape_htmltag($vehicle_info);
+        print '</td>';
         
         // Date
         print '<td class="center">'.dol_print_date($db->jdate($obj->date), 'day').'</td>';
         
         // Meter Reading
-        print '<td class="center">'.($obj->start_meter ? number_format($obj->start_meter).' km' : '').'</td>';
+        print '<td class="center">'.($obj->start_meter ? number_format($obj->start_meter).' km' : '-').'</td>';
         
         // Reference
-        print '<td>'.dol_escape_htmltag($obj->reference).'</td>';
+        print '<td>'.dol_escape_htmltag($obj->reference ?: '-').'</td>';
         
         // Quantity
-        print '<td class="center">'.($obj->qty ? number_format($obj->qty, 2).' L' : '').'</td>';
+        print '<td class="center">'.($obj->qty ? number_format($obj->qty, 2).' L' : '-').'</td>';
         
         // Cost/Unit
-        print '<td class="center">'.($obj->cost_unit ? price($obj->cost_unit) : '').'</td>';
+        print '<td class="center">'.($obj->cost_unit ? price($obj->cost_unit) : '-').'</td>';
         
         // Total Cost
-        print '<td class="center"><strong>'.($obj->total_cost ? price($obj->total_cost) : '').'</strong></td>';
+        print '<td class="center"><strong>'.($obj->total_cost ? price($obj->total_cost) : '-').'</strong></td>';
         
-        // Fuel Source
+        // Fuel Source - centered like driver_list.php
         print '<td class="center">';
         if ($obj->fuel_source) {
             $source_label = $langs->trans($obj->fuel_source);
@@ -266,10 +311,12 @@ if ($resql && $num > 0) {
             if ($obj->fuel_source == 'Tank') $status_color = 'status8';
             elseif ($obj->fuel_source == 'Other') $status_color = 'status9';
             print dolGetStatus($source_label, '', '', $status_color, 1);
+        } else {
+            print '-';
         }
         print '</td>';
         
-        // State
+        // State - centered like driver_list.php
         print '<td class="center">';
         if ($obj->state) {
             $state_label = $langs->trans(ucfirst($obj->state));
@@ -278,19 +325,18 @@ if ($resql && $num > 0) {
             elseif ($obj->state == 'completed') $status_color = 'status6';
             elseif ($obj->state == 'rejected') $status_color = 'status8';
             print dolGetStatus($state_label, '', '', $status_color, 1);
+        } else {
+            print '-';
         }
         print '</td>';
         
-        // Actions
+        // Actions - like driver_list.php (only edit and delete, no view button)
         print '<td class="nowrap center">';
-        if ($user->rights->flotte->read) {
-            print '<a class="editfielda" href="'.dol_buildpath('/flotte/fuel_card.php', 1).'?id='.$obj->rowid.'" title="'.$langs->trans("View").'">'.img_view($langs->trans("View")).'</a>';
-        }
         if ($user->rights->flotte->write) {
             print '<a class="editfielda" href="'.dol_buildpath('/flotte/fuel_card.php', 1).'?id='.$obj->rowid.'&action=edit" title="'.$langs->trans("Edit").'">'.img_edit($langs->trans("Edit")).'</a>';
         }
         if ($user->rights->flotte->delete) {
-            print '<a class="editfielda" href="'.dol_buildpath('/flotte/fuel_card.php', 1).'?id='.$obj->rowid.'&action=delete&token='.newToken().'" title="'.$langs->trans("Delete").'">'.img_delete($langs->trans("Delete")).'</a>';
+            print '<a class="editfielda" href="'.dol_buildpath('/flotte/fuel_list.php', 1).'?action=delete&id='.$obj->rowid.'&token='.newToken().'" title="'.$langs->trans("Delete").'">'.img_delete($langs->trans("Delete")).'</a>';
         }
         print '</td>';
         
