@@ -64,11 +64,6 @@ if (!$sortorder) {
     $sortorder = "DESC";
 }
 
-// Initialize technical objects
-$form = new Form($db);
-$formcompany = new FormCompany($db);
-$hookmanager->initHooks(array('workorderlist', 'globalcard'));
-
 // Security check
 restrictedArea($user, 'flotte');
 
@@ -92,8 +87,8 @@ if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter.x'
 if ($action == 'confirm_delete' && $confirm == 'yes' && $user->rights->flotte->write) {
     $id = GETPOST('id', 'int');
     if ($id > 0) {
-        $sql_delete = "DELETE FROM ".MAIN_DB_PREFIX."flotte_workorder WHERE rowid = ".(int)$id;
-        $result = $db->query($sql_delete);
+        $sql = "DELETE FROM ".MAIN_DB_PREFIX."flotte_workorder WHERE rowid = ".(int)$id;
+        $result = $db->query($sql);
         if ($result) {
             setEventMessages($langs->trans("RecordDeleted"), null, 'mesgs');
             header("Location: ".$_SERVER['PHP_SELF']);
@@ -114,6 +109,7 @@ $sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'flotte_vendor as ven ON t.fk_vendor = ven.
 $sql .= ' WHERE 1 = 1';
 $sql .= ' AND t.entity IN ('.getEntity('flotte').')';
 
+// Add search filters
 if ($search_ref) {
     $sql .= " AND t.ref LIKE '%".$db->escape($search_ref)."%'";
 }
@@ -133,7 +129,7 @@ if ($search_required_by) {
 $sql .= $db->order($sortfield, $sortorder);
 
 // Count total nb of records
-$sqlcount = preg_replace('/^SELECT[^F]*FROM/i', 'SELECT COUNT(*) as nb FROM', $sql);
+$sqlcount = preg_replace('/SELECT.*FROM/', 'SELECT COUNT(*) as nb FROM', $sql);
 $resql = $db->query($sqlcount);
 $nbtotalofrecords = 0;
 if ($resql) {
@@ -144,6 +140,7 @@ if ($resql) {
 $sql .= $db->plimit($limit + 1, $offset);
 $resql = $db->query($sql);
 
+$form = new Form($db);
 $num = 0;
 if ($resql) {
     $num = $db->num_rows($resql);
@@ -265,7 +262,6 @@ if ($resql && $num > 0) {
         
         // Reference
         print '<td class="nowrap"><a href="'.dol_buildpath('/flotte/workorder_card.php', 1).'?id='.$obj->rowid.'">';
-        print img_object($langs->trans("ShowWorkOrder"), "generic", 'class="pictofixedwidth"');
         print '<strong>'.dol_escape_htmltag($obj->ref).'</strong></a></td>';
         
         // Vehicle
