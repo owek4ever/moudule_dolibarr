@@ -251,7 +251,6 @@ print_liste_field_titre("AssignedVehicle", $_SERVER["PHP_SELF"], "v.ref", "", $p
 print '<td class="liste_titre center">';
 print '<a class="reposition" href="'.$_SERVER["PHP_SELF"].'?sortfield=t.status&sortorder='.($sortfield == 't.status' && $sortorder == 'ASC' ? 'DESC' : 'ASC').$param.'">';
 print $langs->trans("Status");
-if ($sortfield == 't.status') print img_picto('', 'sort'.strtolower($sortorder));
 print '</a></td>';
 print_liste_field_titre("Action", $_SERVER["PHP_SELF"], "", "", "", '', '', '', 'maxwidthsearch ');
 print '</tr>'."\n";

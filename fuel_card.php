@@ -382,12 +382,23 @@ $linkback = '<a href="' . dol_buildpath('/flotte/fuel_list.php', 1) . '">' . $la
 
 $h = 0;
 $head = array();
-$head[$h][0] = $_SERVER["PHP_SELF"] . '?id=' . $id;
+$head[$h][0] = 'javascript:void(0);'; // Non-clickable link
 $head[$h][1] = $langs->trans('Card');
 $head[$h][2] = 'card';
 $h++;
 
 dol_fiche_head($head, 'card', $langs->trans('FuelRecord'), -1, 'fuel');
+
+// Add CSS to make the Card tab non-clickable
+print '<style>
+    .tabsAction a[href*="javascript:void(0)"],
+    .tabs a[href*="javascript:void(0)"],
+    a.tabactive[href*="javascript:void(0)"] {
+        pointer-events: none !important;
+        cursor: default !important;
+        text-decoration: none !important;
+    }
+</style>';
 
 // Confirmation to delete
 if ($action == 'delete') {

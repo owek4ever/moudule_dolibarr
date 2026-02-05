@@ -386,12 +386,23 @@ $linkback = '<a href="' . DOL_URL_ROOT . '/flotte/driver_list.php">' . $langs->t
 
 $h = 0;
 $head = array();
-$head[$h][0] = $_SERVER["PHP_SELF"] . '?id=' . $id;
+$head[$h][0] = 'javascript:void(0);'; // Non-clickable link
 $head[$h][1] = $langs->trans('Card');
 $head[$h][2] = 'card';
 $h++;
 
 dol_fiche_head($head, 'card', $langs->trans('Driver'), -1, '');
+
+// Add CSS to make the Card tab non-clickable
+print '<style>
+    .tabsAction a[href*="javascript:void(0)"],
+    .tabs a[href*="javascript:void(0)"],
+    a.tabactive[href*="javascript:void(0)"] {
+        pointer-events: none !important;
+        cursor: default !important;
+        text-decoration: none !important;
+    }
+</style>';
 
 // Show error messages
 if (!empty($errors)) {
@@ -786,6 +797,16 @@ print '<style>
         background: #eef3f8;
         color: #2e5a85;
     }
+    /* Delete — red fill */
+    a.flotte-btn-delete {
+        background: #c9302c;
+        border: 1px solid #ac2925;
+        color: #fff;
+    }
+    a.flotte-btn-delete:hover {
+        background: #ac2925;
+        color: #fff;
+    }
 </style>'."\n";
 
 // Form buttons
@@ -797,9 +818,10 @@ if ($action == 'create' || $action == 'edit') {
     print '</div>';
     print '</form>';
 } elseif ($id > 0) {
-    // Action buttons (view mode) - Delete button removed, handled from list page
+    // Action buttons
     print '<div class="center" style="margin-top: 20px; margin-bottom: 10px;">';
     print '<a class="flotte-btn flotte-btn-primary" href="' . $_SERVER['PHP_SELF'] . '?id=' . $id . '&action=edit">' . $langs->trans('Modify') . '</a>';
+    print '<a class="flotte-btn flotte-btn-delete" href="' . $_SERVER['PHP_SELF'] . '?id=' . $id . '&action=delete">' . $langs->trans('Delete') . '</a>';
     print '<a class="flotte-btn flotte-btn-back" href="' . dol_buildpath('/flotte/driver_list.php', 1) . '">' . $langs->trans('BackToList') . '</a>';
     print '</div>';
 }
