@@ -87,6 +87,22 @@ if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter.x'
     $search_state = '';
 }
 
+// Delete action
+if ($action == 'confirm_delete' && $confirm == 'yes' && $user->rights->flotte->write) {
+    $id = GETPOST('id', 'int');
+    if ($id > 0) {
+        $sql = "DELETE FROM ".MAIN_DB_PREFIX."flotte_vendor WHERE rowid = ".(int)$id;
+        $result = $db->query($sql);
+        if ($result) {
+            setEventMessages($langs->trans("RecordDeleted"), null, 'mesgs');
+            header("Location: ".$_SERVER['PHP_SELF']);
+            exit;
+        } else {
+            setEventMessages($langs->trans("Error"), null, 'errors');
+        }
+    }
+}
+
 // Build and execute select
 $sql = 'SELECT t.rowid, t.ref, t.name, t.phone, t.email, t.type, t.website, t.note, t.address1, t.address2, t.city, t.state, t.picture';
 $sql .= ' FROM '.MAIN_DB_PREFIX.'flotte_vendor as t';
@@ -141,15 +157,13 @@ llxHeader('', $langs->trans("VendorsList"), '');
 // Page title and buttons
 $newCardButton = '';
 if ($user->rights->flotte->write) {
-    $newCardButton = dolGetButtonTitle($langs->trans('NewVendor'), '', 'fa fa-plus-circle', dol_buildpath('/flotte/vendor_card.php', 1).'?action=create', '', $user->rights->flotte->read);
+    $newCardButton = dolGetButtonTitle($langs->trans('New Vendor'), '', 'fa fa-plus-circle', dol_buildpath('/flotte/vendor_card.php', 1).'?action=create', '', $user->rights->flotte->read);
 }
-
-print load_fiche_titre($langs->trans("VendorsList"), $newCardButton, 'company');
 
 // Actions bar
 print '<div class="tabsAction">'."\n";
 if ($user->rights->flotte->write) {
-    print '<a class="butAction" href="'.dol_buildpath('/flotte/vendor_card.php', 1).'?action=create">'.$langs->trans("NewVendor").'</a>'."\n";
+    print '<a class="butAction" href="'.dol_buildpath('/flotte/vendor_card.php', 1).'?action=create">'.$langs->trans("New Vendor").'</a>'."\n";
 }
 if ($user->rights->flotte->read) {
     print '<a class="butAction" href="'.dol_buildpath('/flotte/vendor_list.php', 1).'?action=export">'.$langs->trans("Export").'</a>'."\n";
@@ -166,6 +180,13 @@ if (!empty($search_type))          $param .= '&search_type='.urlencode($search_t
 if (!empty($search_city))          $param .= '&search_city='.urlencode($search_city);
 if (!empty($search_state))         $param .= '&search_state='.urlencode($search_state);
 
+// Confirmation to delete
+if ($action == 'delete') {
+    $id = GETPOST('id', 'int');
+    $formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$id.$param, $langs->trans('DeleteVendor'), $langs->trans('ConfirmDeleteVendor'), 'confirm_delete', '', 0, 1);
+    print $formconfirm;
+}
+
 // Search form
 print '<form method="POST" action="'.$_SERVER["PHP_SELF"].'">'."\n";
 print '<input type="hidden" name="token" value="'.newToken().'">';
@@ -176,7 +197,7 @@ print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
 print '<input type="hidden" name="page" value="'.$page.'">';
 
 // Print barre liste
-print_barre_liste($langs->trans("VendorsList"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, 'company', 0, $newCardButton, '', $limit, 0, 0, 1);
+print_barre_liste($langs->trans("VendorsList"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, '', 0);
 
 print '<div class="div-table-responsive">';
 print '<table class="tagtable liste" id="tablelines">'."\n";
@@ -224,7 +245,6 @@ if ($resql && $num > 0) {
         
         // Reference
         print '<td class="nowrap"><a href="'.dol_buildpath('/flotte/vendor_card.php', 1).'?id='.$obj->rowid.'">';
-        print img_object($langs->trans("ShowVendor"), "company", 'class="pictofixedwidth"');
         print '<strong>'.dol_escape_htmltag($obj->ref).'</strong></a></td>';
         
         // Name
@@ -268,14 +288,11 @@ if ($resql && $num > 0) {
         
         // Actions
         print '<td class="nowrap center">';
-        if ($user->rights->flotte->read) {
-            print '<a class="editfielda" href="'.dol_buildpath('/flotte/vendor_card.php', 1).'?id='.$obj->rowid.'" title="'.$langs->trans("View").'">'.img_view($langs->trans("View")).'</a>';
+        if ($user->rights->flotte->write) {
+            print '<a class="editfielda reposition" href="'.$_SERVER["PHP_SELF"].'?id='.$obj->rowid.'&action=delete&token='.newToken().'" title="'.$langs->trans("Delete").'">'.img_delete($langs->trans("Delete")).'</a>';
         }
         if ($user->rights->flotte->write) {
             print '<a class="editfielda" href="'.dol_buildpath('/flotte/vendor_card.php', 1).'?id='.$obj->rowid.'&action=edit" title="'.$langs->trans("Edit").'">'.img_edit($langs->trans("Edit")).'</a>';
-        }
-        if ($user->rights->flotte->delete) {
-            print '<a class="editfielda" href="'.dol_buildpath('/flotte/vendor_card.php', 1).'?id='.$obj->rowid.'&action=delete&token='.newToken().'" title="'.$langs->trans("Delete").'">'.img_delete($langs->trans("Delete")).'</a>';
         }
         print '</td>';
         
