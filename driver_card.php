@@ -31,6 +31,7 @@ if (!$res) { die("Include of main fails"); }
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
+require_once DOL_DOCUMENT_ROOT.'/core/class/html.formfile.class.php';
 
 // Load translation files
 $langs->loadLangs(array("flotte@flotte", "other"));
@@ -48,6 +49,12 @@ $hookmanager->initHooks(array('drivercard', 'globalcard'));
 
 // Security check
 restrictedArea($user, 'flotte');
+
+// Define upload directory
+$upload_dir = DOL_DATA_ROOT.'/flotte/driver';
+if (!is_dir($upload_dir)) {
+    dol_mkdir($upload_dir);
+}
 
 // Get driver data if editing/viewing
 $driver_data = array();
@@ -95,35 +102,23 @@ function getNextDriverRef($db) {
 $error = 0;
 $errors = array();
 
-// Handle file uploads
-function handleFileUpload($fieldName, $driverId, $currentFile = null) {
-    global $conf, $db;
-    
-    if (isset($_FILES[$fieldName]) && $_FILES[$fieldName]['error'] == UPLOAD_ERR_OK) {
-        $uploadDir = $conf->flotte->dir_output . '/drivers/' . $driverId . '/';
-        if (!dol_mkdir($uploadDir)) {
-            return null;
-        }
+// Function to handle file upload
+function handleFileUpload($file_field_name, $upload_dir) {
+    if (isset($_FILES[$file_field_name]) && $_FILES[$file_field_name]['error'] == 0) {
+        $allowed = array('jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx');
+        $filename = $_FILES[$file_field_name]['name'];
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
         
-        $fileName = $_FILES[$fieldName]['name'];
-        $fileExt = pathinfo($fileName, PATHINFO_EXTENSION);
-        $newFileName = $fieldName . '_' . $driverId . '_' . dol_print_date(dol_now(), 'dayhourlog') . '.' . $fileExt;
-        $newFileName = dol_sanitizeFileName($newFileName);
-        
-        $fullPath = $uploadDir . $newFileName;
-        
-        if (dol_move_uploaded_file($_FILES[$fieldName]['tmp_name'], $fullPath, 0, 0, $_FILES[$fieldName]['error'])) {
-            // Delete old file if exists
-            if (!empty($currentFile)) {
-                $oldFile = $uploadDir . $currentFile;
-                if (file_exists($oldFile)) {
-                    unlink($oldFile);
-                }
+        if (in_array($ext, $allowed)) {
+            $new_filename = uniqid() . '_' . $filename;
+            $destination = $upload_dir . '/' . $new_filename;
+            
+            if (move_uploaded_file($_FILES[$file_field_name]['tmp_name'], $destination)) {
+                return $new_filename;
             }
-            return $newFileName;
         }
     }
-    return $currentFile; // Return current file if no new upload
+    return null;
 }
 
 // Handle form submission
@@ -182,10 +177,16 @@ if ($action == 'add' && !$cancel && $_SERVER["REQUEST_METHOD"] == "POST") {
     if (!$error) {
         $db->begin();
         
+        // Handle file uploads
+        $driver_image = handleFileUpload('driver_image', $upload_dir);
+        $license_image = handleFileUpload('license_image', $upload_dir);
+        $documents = handleFileUpload('documents', $upload_dir);
+        
         $sql = "INSERT INTO ".MAIN_DB_PREFIX."flotte_driver (";
         $sql .= "ref, entity, firstname, middlename, lastname, address, email, phone, employee_id, contract_number,";
         $sql .= "license_number, license_issue_date, license_expiry_date, join_date, leave_date, password,";
-        $sql .= "department, status, gender, emergency_contact, fk_vehicle, fk_user_author";
+        $sql .= "department, status, gender, emergency_contact, fk_vehicle, ";
+        $sql .= "driver_image, license_image, documents, fk_user_author";
         $sql .= ") VALUES (";
         $sql .= "'".$db->escape($ref)."', ".$conf->entity.", '".$db->escape($firstname)."', '".$db->escape($middlename)."', '".$db->escape($lastname)."',";
         $sql .= "'".$db->escape($address)."', '".$db->escape($email)."', '".$db->escape($phone)."', '".$db->escape($employee_id)."',";
@@ -195,29 +196,16 @@ if ($action == 'add' && !$cancel && $_SERVER["REQUEST_METHOD"] == "POST") {
         $sql .= ($join_date ? "'".$db->idate($join_date)."'" : "NULL").",";
         $sql .= ($leave_date ? "'".$db->idate($leave_date)."'" : "NULL").",";
         $sql .= "'".$db->escape($password)."', '".$db->escape($department)."', '".$db->escape($status)."',";
-        $sql .= "'".$db->escape($gender)."', '".$db->escape($emergency_contact)."', ".($fk_vehicle ? $fk_vehicle : "NULL").", ".$user->id;
+        $sql .= "'".$db->escape($gender)."', '".$db->escape($emergency_contact)."', ".($fk_vehicle ? $fk_vehicle : "NULL").", ";
+        $sql .= ($driver_image ? "'".$db->escape($driver_image)."'" : "NULL").", ";
+        $sql .= ($license_image ? "'".$db->escape($license_image)."'" : "NULL").", ";
+        $sql .= ($documents ? "'".$db->escape($documents)."'" : "NULL").", ";
+        $sql .= $user->id;
         $sql .= ")";
         
         $resql = $db->query($sql);
         if ($resql) {
             $newid = $db->last_insert_id(MAIN_DB_PREFIX."flotte_driver");
-            
-            // Handle file uploads
-            $driver_image = handleFileUpload('driver_image', $newid);
-            $license_image = handleFileUpload('license_image', $newid);
-            $documents = handleFileUpload('documents', $newid);
-            
-            // Update record with file names if any files were uploaded
-            if ($driver_image || $license_image || $documents) {
-                $update_sql = "UPDATE ".MAIN_DB_PREFIX."flotte_driver SET ";
-                $updates = array();
-                if ($driver_image) $updates[] = "driver_image = '".$db->escape($driver_image)."'";
-                if ($license_image) $updates[] = "license_image = '".$db->escape($license_image)."'";
-                if ($documents) $updates[] = "documents = '".$db->escape($documents)."'";
-                $update_sql .= implode(", ", $updates) . " WHERE rowid = ".(int)$newid;
-                $db->query($update_sql);
-            }
-            
             $db->commit();
             setEventMessages($langs->trans("DriverCreatedSuccessfully"), null, 'mesgs');
             header('Location: driver_card.php?id='.$newid);
@@ -290,9 +278,9 @@ if ($action == 'update' && !$cancel && $_SERVER["REQUEST_METHOD"] == "POST" && $
         $db->begin();
         
         // Handle file uploads
-        $driver_image = handleFileUpload('driver_image', $id, $driver_data['driver_image']);
-        $license_image = handleFileUpload('license_image', $id, $driver_data['license_image']);
-        $documents = handleFileUpload('documents', $id, $driver_data['documents']);
+        $driver_image = handleFileUpload('driver_image', $upload_dir);
+        $license_image = handleFileUpload('license_image', $upload_dir);
+        $documents = handleFileUpload('documents', $upload_dir);
         
         $sql = "UPDATE ".MAIN_DB_PREFIX."flotte_driver SET";
         $sql .= " firstname = '".$db->escape($firstname)."',";
@@ -313,14 +301,14 @@ if ($action == 'update' && !$cancel && $_SERVER["REQUEST_METHOD"] == "POST" && $
         $sql .= " status = '".$db->escape($status)."',";
         $sql .= " gender = '".$db->escape($gender)."',";
         $sql .= " emergency_contact = '".$db->escape($emergency_contact)."',";
-        $sql .= " fk_vehicle = ".($fk_vehicle ? $fk_vehicle : "NULL").",";
+        $sql .= " fk_vehicle = ".($fk_vehicle ? $fk_vehicle : "NULL");
         
         // Add file fields if they were updated
-        if ($driver_image !== null) $sql .= " driver_image = ".($driver_image ? "'".$db->escape($driver_image)."'" : "NULL").",";
-        if ($license_image !== null) $sql .= " license_image = ".($license_image ? "'".$db->escape($license_image)."'" : "NULL").",";
-        if ($documents !== null) $sql .= " documents = ".($documents ? "'".$db->escape($documents)."'" : "NULL").",";
+        if ($driver_image) $sql .= ", driver_image = '".$db->escape($driver_image)."'";
+        if ($license_image) $sql .= ", license_image = '".$db->escape($license_image)."'";
+        if ($documents) $sql .= ", documents = '".$db->escape($documents)."'";
         
-        $sql .= " fk_user_modif = ".$user->id;
+        $sql .= ", fk_user_modif = ".$user->id;
         $sql .= " WHERE rowid = ".(int)$id;
 
         $resql = $db->query($sql);
@@ -691,13 +679,18 @@ print '<tr><td class="titlefield">' . $langs->trans('Driver Image') . '</td><td>
 if ($action == 'create' || $action == 'edit') {
     print '<input type="file" name="driver_image" accept="image/*">';
     if (!empty($driver_data['driver_image'])) {
-        print '<br><img src="' . $conf->flotte->dir_output . '/drivers/' . $id . '/' . $driver_data['driver_image'] . '" height="100" style="margin-top:10px;">';
+        print '<br><small>' . $langs->trans('Current') . ': ' . $driver_data['driver_image'] . '</small>';
     }
 } else {
     if (!empty($driver_data['driver_image'])) {
-        print '<img src="' . $conf->flotte->dir_output . '/drivers/' . $id . '/' . $driver_data['driver_image'] . '" height="100">';
+        $file_path = $upload_dir . '/' . $driver_data['driver_image'];
+        if (file_exists($file_path)) {
+            print '<a href="' . DOL_URL_ROOT . '/document.php?modulepart=flotte&file=driver/' . urlencode($driver_data['driver_image']) . '" target="_blank">' . $driver_data['driver_image'] . '</a>';
+        } else {
+            print $driver_data['driver_image'];
+        }
     } else {
-        print $langs->trans('NoImageUploaded');
+        print '&nbsp;';
     }
 }
 print '</td></tr>';
@@ -707,13 +700,18 @@ print '<tr><td>' . $langs->trans('License Image') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="file" name="license_image" accept="image/*">';
     if (!empty($driver_data['license_image'])) {
-        print '<br><img src="' . $conf->flotte->dir_output . '/drivers/' . $id . '/' . $driver_data['license_image'] . '" height="100" style="margin-top:10px;">';
+        print '<br><small>' . $langs->trans('Current') . ': ' . $driver_data['license_image'] . '</small>';
     }
 } else {
     if (!empty($driver_data['license_image'])) {
-        print '<img src="' . $conf->flotte->dir_output . '/drivers/' . $id . '/' . $driver_data['license_image'] . '" height="100">';
+        $file_path = $upload_dir . '/' . $driver_data['license_image'];
+        if (file_exists($file_path)) {
+            print '<a href="' . DOL_URL_ROOT . '/document.php?modulepart=flotte&file=driver/' . urlencode($driver_data['license_image']) . '" target="_blank">' . $driver_data['license_image'] . '</a>';
+        } else {
+            print $driver_data['license_image'];
+        }
     } else {
-        print $langs->trans('NoImageUploaded');
+        print '&nbsp;';
     }
 }
 print '</td></tr>';
@@ -723,13 +721,18 @@ print '<tr><td>' . $langs->trans('Documents') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="file" name="documents" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">';
     if (!empty($driver_data['documents'])) {
-        print '<br><a href="' . $conf->flotte->dir_output . '/drivers/' . $id . '/' . $driver_data['documents'] . '" target="_blank">' . $langs->trans('ViewDocument') . '</a>';
+        print '<br><small>' . $langs->trans('Current') . ': ' . $driver_data['documents'] . '</small>';
     }
 } else {
     if (!empty($driver_data['documents'])) {
-        print '<a href="' . $conf->flotte->dir_output . '/drivers/' . $id . '/' . $driver_data['documents'] . '" target="_blank">' . $langs->trans('ViewDocument') . '</a>';
+        $file_path = $upload_dir . '/' . $driver_data['documents'];
+        if (file_exists($file_path)) {
+            print '<a href="' . DOL_URL_ROOT . '/document.php?modulepart=flotte&file=driver/' . urlencode($driver_data['documents']) . '" target="_blank">' . $driver_data['documents'] . '</a>';
+        } else {
+            print $driver_data['documents'];
+        }
     } else {
-        print $langs->trans('NoDocumentUploaded');
+        print '&nbsp;';
     }
 }
 print '</td></tr>';
