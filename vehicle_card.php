@@ -31,6 +31,7 @@ if (!$res) { die("Include of main fails"); }
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formother.class.php';
+require_once DOL_DOCUMENT_ROOT.'/core/class/html.formfile.class.php';
 
 // Function to generate next vehicle reference
 function getNextVehicleRef($db, $entity) {
@@ -59,6 +60,25 @@ function getNextVehicleRef($db, $entity) {
     return $prefix.str_pad($next_number, 4, '0', STR_PAD_LEFT);
 }
 
+// Function to handle file upload
+function handleFileUpload($file_field_name, $upload_dir) {
+    if (isset($_FILES[$file_field_name]) && $_FILES[$file_field_name]['error'] == 0) {
+        $allowed = array('jpg', 'jpeg', 'png', 'pdf');
+        $filename = $_FILES[$file_field_name]['name'];
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+        
+        if (in_array($ext, $allowed)) {
+            $new_filename = uniqid() . '_' . $filename;
+            $destination = $upload_dir . '/' . $new_filename;
+            
+            if (move_uploaded_file($_FILES[$file_field_name]['tmp_name'], $destination)) {
+                return $new_filename;
+            }
+        }
+    }
+    return null;
+}
+
 // Get parameters
 $id = GETPOST('id', 'int');
 $action = GETPOST('action', 'aZ09') ? GETPOST('action', 'aZ09') : 'view';
@@ -75,6 +95,12 @@ $errors = array();
 // Generate reference for new vehicle
 if ($action == 'create' && empty($object->ref)) {
     $object->ref = getNextVehicleRef($db, $conf->entity);
+}
+
+// Define upload directory
+$upload_dir = DOL_DATA_ROOT.'/flotte/vehicle';
+if (!is_dir($upload_dir)) {
+    dol_mkdir($upload_dir);
 }
 
 /*
@@ -101,6 +127,14 @@ if ($action == 'add' && $_POST) {
     $license_plate = GETPOST('license_plate', 'alpha');
     $license_expiry = GETPOST('license_expiry', 'alpha');
     
+    // NEW FIELDS
+    $length_cm = GETPOST('length_cm', 'alpha');
+    $width_cm = GETPOST('width_cm', 'alpha');
+    $height_cm = GETPOST('height_cm', 'alpha');
+    $max_weight_kg = GETPOST('max_weight_kg', 'alpha');
+    $ground_height_cm = GETPOST('ground_height_cm', 'alpha');
+    $insurance_expiry = GETPOST('insurance_expiry', 'alpha');
+    
     // Auto-generate reference if empty
     if (empty($ref)) {
         $ref = getNextVehicleRef($db, $conf->entity);
@@ -113,10 +147,18 @@ if ($action == 'add' && $_POST) {
     }
     
     if (!$error) {
+        // Handle file uploads
+        $vehicle_photo = handleFileUpload('vehicle_photo', $upload_dir);
+        $registration_card = handleFileUpload('registration_card', $upload_dir);
+        $platform_registration_card = handleFileUpload('platform_registration_card', $upload_dir);
+        $insurance_document = handleFileUpload('insurance_document', $upload_dir);
+        
         // Insert into database
         $sql = "INSERT INTO ".MAIN_DB_PREFIX."flotte_vehicle (";
         $sql .= "ref, entity, maker, model, type, year, initial_mileage, registration_expiry, in_service, department, ";
-        $sql .= "engine_type, horsepower, color, vin, license_plate, license_expiry, fk_user_author";
+        $sql .= "engine_type, horsepower, color, vin, license_plate, license_expiry, ";
+        $sql .= "length_cm, width_cm, height_cm, max_weight_kg, ground_height_cm, insurance_expiry, ";
+        $sql .= "vehicle_photo, registration_card, platform_registration_card, insurance_document, fk_user_author";
         $sql .= ") VALUES (";
         $sql .= "'".$db->escape($ref)."', ".getEntity('flotte').", '".$db->escape($maker)."', '".$db->escape($model)."', ";
         $sql .= "'".$db->escape($type)."', ".($year ? $year : "NULL").", ".($initial_mileage ? $initial_mileage : "NULL").", ";
@@ -125,6 +167,16 @@ if ($action == 'add' && $_POST) {
         $sql .= "'".$db->escape($horsepower)."', '".$db->escape($color)."', '".$db->escape($vin)."', ";
         $sql .= "'".$db->escape($license_plate)."', ";
         $sql .= ($license_expiry ? "'".$db->idate(dol_stringtotime($license_expiry))."'" : "NULL").", ";
+        $sql .= ($length_cm ? "'".$db->escape($length_cm)."'" : "NULL").", ";
+        $sql .= ($width_cm ? "'".$db->escape($width_cm)."'" : "NULL").", ";
+        $sql .= ($height_cm ? "'".$db->escape($height_cm)."'" : "NULL").", ";
+        $sql .= ($max_weight_kg ? "'".$db->escape($max_weight_kg)."'" : "NULL").", ";
+        $sql .= ($ground_height_cm ? "'".$db->escape($ground_height_cm)."'" : "NULL").", ";
+        $sql .= ($insurance_expiry ? "'".$db->idate(dol_stringtotime($insurance_expiry))."'" : "NULL").", ";
+        $sql .= ($vehicle_photo ? "'".$db->escape($vehicle_photo)."'" : "NULL").", ";
+        $sql .= ($registration_card ? "'".$db->escape($registration_card)."'" : "NULL").", ";
+        $sql .= ($platform_registration_card ? "'".$db->escape($platform_registration_card)."'" : "NULL").", ";
+        $sql .= ($insurance_document ? "'".$db->escape($insurance_document)."'" : "NULL").", ";
         $sql .= $user->id;
         $sql .= ")";
         
@@ -162,6 +214,14 @@ if ($action == 'update' && $_POST && $id > 0) {
     $license_plate = GETPOST('license_plate', 'alpha');
     $license_expiry = GETPOST('license_expiry', 'alpha');
     
+    // NEW FIELDS
+    $length_cm = GETPOST('length_cm', 'alpha');
+    $width_cm = GETPOST('width_cm', 'alpha');
+    $height_cm = GETPOST('height_cm', 'alpha');
+    $max_weight_kg = GETPOST('max_weight_kg', 'alpha');
+    $ground_height_cm = GETPOST('ground_height_cm', 'alpha');
+    $insurance_expiry = GETPOST('insurance_expiry', 'alpha');
+    
     // Validate required fields
     if (empty($ref)) {
         $error++;
@@ -169,6 +229,12 @@ if ($action == 'update' && $_POST && $id > 0) {
     }
     
     if (!$error) {
+        // Handle file uploads (only update if new files are uploaded)
+        $vehicle_photo = handleFileUpload('vehicle_photo', $upload_dir);
+        $registration_card = handleFileUpload('registration_card', $upload_dir);
+        $platform_registration_card = handleFileUpload('platform_registration_card', $upload_dir);
+        $insurance_document = handleFileUpload('insurance_document', $upload_dir);
+        
         // Update database
         $sql = "UPDATE ".MAIN_DB_PREFIX."flotte_vehicle SET ";
         $sql .= "ref = '".$db->escape($ref)."', ";
@@ -186,6 +252,27 @@ if ($action == 'update' && $_POST && $id > 0) {
         $sql .= "vin = '".$db->escape($vin)."', ";
         $sql .= "license_plate = '".$db->escape($license_plate)."', ";
         $sql .= "license_expiry = ".($license_expiry ? "'".$db->idate(dol_stringtotime($license_expiry))."'" : "NULL").", ";
+        $sql .= "length_cm = ".($length_cm ? "'".$db->escape($length_cm)."'" : "NULL").", ";
+        $sql .= "width_cm = ".($width_cm ? "'".$db->escape($width_cm)."'" : "NULL").", ";
+        $sql .= "height_cm = ".($height_cm ? "'".$db->escape($height_cm)."'" : "NULL").", ";
+        $sql .= "max_weight_kg = ".($max_weight_kg ? "'".$db->escape($max_weight_kg)."'" : "NULL").", ";
+        $sql .= "ground_height_cm = ".($ground_height_cm ? "'".$db->escape($ground_height_cm)."'" : "NULL").", ";
+        $sql .= "insurance_expiry = ".($insurance_expiry ? "'".$db->idate(dol_stringtotime($insurance_expiry))."'" : "NULL").", ";
+        
+        // Update file fields only if new files were uploaded
+        if ($vehicle_photo) {
+            $sql .= "vehicle_photo = '".$db->escape($vehicle_photo)."', ";
+        }
+        if ($registration_card) {
+            $sql .= "registration_card = '".$db->escape($registration_card)."', ";
+        }
+        if ($platform_registration_card) {
+            $sql .= "platform_registration_card = '".$db->escape($platform_registration_card)."', ";
+        }
+        if ($insurance_document) {
+            $sql .= "insurance_document = '".$db->escape($insurance_document)."', ";
+        }
+        
         $sql .= "fk_user_modif = ".$user->id." ";
         $sql .= "WHERE rowid = ".((int) $id);
         
@@ -238,6 +325,7 @@ if ($id > 0) {
 
 $form = new Form($db);
 $formother = new FormOther($db);
+$formfile = new FormFile($db);
 
 // Initialize technical object to manage hooks. Note that conf->hooks_modules contains array of hooks
 $hookmanager->initHooks(array('vehiclecard'));
@@ -302,7 +390,7 @@ if (!empty($errors)) {
 }
 
 if ($action == 'create' || $action == 'edit') {
-    print '<form method="POST" action="' . $_SERVER['PHP_SELF'] . ($id > 0 ? '?id=' . $id : '') . '">';
+    print '<form method="POST" action="' . $_SERVER['PHP_SELF'] . ($id > 0 ? '?id=' . $id : '') . '" enctype="multipart/form-data">';
     print '<input type="hidden" name="action" value="' . ($action == 'create' ? 'add' : 'update') . '">';
     print '<input type="hidden" name="token" value="' . newToken() . '">';
 }
@@ -464,7 +552,6 @@ print '</td></tr>';
 // Registration Expiry
 print '<tr><td>' . $langs->trans('Registration Expiry') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
-    // Simple date picker - no time selection
     print $form->selectDate(
         (!empty($object->registration_expiry) ? $object->registration_expiry : ''), 
         'registration_expiry'
@@ -481,7 +568,6 @@ print '</td></tr>';
 // License Expiry
 print '<tr><td>' . $langs->trans('License Expiry') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
-    // Simple date picker - no time selection
     print $form->selectDate(
         (!empty($object->license_expiry) ? $object->license_expiry : ''), 
         'license_expiry'
@@ -507,6 +593,178 @@ print '</td></tr>';
 print '</table>';
 
 print '</div>';
+
+print '<div class="fichehalfright">';
+
+// ============ NEW SECTION: Dimensions & Technical Specs ============
+print load_fiche_titre($langs->trans('Dimensions & Technical Specs'), '', '');
+print '<table class="border tableforfield" width="100%">';
+
+// Length (cm)
+print '<tr><td class="titlefield">' . $langs->trans('Length') . ' (cm)</td><td>';
+if ($action == 'create' || $action == 'edit') {
+    print '<input type="number" step="0.01" class="flat" name="length_cm" value="' . (isset($object->length_cm) ? $object->length_cm : '') . '" min="0">';
+} else {
+    print !empty($object->length_cm) ? $object->length_cm . ' cm' : '&nbsp;';
+}
+print '</td></tr>';
+
+// Width (cm)
+print '<tr><td>' . $langs->trans('Width') . ' (cm)</td><td>';
+if ($action == 'create' || $action == 'edit') {
+    print '<input type="number" step="0.01" class="flat" name="width_cm" value="' . (isset($object->width_cm) ? $object->width_cm : '') . '" min="0">';
+} else {
+    print !empty($object->width_cm) ? $object->width_cm . ' cm' : '&nbsp;';
+}
+print '</td></tr>';
+
+// Height (cm)
+print '<tr><td>' . $langs->trans('Height') . ' (cm)</td><td>';
+if ($action == 'create' || $action == 'edit') {
+    print '<input type="number" step="0.01" class="flat" name="height_cm" value="' . (isset($object->height_cm) ? $object->height_cm : '') . '" min="0">';
+} else {
+    print !empty($object->height_cm) ? $object->height_cm . ' cm' : '&nbsp;';
+}
+print '</td></tr>';
+
+// Max Weight (Kg)
+print '<tr><td>' . $langs->trans('Max Weight') . ' (Kg)</td><td>';
+if ($action == 'create' || $action == 'edit') {
+    print '<input type="number" step="0.01" class="flat" name="max_weight_kg" value="' . (isset($object->max_weight_kg) ? $object->max_weight_kg : '') . '" min="0">';
+} else {
+    print !empty($object->max_weight_kg) ? $object->max_weight_kg . ' Kg' : '&nbsp;';
+}
+print '</td></tr>';
+
+// Ground Height (cm)
+print '<tr><td>' . $langs->trans('Ground Height') . ' (cm)</td><td>';
+if ($action == 'create' || $action == 'edit') {
+    print '<input type="number" step="0.01" class="flat" name="ground_height_cm" value="' . (isset($object->ground_height_cm) ? $object->ground_height_cm : '') . '" min="0">';
+} else {
+    print !empty($object->ground_height_cm) ? $object->ground_height_cm . ' cm' : '&nbsp;';
+}
+print '</td></tr>';
+
+// Insurance Expiry Date
+print '<tr><td>' . $langs->trans('Insurance Expiry Date') . '</td><td>';
+if ($action == 'create' || $action == 'edit') {
+    print $form->selectDate(
+        (!empty($object->insurance_expiry) ? $object->insurance_expiry : ''), 
+        'insurance_expiry'
+    );
+} else {
+    if (!empty($object->insurance_expiry)) {
+        print dol_print_date($object->insurance_expiry, 'day');
+    } else {
+        print '&nbsp;';
+    }
+}
+print '</td></tr>';
+
+print '</table>';
+
+print '</div>';
+print '</div>';
+
+print '<div class="clearboth"></div><br>';
+
+// ============ NEW SECTION: Documents & Photos ============
+print '<div class="fichecenter">';
+print load_fiche_titre($langs->trans('Documents & Photos'), '', '');
+print '<table class="border tableforfield" width="100%">';
+
+// Vehicle Photo
+print '<tr><td class="titlefield">' . $langs->trans('Vehicle Photo') . '</td><td>';
+if ($action == 'create' || $action == 'edit') {
+    print '<input type="file" name="vehicle_photo" accept="image/*,.pdf">';
+    if (!empty($object->vehicle_photo)) {
+        print '<br><small>' . $langs->trans('Current') . ': ' . $object->vehicle_photo . '</small>';
+    }
+} else {
+    if (!empty($object->vehicle_photo)) {
+        $file_path = $upload_dir . '/' . $object->vehicle_photo;
+        if (file_exists($file_path)) {
+            $ext = strtolower(pathinfo($object->vehicle_photo, PATHINFO_EXTENSION));
+            if (in_array($ext, array('jpg', 'jpeg', 'png', 'gif'))) {
+                print '<a href="' . DOL_URL_ROOT . '/document.php?modulepart=flotte&file=vehicle/' . urlencode($object->vehicle_photo) . '" target="_blank">';
+                print '<img src="' . DOL_URL_ROOT . '/document.php?modulepart=flotte&file=vehicle/' . urlencode($object->vehicle_photo) . '" style="max-width:100px; max-height:100px;" />';
+                print '</a>';
+            } else {
+                print '<a href="' . DOL_URL_ROOT . '/document.php?modulepart=flotte&file=vehicle/' . urlencode($object->vehicle_photo) . '" target="_blank">' . $object->vehicle_photo . '</a>';
+            }
+        } else {
+            print $object->vehicle_photo;
+        }
+    } else {
+        print '&nbsp;';
+    }
+}
+print '</td></tr>';
+
+// Registration Card
+print '<tr><td>' . $langs->trans('Registration Card') . '</td><td>';
+if ($action == 'create' || $action == 'edit') {
+    print '<input type="file" name="registration_card" accept="image/*,.pdf">';
+    if (!empty($object->registration_card)) {
+        print '<br><small>' . $langs->trans('Current') . ': ' . $object->registration_card . '</small>';
+    }
+} else {
+    if (!empty($object->registration_card)) {
+        $file_path = $upload_dir . '/' . $object->registration_card;
+        if (file_exists($file_path)) {
+            print '<a href="' . DOL_URL_ROOT . '/document.php?modulepart=flotte&file=vehicle/' . urlencode($object->registration_card) . '" target="_blank">' . $object->registration_card . '</a>';
+        } else {
+            print $object->registration_card;
+        }
+    } else {
+        print '&nbsp;';
+    }
+}
+print '</td></tr>';
+
+// Platform Registration Card
+print '<tr><td>' . $langs->trans('Platform Registration Card') . '</td><td>';
+if ($action == 'create' || $action == 'edit') {
+    print '<input type="file" name="platform_registration_card" accept="image/*,.pdf">';
+    if (!empty($object->platform_registration_card)) {
+        print '<br><small>' . $langs->trans('Current') . ': ' . $object->platform_registration_card . '</small>';
+    }
+} else {
+    if (!empty($object->platform_registration_card)) {
+        $file_path = $upload_dir . '/' . $object->platform_registration_card;
+        if (file_exists($file_path)) {
+            print '<a href="' . DOL_URL_ROOT . '/document.php?modulepart=flotte&file=vehicle/' . urlencode($object->platform_registration_card) . '" target="_blank">' . $object->platform_registration_card . '</a>';
+        } else {
+            print $object->platform_registration_card;
+        }
+    } else {
+        print '&nbsp;';
+    }
+}
+print '</td></tr>';
+
+// Insurance Document
+print '<tr><td>' . $langs->trans('Insurance Document') . '</td><td>';
+if ($action == 'create' || $action == 'edit') {
+    print '<input type="file" name="insurance_document" accept="image/*,.pdf">';
+    if (!empty($object->insurance_document)) {
+        print '<br><small>' . $langs->trans('Current') . ': ' . $object->insurance_document . '</small>';
+    }
+} else {
+    if (!empty($object->insurance_document)) {
+        $file_path = $upload_dir . '/' . $object->insurance_document;
+        if (file_exists($file_path)) {
+            print '<a href="' . DOL_URL_ROOT . '/document.php?modulepart=flotte&file=vehicle/' . urlencode($object->insurance_document) . '" target="_blank">' . $object->insurance_document . '</a>';
+        } else {
+            print $object->insurance_document;
+        }
+    } else {
+        print '&nbsp;';
+    }
+}
+print '</td></tr>';
+
+print '</table>';
 print '</div>';
 
 print '<div class="clearboth"></div>';
@@ -579,7 +837,7 @@ print '<style>
     }
 </style>'."\n";
 
-// Form buttons - Fixed the syntax error here
+// Form buttons
 if ($action == 'create' || $action == 'edit') {
     print '<div class="center" style="margin-top: 20px; margin-bottom: 10px;">';
     print '<input type="submit" class="flotte-btn" value="' . ($action == 'create' ? $langs->trans('Create') : $langs->trans('Save')) . '">';
