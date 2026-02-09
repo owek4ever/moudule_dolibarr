@@ -30,9 +30,10 @@ if (!$res) { die("Include of main fails"); }
 
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
+require_once DOL_DOCUMENT_ROOT.'/societe/class/societe.class.php';
 
 // Load translation files
-$langs->loadLangs(array("flotte@flotte", "other"));
+$langs->loadLangs(array("flotte@flotte", "companies", "other"));
 
 // Function to generate next vendor reference
 function getNextVendorRef($db, $entity) {
@@ -70,21 +71,28 @@ $cancel = GETPOST('cancel', 'alpha');
 // Security check
 restrictedArea($user, 'flotte');
 
+// Initialize form and societe object
+$form = new Form($db);
+$formcompany = new FormCompany($db);
+
 // Initialize variables
 $object = new stdClass();
 $object->id = 0;
 $object->ref = '';
+$object->fk_soc = 0;
 $object->name = '';
 $object->phone = '';
 $object->email = '';
-$object->type = '';
 $object->website = '';
-$object->note = '';
 $object->address1 = '';
 $object->address2 = '';
 $object->city = '';
 $object->state = '';
-$object->picture = '';
+$object->type = '';
+$object->note = '';
+
+// For display purposes - loaded from societe
+$thirdparty = new Societe($db);
 
 $error = 0;
 $errors = array();
@@ -100,6 +108,29 @@ if ($action == 'create' && empty($object->ref)) {
 
 if ($cancel) {
     $action = 'view';
+}
+
+// Handle AJAX request to get Third Party data
+if ($action == 'fetch_thirdparty' && GETPOST('fk_soc', 'int') > 0) {
+    $socid = GETPOST('fk_soc', 'int');
+    $soc = new Societe($db);
+    $result = $soc->fetch($socid);
+    
+    if ($result > 0) {
+        $data = array(
+            'name' => $soc->name,
+            'phone' => $soc->phone,
+            'email' => $soc->email,
+            'website' => $soc->url,
+            'address1' => $soc->address,
+            'address2' => '',
+            'city' => $soc->town,
+            'state' => $soc->state,
+        );
+        header('Content-Type: application/json');
+        echo json_encode($data);
+        exit;
+    }
 }
 
 if ($action == 'confirm_delete' && $confirm == 'yes' && $user->rights->flotte->delete) {
@@ -124,20 +155,27 @@ if ($action == 'add') {
     
     // Get form data
     $ref = GETPOST('ref', 'alpha');
+    $fk_soc = GETPOST('fk_soc', 'int');
     $name = GETPOST('name', 'alpha');
     $phone = GETPOST('phone', 'alpha');
     $email = GETPOST('email', 'alpha');
-    $type = GETPOST('type', 'alpha');
     $website = GETPOST('website', 'alpha');
-    $note = GETPOST('note', 'alpha');
     $address1 = GETPOST('address1', 'alpha');
     $address2 = GETPOST('address2', 'alpha');
     $city = GETPOST('city', 'alpha');
     $state = GETPOST('state', 'alpha');
+    $type = GETPOST('type', 'alpha');
+    $note = GETPOST('note', 'alpha');
     
     // Auto-generate reference if empty
     if (empty($ref)) {
         $ref = getNextVendorRef($db, $conf->entity);
+    }
+    
+    // Validation
+    if (empty($fk_soc) || $fk_soc <= 0) {
+        $error++;
+        $errors[] = "Please select a Third Party";
     }
     
     if (empty($name)) {
@@ -145,22 +183,37 @@ if ($action == 'add') {
         $errors[] = "Vendor name is required";
     }
     
+    // Check if this third party is already a vendor
+    if (!$error) {
+        $sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."flotte_vendor";
+        $sql .= " WHERE fk_soc = ".((int) $fk_soc);
+        $sql .= " AND entity = ".$conf->entity;
+        $resql = $db->query($sql);
+        if ($resql && $db->num_rows($resql) > 0) {
+            $error++;
+            $errors[] = "This Third Party is already registered as a vendor";
+        }
+    }
+    
     if (!$error) {
         $sql = "INSERT INTO ".MAIN_DB_PREFIX."flotte_vendor (";
-        $sql .= "ref, entity, name, phone, email, type, website, note, address1, address2, city, state, fk_user_author";
+        $sql .= "ref, entity, fk_soc, name, phone, email, website, address1, address2, city, state, type, note, fk_user_author, datec";
         $sql .= ") VALUES (";
-        $sql .= "'".$db->escape($ref)."', ".$conf->entity.", ";
+        $sql .= "'".$db->escape($ref)."', ";
+        $sql .= $conf->entity.", ";
+        $sql .= ((int) $fk_soc).", ";
         $sql .= "'".$db->escape($name)."', ";
         $sql .= "'".$db->escape($phone)."', ";
         $sql .= "'".$db->escape($email)."', ";
-        $sql .= "'".$db->escape($type)."', ";
         $sql .= "'".$db->escape($website)."', ";
-        $sql .= "'".$db->escape($note)."', ";
         $sql .= "'".$db->escape($address1)."', ";
         $sql .= "'".$db->escape($address2)."', ";
         $sql .= "'".$db->escape($city)."', ";
         $sql .= "'".$db->escape($state)."', ";
-        $sql .= $user->id;
+        $sql .= "'".$db->escape($type)."', ";
+        $sql .= "'".$db->escape($note)."', ";
+        $sql .= $user->id.", ";
+        $sql .= "'".$db->idate(dol_now())."'";
         $sql .= ")";
         
         $result = $db->query($sql);
@@ -177,23 +230,26 @@ if ($action == 'add') {
     } else {
         $db->rollback();
     }
+    
+    if ($error) {
+        setEventMessages($errors, null, 'errors');
+    }
 }
 
 if ($action == 'update') {
     $db->begin();
     
     // Get form data
-    $ref = GETPOST('ref', 'alpha');
     $name = GETPOST('name', 'alpha');
     $phone = GETPOST('phone', 'alpha');
     $email = GETPOST('email', 'alpha');
-    $type = GETPOST('type', 'alpha');
     $website = GETPOST('website', 'alpha');
-    $note = GETPOST('note', 'alpha');
     $address1 = GETPOST('address1', 'alpha');
     $address2 = GETPOST('address2', 'alpha');
     $city = GETPOST('city', 'alpha');
     $state = GETPOST('state', 'alpha');
+    $type = GETPOST('type', 'alpha');
+    $note = GETPOST('note', 'alpha');
     
     if (empty($name)) {
         $error++;
@@ -202,18 +258,18 @@ if ($action == 'update') {
     
     if (!$error) {
         $sql = "UPDATE ".MAIN_DB_PREFIX."flotte_vendor SET ";
-        $sql .= "ref = '".$db->escape($ref)."', ";
         $sql .= "name = '".$db->escape($name)."', ";
         $sql .= "phone = '".$db->escape($phone)."', ";
         $sql .= "email = '".$db->escape($email)."', ";
-        $sql .= "type = '".$db->escape($type)."', ";
         $sql .= "website = '".$db->escape($website)."', ";
-        $sql .= "note = '".$db->escape($note)."', ";
         $sql .= "address1 = '".$db->escape($address1)."', ";
         $sql .= "address2 = '".$db->escape($address2)."', ";
         $sql .= "city = '".$db->escape($city)."', ";
         $sql .= "state = '".$db->escape($state)."', ";
-        $sql .= "fk_user_modif = ".$user->id." ";
+        $sql .= "type = '".$db->escape($type)."', ";
+        $sql .= "note = '".$db->escape($note)."', ";
+        $sql .= "fk_user_modif = ".$user->id.", ";
+        $sql .= "tms = '".$db->idate(dol_now())."' ";
         $sql .= "WHERE rowid = ".((int) $id);
         
         $result = $db->query($sql);
@@ -229,6 +285,10 @@ if ($action == 'update') {
     } else {
         $db->rollback();
     }
+    
+    if ($error) {
+        setEventMessages($errors, null, 'errors');
+    }
 }
 
 // Load object data
@@ -236,73 +296,97 @@ if ($id > 0) {
     $sql = "SELECT * FROM ".MAIN_DB_PREFIX."flotte_vendor WHERE rowid = ".((int) $id);
     $resql = $db->query($sql);
     if ($resql) {
-        $object = $db->fetch_object($resql);
-        if (!$object) {
-            print "Vendor not found";
-            exit;
+        $obj = $db->fetch_object($resql);
+        if ($obj) {
+            $object->id = $obj->rowid;
+            $object->ref = $obj->ref;
+            $object->fk_soc = $obj->fk_soc;
+            $object->name = $obj->name;
+            $object->phone = $obj->phone;
+            $object->email = $obj->email;
+            $object->website = $obj->website;
+            $object->address1 = $obj->address1;
+            $object->address2 = $obj->address2;
+            $object->city = $obj->city;
+            $object->state = $obj->state;
+            $object->type = $obj->type;
+            $object->note = $obj->note;
+            
+            // Load third party information for reference
+            if ($object->fk_soc > 0) {
+                $thirdparty->fetch($object->fk_soc);
+            }
         }
-    } else {
-        print "Error loading vendor";
-        exit;
     }
-} else {
-    // Set default values for new vendor
-    $object->ref = getNextVendorRef($db, $conf->entity);
 }
-
-$form = new Form($db);
-
-// Initialize technical object to manage hooks
-$hookmanager->initHooks(array('vendorcard'));
 
 /*
  * View
  */
 
 $title = $langs->trans('Vendor');
-if ($action == 'create') {
-    $title = $langs->trans('NewVendor');
-} elseif ($action == 'edit') {
-    $title = $langs->trans('EditVendor');
-} elseif ($id > 0) {
-    $title = $langs->trans('Vendor') . " " . $object->ref;
-}
+$help_url = '';
 
-llxHeader('', $title);
+llxHeader('', $title, $help_url);
 
-// Subheader
-$linkback = '<a href="' . DOL_URL_ROOT . '/flotte/vendor_list.php">' . $langs->trans('BackToList') . '</a>';
-
-$h = 0;
-$head = array();
-$head[$h][0] = $_SERVER["PHP_SELF"] . '?id=' . $id;
-$head[$h][1] = $langs->trans('Card');
-$head[$h][2] = 'card';
-$h++;
-
-dol_fiche_head($head, 'card', $langs->trans('Vendor'), -1, 'company');
+// Add JavaScript for auto-fill functionality
+?>
+<script type="text/javascript">
+jQuery(document).ready(function() {
+    // When Third Party is selected, auto-fill the fields
+    jQuery('#fk_soc').change(function() {
+        var socid = jQuery(this).val();
+        
+        if (socid > 0) {
+            // Fetch Third Party data via AJAX
+            jQuery.ajax({
+                url: '<?php echo $_SERVER['PHP_SELF']; ?>',
+                type: 'GET',
+                data: {
+                    action: 'fetch_thirdparty',
+                    fk_soc: socid
+                },
+                dataType: 'json',
+                success: function(data) {
+                    // Auto-fill the form fields
+                    jQuery('input[name="name"]').val(data.name);
+                    jQuery('input[name="phone"]').val(data.phone);
+                    jQuery('input[name="email"]').val(data.email);
+                    jQuery('input[name="website"]').val(data.website);
+                    jQuery('input[name="address1"]').val(data.address1);
+                    jQuery('input[name="address2"]').val(data.address2);
+                    jQuery('input[name="city"]').val(data.city);
+                    jQuery('input[name="state"]').val(data.state);
+                },
+                error: function() {
+                    console.log('Error fetching Third Party data');
+                }
+            });
+        }
+    });
+});
+</script>
+<?php
 
 // Confirmation to delete
 if ($action == 'delete') {
-    $formconfirm = $form->formconfirm(
-        $_SERVER["PHP_SELF"] . '?id=' . $id,
-        $langs->trans('DeleteVendor'),
-        $langs->trans('ConfirmDeleteVendor'),
-        'confirm_delete',
-        '',
-        0,
-        1
-    );
+    $formconfirm = $form->formconfirm($_SERVER['PHP_SELF'].'?id='.$id, $langs->trans('DeleteVendor'), $langs->trans('ConfirmDeleteVendor'), 'confirm_delete', '', 0, 1);
     print $formconfirm;
 }
 
-// Show error messages
-if (!empty($errors)) {
-    foreach ($errors as $error_msg) {
-        setEventMessage($error_msg, 'errors');
-    }
+// Display page header
+if ($id > 0) {
+    $head = array();
+    $head[0][0] = $_SERVER['PHP_SELF'].'?id='.$id;
+    $head[0][1] = $langs->trans('Card');
+    $head[0][2] = 'card';
+    
+    dol_fiche_head($head, 'card', $langs->trans('Vendor').' : '.$object->ref, -1, 'flotte@flotte');
+} else {
+    dol_fiche_head(array(), '', $langs->trans('NewVendor'), -1, 'flotte@flotte');
 }
 
+// Form for create/edit
 if ($action == 'create' || $action == 'edit') {
     print '<form method="POST" action="' . $_SERVER['PHP_SELF'] . ($id > 0 ? '?id=' . $id : '') . '">';
     print '<input type="hidden" name="action" value="' . ($action == 'create' ? 'add' : 'update') . '">';
@@ -328,10 +412,28 @@ if ($action == 'create' || $action == 'edit') {
 }
 print '</td></tr>';
 
+// Third Party Selection (only for create, read-only for edit/view)
+print '<tr><td class="fieldrequired">' . $langs->trans('ThirdParty') . '</td><td>';
+if ($action == 'create') {
+    // Use Dolibarr's form helper to select a third party
+    // Filter to show only suppliers (fournisseur=1)
+    print $formcompany->select_company($object->fk_soc, 'fk_soc', 's.fournisseur = 1', 'SelectThirdParty', 0, 0, array(), 0, 'minwidth300');
+    print ' <a href="'.DOL_URL_ROOT.'/societe/card.php?action=create&type=f&backtopage='.urlencode($_SERVER['PHP_SELF'].'?action=create').'" target="_blank">';
+    print img_picto($langs->trans("CreateThirdParty"), 'add', 'class="paddingleft"');
+    print '</a>';
+} else {
+    if ($thirdparty->id > 0) {
+        print $thirdparty->getNomUrl(1);
+    } else {
+        print '&nbsp;';
+    }
+}
+print '</td></tr>';
+
 // Name
-print '<tr><td>' . $langs->trans('Name') . '</td><td>';
+print '<tr><td class="fieldrequired">' . $langs->trans('Name') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
-    print '<input type="text" class="flat" name="name" value="' . dol_escape_htmltag($object->name) . '" size="40">';
+    print '<input type="text" class="flat minwidth300" name="name" value="' . dol_escape_htmltag($object->name) . '" size="40">';
 } else {
     print dol_escape_htmltag($object->name);
 }
@@ -340,22 +442,35 @@ print '</td></tr>';
 // Phone
 print '<tr><td>' . $langs->trans('Phone') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
-    print '<input type="text" class="flat" name="phone" value="' . dol_escape_htmltag($object->phone) . '" size="20">';
+    print '<input type="text" class="flat minwidth200" name="phone" value="' . dol_escape_htmltag($object->phone) . '" size="20">';
 } else {
-    print dol_escape_htmltag($object->phone);
+    print dol_print_phone($object->phone);
 }
 print '</td></tr>';
 
 // Email
 print '<tr><td>' . $langs->trans('Email') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
-    print '<input type="text" class="flat" name="email" value="' . dol_escape_htmltag($object->email) . '" size="40">';
+    print '<input type="text" class="flat minwidth300" name="email" value="' . dol_escape_htmltag($object->email) . '" size="40">';
 } else {
-    print dol_escape_htmltag($object->email);
+    print dol_print_email($object->email);
 }
 print '</td></tr>';
 
-// Type
+// Website
+print '<tr><td>' . $langs->trans('Website') . '</td><td>';
+if ($action == 'create' || $action == 'edit') {
+    print '<input type="text" class="flat minwidth300" name="website" value="' . dol_escape_htmltag($object->website) . '" size="40">';
+} else {
+    if (!empty($object->website)) {
+        print '<a href="' . (strpos($object->website, 'http') === 0 ? $object->website : 'http://' . $object->website) . '" target="_blank">' . dol_escape_htmltag($object->website) . '</a>';
+    } else {
+        print '&nbsp;';
+    }
+}
+print '</td></tr>';
+
+// Type (Fleet-specific)
 print '<tr><td>' . $langs->trans('Type') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     $typearray = array(
@@ -373,19 +488,6 @@ if ($action == 'create' || $action == 'edit') {
 }
 print '</td></tr>';
 
-// Website
-print '<tr><td>' . $langs->trans('Website') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<input type="text" class="flat" name="website" value="' . dol_escape_htmltag($object->website) . '" size="40">';
-} else {
-    if (!empty($object->website)) {
-        print '<a href="' . (strpos($object->website, 'http') === 0 ? $object->website : 'http://' . $object->website) . '" target="_blank">' . dol_escape_htmltag($object->website) . '</a>';
-    } else {
-        print '&nbsp;';
-    }
-}
-print '</td></tr>';
-
 print '</table>';
 
 print '</div>';
@@ -398,7 +500,7 @@ print '<table class="border tableforfield" width="100%">';
 // Address Line 1
 print '<tr><td class="titlefield">' . $langs->trans('AddressLine1') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
-    print '<input type="text" class="flat" name="address1" value="' . dol_escape_htmltag($object->address1) . '" size="40">';
+    print '<input type="text" class="flat minwidth300" name="address1" value="' . dol_escape_htmltag($object->address1) . '" size="40">';
 } else {
     print dol_escape_htmltag($object->address1);
 }
@@ -407,7 +509,7 @@ print '</td></tr>';
 // Address Line 2
 print '<tr><td>' . $langs->trans('AddressLine2') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
-    print '<input type="text" class="flat" name="address2" value="' . dol_escape_htmltag($object->address2) . '" size="40">';
+    print '<input type="text" class="flat minwidth300" name="address2" value="' . dol_escape_htmltag($object->address2) . '" size="40">';
 } else {
     print dol_escape_htmltag($object->address2);
 }
@@ -416,7 +518,7 @@ print '</td></tr>';
 // City
 print '<tr><td>' . $langs->trans('City') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
-    print '<input type="text" class="flat" name="city" value="' . dol_escape_htmltag($object->city) . '" size="20">';
+    print '<input type="text" class="flat minwidth200" name="city" value="' . dol_escape_htmltag($object->city) . '" size="20">';
 } else {
     print dol_escape_htmltag($object->city);
 }
@@ -425,7 +527,7 @@ print '</td></tr>';
 // State
 print '<tr><td>' . $langs->trans('State') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
-    print '<input type="text" class="flat" name="state" value="' . dol_escape_htmltag($object->state) . '" size="20">';
+    print '<input type="text" class="flat minwidth200" name="state" value="' . dol_escape_htmltag($object->state) . '" size="20">';
 } else {
     print dol_escape_htmltag($object->state);
 }
@@ -438,7 +540,7 @@ print '</div>';
 
 print '<div class="clearboth"></div>';
 
-// Notes
+// Notes (Fleet-specific)
 print load_fiche_titre($langs->trans('Notes'), '', '');
 print '<table class="border tableforfield" width="100%">';
 print '<tr><td>';
