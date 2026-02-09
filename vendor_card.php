@@ -400,7 +400,7 @@ print '<div class="fichecenter">';
 print '<div class="fichehalfleft">';
 
 // Basic Information
-print load_fiche_titre($langs->trans('VendorInformation'), '', '');
+print load_fiche_titre($langs->trans('Vendor Information'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // Reference
@@ -494,11 +494,11 @@ print '</div>';
 print '<div class="fichehalfright">';
 
 // Address Information
-print load_fiche_titre($langs->trans('AddressInformation'), '', '');
+print load_fiche_titre($langs->trans('Address Information'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // Address Line 1
-print '<tr><td class="titlefield">' . $langs->trans('AddressLine1') . '</td><td>';
+print '<tr><td class="titlefield">' . $langs->trans('Address Line1') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat minwidth300" name="address1" value="' . dol_escape_htmltag($object->address1) . '" size="40">';
 } else {
@@ -507,7 +507,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Address Line 2
-print '<tr><td>' . $langs->trans('AddressLine2') . '</td><td>';
+print '<tr><td>' . $langs->trans('Address Line2') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat minwidth300" name="address2" value="' . dol_escape_htmltag($object->address2) . '" size="40">';
 } else {
