@@ -1,7 +1,7 @@
 -- ============================================================
 -- Dolibarr Flotte Module Database Structure
 -- Tables for fleet management system
--- Generated: 2026-02-09
+-- Generated: 2026-02-10 - CORRECTED VERSION
 -- ============================================================
 
 -- Table structure for llx_flotte_vehicle
@@ -224,23 +224,26 @@ CREATE TABLE IF NOT EXISTS llx_flotte_part (
 
 -- Table structure for llx_flotte_vendor
 -- Stores vendor/supplier information for fleet services and parts
+-- CORRECTED: Column names now match the PHP code
 CREATE TABLE IF NOT EXISTS llx_flotte_vendor (
   rowid INT(11) NOT NULL AUTO_INCREMENT,
   ref VARCHAR(128) DEFAULT NULL,
   entity INT(11) DEFAULT 1,
   fk_soc INT(11) DEFAULT NULL,
-  vendor_name VARCHAR(255) DEFAULT NULL,
+  name VARCHAR(255) DEFAULT NULL,           -- Changed from vendor_name
   phone VARCHAR(50) DEFAULT NULL,
   email VARCHAR(255) DEFAULT NULL,
-  vendor_type VARCHAR(100) DEFAULT NULL,
+  type VARCHAR(100) DEFAULT NULL,           -- Changed from vendor_type
   website VARCHAR(255) DEFAULT NULL,
-  address VARCHAR(255) DEFAULT NULL,
-  country VARCHAR(100) DEFAULT NULL,
-  zip VARCHAR(20) DEFAULT NULL,
+  address1 VARCHAR(255) DEFAULT NULL,       -- NEW COLUMN
+  address2 VARCHAR(255) DEFAULT NULL,       -- NEW COLUMN
   city VARCHAR(100) DEFAULT NULL,
   state VARCHAR(100) DEFAULT NULL,
-  notes TEXT DEFAULT NULL,
-  fk_user_creat INT(11) DEFAULT NULL,
+  country VARCHAR(100) DEFAULT NULL,
+  zip VARCHAR(20) DEFAULT NULL,
+  note TEXT DEFAULT NULL,                   -- NEW COLUMN
+  picture VARCHAR(255) DEFAULT NULL,        -- NEW COLUMN
+  fk_user_author INT(11) DEFAULT NULL,      -- Changed from fk_user_creat
   datec DATETIME DEFAULT NULL,
   fk_user_modif INT(11) DEFAULT NULL,
   tms TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
