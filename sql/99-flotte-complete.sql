@@ -1,285 +1,268 @@
--- ============================================================
--- Dolibarr Flotte Module - Complete Setup
--- This file creates fleet tables ONLY
--- Let Dolibarr create admin user through setup wizard
--- Compatible with /docker-entrypoint-initdb.d auto-load
--- Generated: 2026-02-10 - FIXED VERSION
--- ============================================================
+-- dolibarr.llx_flotte_booking definition
 
--- ============================================================
--- FLEET MANAGEMENT TABLES
--- ============================================================
+CREATE TABLE `llx_flotte_booking` (
+  `rowid` int NOT NULL AUTO_INCREMENT,
+  `ref` varchar(128) NOT NULL,
+  `entity` int DEFAULT '1',
+  `fk_vehicle` int DEFAULT NULL,
+  `fk_driver` int DEFAULT NULL,
+  `fk_customer` int DEFAULT NULL,
+  `booking_date` date DEFAULT NULL,
+  `status` varchar(50) DEFAULT NULL,
+  `distance` int DEFAULT NULL,
+  `arriving_address` varchar(255) DEFAULT NULL,
+  `departure_address` varchar(255) DEFAULT NULL,
+  `buying_amount` decimal(10,2) DEFAULT NULL,
+  `selling_amount` decimal(10,2) DEFAULT NULL,
+  `fk_user_author` int DEFAULT NULL,
+  `fk_user_modif` int DEFAULT NULL,
+  `tms` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`rowid`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Table structure for llx_flotte_vehicle
--- Stores vehicle information including make, model, year, and maintenance details
-CREATE TABLE IF NOT EXISTS llx_flotte_vehicle (
-  rowid INT(11) NOT NULL AUTO_INCREMENT,
-  ref VARCHAR(128) DEFAULT NULL,
-  entity INT(11) DEFAULT 1,
-  make VARCHAR(255) DEFAULT NULL,
-  model VARCHAR(255) DEFAULT NULL,
-  type VARCHAR(50) DEFAULT NULL,
-  year INT(4) DEFAULT NULL,
-  mileage INT(11) DEFAULT NULL,
-  hours_used INT(11) DEFAULT NULL,
-  purchase_price DECIMAL(10,2) DEFAULT NULL,
-  current_value DECIMAL(10,2) DEFAULT NULL,
-  license_fee DECIMAL(10,2) DEFAULT NULL,
-  insurance_cost DECIMAL(10,2) DEFAULT NULL,
-  maintenance_cost DECIMAL(10,2) DEFAULT NULL,
-  date_created DATE DEFAULT NULL,
-  vehicle_image1 VARCHAR(255) DEFAULT NULL,
-  vehicle_image2 VARCHAR(255) DEFAULT NULL,
-  vehicle_image3 VARCHAR(255) DEFAULT NULL,
-  vehicle_image4 VARCHAR(255) DEFAULT NULL,
-  insurance_exp_date DATE DEFAULT NULL,
-  vendor_id INT(11) DEFAULT NULL,
-  ownership_status VARCHAR(50) DEFAULT NULL,
-  fuel_type VARCHAR(50) DEFAULT NULL,
-  fuel_capacity VARCHAR(50) DEFAULT NULL,
-  color VARCHAR(50) DEFAULT NULL,
-  vin VARCHAR(100) DEFAULT NULL,
-  license_plate VARCHAR(50) DEFAULT NULL,
-  registration_exp_date DATE DEFAULT NULL,
-  notes TEXT DEFAULT NULL,
-  fk_user_creat INT(11) DEFAULT NULL,
-  fk_user_modif INT(11) DEFAULT NULL,
-  tms TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (rowid),
-  UNIQUE KEY uk_flotte_vehicle_ref (ref, entity)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- dolibarr.llx_flotte_customer definition
 
--- Table structure for llx_flotte_booking
--- Stores vehicle booking/rental information
-CREATE TABLE IF NOT EXISTS llx_flotte_booking (
-  rowid INT(11) NOT NULL AUTO_INCREMENT,
-  ref VARCHAR(128) DEFAULT NULL,
-  entity INT(11) DEFAULT 1,
-  vehicle_id INT(11) DEFAULT NULL,
-  customer_id INT(11) DEFAULT NULL,
-  driver_id INT(11) DEFAULT NULL,
-  booking_date DATE DEFAULT NULL,
-  status VARCHAR(50) DEFAULT NULL,
-  start_mileage INT(11) DEFAULT NULL,
-  start_location VARCHAR(255) DEFAULT NULL,
-  end_location VARCHAR(255) DEFAULT NULL,
-  rental_amount DECIMAL(10,2) DEFAULT NULL,
-  total_amount DECIMAL(10,2) DEFAULT NULL,
-  fk_user_creat INT(11) DEFAULT NULL,
-  fk_user_modif INT(11) DEFAULT NULL,
-  tms TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (rowid),
-  UNIQUE KEY uk_flotte_booking_ref (ref, entity),
-  KEY idx_flotte_booking_vehicle (vehicle_id),
-  KEY idx_flotte_booking_customer (customer_id),
-  KEY idx_flotte_booking_driver (driver_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE `llx_flotte_customer` (
+  `rowid` int NOT NULL AUTO_INCREMENT,
+  `ref` varchar(128) NOT NULL,
+  `entity` int DEFAULT '1',
+  `firstname` varchar(128) DEFAULT NULL,
+  `lastname` varchar(128) DEFAULT NULL,
+  `phone` varchar(50) DEFAULT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `password` varchar(128) DEFAULT NULL,
+  `company_name` varchar(255) DEFAULT NULL,
+  `tax_no` varchar(50) DEFAULT NULL,
+  `payment_delay` int DEFAULT NULL,
+  `gender` varchar(10) DEFAULT NULL,
+  `fk_user_author` int DEFAULT NULL,
+  `fk_user_modif` int DEFAULT NULL,
+  `tms` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`rowid`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Table structure for llx_flotte_customer
--- Stores customer information for fleet services
-CREATE TABLE IF NOT EXISTS llx_flotte_customer (
-  rowid INT(11) NOT NULL AUTO_INCREMENT,
-  ref VARCHAR(128) DEFAULT NULL,
-  entity INT(11) DEFAULT 1,
-  firstname VARCHAR(255) DEFAULT NULL,
-  lastname VARCHAR(255) DEFAULT NULL,
-  phone VARCHAR(50) DEFAULT NULL,
-  email VARCHAR(255) DEFAULT NULL,
-  mobile VARCHAR(50) DEFAULT NULL,
-  company VARCHAR(255) DEFAULT NULL,
-  address VARCHAR(255) DEFAULT NULL,
-  notes TEXT DEFAULT NULL,
-  gender VARCHAR(20) DEFAULT NULL,
-  fk_user_creat INT(11) DEFAULT NULL,
-  fk_user_modif INT(11) DEFAULT NULL,
-  tms TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (rowid),
-  UNIQUE KEY uk_flotte_customer_ref (ref, entity)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- dolibarr.llx_flotte_driver definition
 
--- Table structure for llx_flotte_driver
--- Stores driver information including licenses and documents
-CREATE TABLE IF NOT EXISTS llx_flotte_driver (
-  rowid INT(11) NOT NULL AUTO_INCREMENT,
-  ref VARCHAR(128) DEFAULT NULL,
-  entity INT(11) DEFAULT 1,
-  firstname VARCHAR(255) DEFAULT NULL,
-  lastname VARCHAR(255) DEFAULT NULL,
-  job_title VARCHAR(255) DEFAULT NULL,
-  address VARCHAR(255) DEFAULT NULL,
-  email VARCHAR(255) DEFAULT NULL,
-  phone VARCHAR(50) DEFAULT NULL,
-  mobile VARCHAR(50) DEFAULT NULL,
-  license_number VARCHAR(100) DEFAULT NULL,
-  license_type VARCHAR(50) DEFAULT NULL,
-  license_issue_date DATE DEFAULT NULL,
-  license_exp_date DATE DEFAULT NULL,
-  medical_cert_issue_date DATE DEFAULT NULL,
-  medical_cert_exp_date DATE DEFAULT NULL,
-  emergency_contact VARCHAR(255) DEFAULT NULL,
-  age VARCHAR(10) DEFAULT NULL,
-  status VARCHAR(50) DEFAULT NULL,
-  gender VARCHAR(20) DEFAULT NULL,
-  driver_image VARCHAR(255) DEFAULT NULL,
-  license_image VARCHAR(255) DEFAULT NULL,
-  medical_cert_image VARCHAR(255) DEFAULT NULL,
-  national_id VARCHAR(100) DEFAULT NULL,
-  assigned_vehicle_id INT(11) DEFAULT NULL,
-  fk_user_creat INT(11) DEFAULT NULL,
-  fk_user_modif INT(11) DEFAULT NULL,
-  tms TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (rowid),
-  UNIQUE KEY uk_flotte_driver_ref (ref, entity),
-  KEY idx_flotte_driver_vehicle (assigned_vehicle_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE `llx_flotte_driver` (
+  `rowid` int NOT NULL AUTO_INCREMENT,
+  `ref` varchar(128) NOT NULL,
+  `entity` int DEFAULT '1',
+  `fk_user` int DEFAULT NULL,
+  `firstname` varchar(128) DEFAULT NULL,
+  `middlename` varchar(128) DEFAULT NULL,
+  `lastname` varchar(128) DEFAULT NULL,
+  `address` varchar(255) DEFAULT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `phone` varchar(50) DEFAULT NULL,
+  `employee_id` varchar(50) DEFAULT NULL,
+  `contract_number` varchar(50) DEFAULT NULL,
+  `license_number` varchar(50) DEFAULT NULL,
+  `license_issue_date` date DEFAULT NULL,
+  `license_expiry_date` date DEFAULT NULL,
+  `join_date` date DEFAULT NULL,
+  `leave_date` date DEFAULT NULL,
+  `password` varchar(128) DEFAULT NULL,
+  `department` varchar(128) DEFAULT NULL,
+  `status` varchar(50) DEFAULT NULL,
+  `gender` varchar(10) DEFAULT NULL,
+  `driver_image` varchar(255) DEFAULT NULL,
+  `documents` varchar(255) DEFAULT NULL,
+  `license_image` varchar(255) DEFAULT NULL,
+  `emergency_contact` varchar(255) DEFAULT NULL,
+  `fk_vehicle` int DEFAULT NULL,
+  `fk_user_author` int DEFAULT NULL,
+  `datec` datetime DEFAULT NULL,
+  `fk_user_modif` int DEFAULT NULL,
+  `tms` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`rowid`),
+  UNIQUE KEY `uk_flotte_driver_user_entity` (`fk_user`,`entity`),
+  KEY `idx_flotte_driver_fk_user` (`fk_user`),
+  CONSTRAINT `fk_flotte_driver_user` FOREIGN KEY (`fk_user`) REFERENCES `llx_user` (`rowid`) ON DELETE RESTRICT
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Table structure for llx_flotte_fuel
--- Stores fuel consumption and refueling records
-CREATE TABLE IF NOT EXISTS llx_flotte_fuel (
-  rowid INT(11) NOT NULL AUTO_INCREMENT,
-  ref VARCHAR(128) DEFAULT NULL,
-  entity INT(11) DEFAULT 1,
-  vehicle_id INT(11) DEFAULT NULL,
-  fuel_date DATE DEFAULT NULL,
-  odometer_reading INT(11) DEFAULT NULL,
-  reference VARCHAR(100) DEFAULT NULL,
-  status VARCHAR(50) DEFAULT NULL,
-  comments TEXT DEFAULT NULL,
-  qty_liters DECIMAL(10,2) DEFAULT NULL,
-  fuel_station VARCHAR(255) DEFAULT NULL,
-  quantity DECIMAL(10,2) DEFAULT NULL,
-  price_per_liter DECIMAL(10,2) DEFAULT NULL,
-  fk_user_creat INT(11) DEFAULT NULL,
-  fk_user_modif INT(11) DEFAULT NULL,
-  tms TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (rowid),
-  UNIQUE KEY uk_flotte_fuel_ref (ref, entity),
-  KEY idx_flotte_fuel_vehicle (vehicle_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- dolibarr.llx_flotte_fuel definition
 
--- Table structure for llx_flotte_inspection
--- Stores vehicle inspection records and checklist results
-CREATE TABLE IF NOT EXISTS llx_flotte_inspection (
-  rowid INT(11) NOT NULL AUTO_INCREMENT,
-  ref VARCHAR(128) DEFAULT NULL,
-  entity INT(11) DEFAULT 1,
-  vehicle_id INT(11) DEFAULT NULL,
-  reference VARCHAR(100) DEFAULT NULL,
-  odometer_reading INT(11) DEFAULT NULL,
-  next_reading INT(11) DEFAULT NULL,
-  fuel_level VARCHAR(10) DEFAULT NULL,
-  fuel_level_end VARCHAR(10) DEFAULT NULL,
-  inspection_date DATETIME DEFAULT NULL,
-  next_inspection_date DATETIME DEFAULT NULL,
-  check_exterior TINYINT(1) DEFAULT 0,
-  check_interior TINYINT(1) DEFAULT 0,
-  check_engine TINYINT(1) DEFAULT 0,
-  check_fluid_levels TINYINT(1) DEFAULT 0,
-  check_brakes TINYINT(1) DEFAULT 0,
-  check_tires TINYINT(1) DEFAULT 0,
-  check_lights TINYINT(1) DEFAULT 0,
-  check_steering TINYINT(1) DEFAULT 0,
-  check_suspension TINYINT(1) DEFAULT 0,
-  check_battery TINYINT(1) DEFAULT 0,
-  check_exhaust TINYINT(1) DEFAULT 0,
-  check_wipers TINYINT(1) DEFAULT 0,
-  check_horn TINYINT(1) DEFAULT 0,
-  check_mirrors TINYINT(1) DEFAULT 0,
-  check_seatbelts TINYINT(1) DEFAULT 0,
-  check_airbags TINYINT(1) DEFAULT 0,
-  check_ac_heating TINYINT(1) DEFAULT 0,
-  check_windows TINYINT(1) DEFAULT 0,
-  check_doors TINYINT(1) DEFAULT 0,
-  check_trunk TINYINT(1) DEFAULT 0,
-  fk_user_creat INT(11) DEFAULT NULL,
-  tms TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (rowid),
-  UNIQUE KEY uk_flotte_inspection_ref (ref, entity),
-  KEY idx_flotte_inspection_vehicle (vehicle_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE `llx_flotte_fuel` (
+  `rowid` int NOT NULL AUTO_INCREMENT,
+  `ref` varchar(128) NOT NULL,
+  `entity` int DEFAULT '1',
+  `fk_vehicle` int DEFAULT NULL,
+  `date` date DEFAULT NULL,
+  `start_meter` int DEFAULT NULL,
+  `reference` varchar(128) DEFAULT NULL,
+  `state` varchar(128) DEFAULT NULL,
+  `note` text,
+  `complete_fillup` tinyint DEFAULT NULL,
+  `fuel_source` varchar(50) DEFAULT NULL,
+  `qty` decimal(10,2) DEFAULT NULL,
+  `cost_unit` decimal(10,2) DEFAULT NULL,
+  `fk_user_author` int DEFAULT NULL,
+  `fk_user_modif` int DEFAULT NULL,
+  `tms` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`rowid`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Table structure for llx_flotte_part
--- Stores spare parts inventory for fleet maintenance
-CREATE TABLE IF NOT EXISTS llx_flotte_part (
-  rowid INT(11) NOT NULL AUTO_INCREMENT,
-  ref VARCHAR(128) DEFAULT NULL,
-  entity INT(11) DEFAULT 1,
-  part_number VARCHAR(100) DEFAULT NULL,
-  part_name VARCHAR(255) DEFAULT NULL,
-  quantity VARCHAR(50) DEFAULT NULL,
-  comments TEXT DEFAULT NULL,
-  status VARCHAR(50) DEFAULT NULL,
-  fk_product INT(11) DEFAULT NULL,
-  vendor_id INT(11) DEFAULT NULL,
-  vehicle_id INT(11) DEFAULT NULL,
-  make VARCHAR(255) DEFAULT NULL,
-  year INT(4) DEFAULT NULL,
-  model VARCHAR(255) DEFAULT NULL,
-  category_id INT(11) DEFAULT NULL,
-  unit_cost DECIMAL(10,2) DEFAULT NULL,
-  description TEXT DEFAULT NULL,
-  notes TEXT DEFAULT NULL,
-  fk_user_creat INT(11) DEFAULT NULL,
-  fk_user_modif INT(11) DEFAULT NULL,
-  tms TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (rowid),
-  UNIQUE KEY uk_flotte_part_ref (ref, entity),
-  KEY idx_flotte_part_vendor (vendor_id),
-  KEY idx_flotte_part_vehicle (vehicle_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- dolibarr.llx_flotte_inspection definition
 
--- Table structure for llx_flotte_vendor
--- Stores vendor/supplier information for fleet services and parts
-CREATE TABLE IF NOT EXISTS llx_flotte_vendor (
-  rowid INT(11) NOT NULL AUTO_INCREMENT,
-  ref VARCHAR(128) DEFAULT NULL,
-  entity INT(11) DEFAULT 1,
-  fk_soc INT(11) DEFAULT NULL,
-  name VARCHAR(255) DEFAULT NULL,
-  phone VARCHAR(50) DEFAULT NULL,
-  email VARCHAR(255) DEFAULT NULL,
-  type VARCHAR(100) DEFAULT NULL,
-  website VARCHAR(255) DEFAULT NULL,
-  address1 VARCHAR(255) DEFAULT NULL,
-  address2 VARCHAR(255) DEFAULT NULL,
-  city VARCHAR(100) DEFAULT NULL,
-  state VARCHAR(100) DEFAULT NULL,
-  country VARCHAR(100) DEFAULT NULL,
-  zip VARCHAR(20) DEFAULT NULL,
-  note TEXT DEFAULT NULL,
-  picture VARCHAR(255) DEFAULT NULL,
-  fk_user_author INT(11) DEFAULT NULL,
-  datec DATETIME DEFAULT NULL,
-  fk_user_modif INT(11) DEFAULT NULL,
-  tms TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (rowid),
-  UNIQUE KEY uk_flotte_vendor_ref (ref, entity),
-  KEY idx_flotte_vendor_soc (fk_soc)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE `llx_flotte_inspection` (
+  `rowid` int NOT NULL AUTO_INCREMENT,
+  `ref` varchar(128) NOT NULL,
+  `entity` int DEFAULT '1',
+  `fk_vehicle` int DEFAULT NULL,
+  `registration_number` varchar(128) DEFAULT NULL,
+  `meter_out` int DEFAULT NULL,
+  `meter_in` int DEFAULT NULL,
+  `fuel_out` varchar(10) DEFAULT NULL,
+  `fuel_in` varchar(10) DEFAULT NULL,
+  `datetime_out` datetime DEFAULT NULL,
+  `datetime_in` datetime DEFAULT NULL,
+  `petrol_card` tinyint DEFAULT NULL,
+  `lights_indicators` tinyint DEFAULT NULL,
+  `inverter_cigarette` tinyint DEFAULT NULL,
+  `mats_seats` tinyint DEFAULT NULL,
+  `interior_damage` tinyint DEFAULT NULL,
+  `interior_lights` tinyint DEFAULT NULL,
+  `exterior_damage` tinyint DEFAULT NULL,
+  `tyres_condition` tinyint DEFAULT NULL,
+  `ladders` tinyint DEFAULT NULL,
+  `extension_leeds` tinyint DEFAULT NULL,
+  `power_tools` tinyint DEFAULT NULL,
+  `ac_working` tinyint DEFAULT NULL,
+  `headlights_working` tinyint DEFAULT NULL,
+  `locks_alarms` tinyint DEFAULT NULL,
+  `windows_condition` tinyint DEFAULT NULL,
+  `seats_condition` tinyint DEFAULT NULL,
+  `oil_check` tinyint DEFAULT NULL,
+  `suspension` tinyint DEFAULT NULL,
+  `toolboxes_condition` tinyint DEFAULT NULL,
+  `fk_user_author` int DEFAULT NULL,
+  `fk_user_modif` int DEFAULT NULL,
+  `tms` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`rowid`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- Table structure for llx_flotte_workorder
--- Stores work orders for fleet maintenance and repairs
-CREATE TABLE IF NOT EXISTS llx_flotte_workorder (
-  rowid INT(11) NOT NULL AUTO_INCREMENT,
-  ref VARCHAR(128) DEFAULT NULL,
-  entity INT(11) DEFAULT 1,
-  vehicle_id INT(11) DEFAULT NULL,
-  workorder_date DATE DEFAULT NULL,
-  odometer_reading INT(11) DEFAULT NULL,
-  comments TEXT DEFAULT NULL,
-  vendor_id INT(11) DEFAULT NULL,
-  status VARCHAR(50) DEFAULT NULL,
-  total_cost DECIMAL(10,2) DEFAULT NULL,
-  description TEXT DEFAULT NULL,
-  fk_user_creat INT(11) DEFAULT NULL,
-  fk_user_modif INT(11) DEFAULT NULL,
-  tms TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (rowid),
-  UNIQUE KEY uk_flotte_workorder_ref (ref, entity),
-  KEY idx_flotte_workorder_vehicle (vehicle_id),
-  KEY idx_flotte_workorder_vendor (vendor_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- dolibarr.llx_flotte_part definition
 
--- ============================================================
--- End of Flotte Module Database Structure
--- ============================================================
+CREATE TABLE `llx_flotte_part` (
+  `rowid` int NOT NULL AUTO_INCREMENT,
+  `ref` varchar(128) NOT NULL,
+  `entity` int DEFAULT '1',
+  `barcode` varchar(128) DEFAULT NULL,
+  `title` varchar(128) DEFAULT NULL,
+  `number` varchar(128) DEFAULT NULL,
+  `description` text,
+  `status` varchar(50) DEFAULT NULL,
+  `availability` tinyint DEFAULT NULL,
+  `fk_vendor` int DEFAULT NULL,
+  `fk_category` int DEFAULT NULL,
+  `manufacturer` varchar(128) DEFAULT NULL,
+  `year` int DEFAULT NULL,
+  `model` varchar(128) DEFAULT NULL,
+  `qty_on_hand` int DEFAULT NULL,
+  `unit_cost` decimal(10,2) DEFAULT NULL,
+  `note` text,
+  `picture` varchar(255) DEFAULT NULL,
+  `fk_user_author` int DEFAULT NULL,
+  `fk_user_modif` int DEFAULT NULL,
+  `tms` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`rowid`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- dolibarr.llx_flotte_part_category definition
+
+CREATE TABLE `llx_flotte_part_category` (
+  `rowid` int NOT NULL AUTO_INCREMENT,
+  `ref` varchar(128) NOT NULL,
+  `entity` int DEFAULT '1',
+  `category_name` varchar(128) DEFAULT NULL,
+  `fk_user_author` int DEFAULT NULL,
+  `fk_user_modif` int DEFAULT NULL,
+  `tms` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`rowid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- dolibarr.llx_flotte_vehicle definition
+
+CREATE TABLE `llx_flotte_vehicle` (
+  `rowid` int NOT NULL AUTO_INCREMENT,
+  `ref` varchar(128) NOT NULL,
+  `entity` int DEFAULT '1',
+  `maker` varchar(128) DEFAULT NULL,
+  `model` varchar(128) DEFAULT NULL,
+  `type` varchar(128) DEFAULT NULL,
+  `year` int DEFAULT NULL,
+  `initial_mileage` int DEFAULT NULL,
+  `image` varchar(255) DEFAULT NULL,
+  `length_cm` decimal(10,2) DEFAULT NULL,
+  `width_cm` decimal(10,2) DEFAULT NULL,
+  `height_cm` decimal(10,2) DEFAULT NULL,
+  `max_weight_kg` decimal(10,2) DEFAULT NULL,
+  `ground_height_cm` decimal(10,2) DEFAULT NULL,
+  `insurance_expiry` date DEFAULT NULL,
+  `vehicle_photo` varchar(255) DEFAULT NULL,
+  `registration_card` varchar(255) DEFAULT NULL,
+  `platform_registration_card` varchar(255) DEFAULT NULL,
+  `insurance_document` varchar(255) DEFAULT NULL,
+  `registration_expiry` date DEFAULT NULL,
+  `in_service` tinyint DEFAULT '1',
+  `department` varchar(128) DEFAULT NULL,
+  `engine_type` varchar(128) DEFAULT NULL,
+  `horsepower` varchar(50) DEFAULT NULL,
+  `color` varchar(50) DEFAULT NULL,
+  `vin` varchar(50) DEFAULT NULL,
+  `license_plate` varchar(50) DEFAULT NULL,
+  `license_expiry` date DEFAULT NULL,
+  `fk_group` int DEFAULT NULL,
+  `fk_user_author` int DEFAULT NULL,
+  `fk_user_modif` int DEFAULT NULL,
+  `tms` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`rowid`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- dolibarr.llx_flotte_vendor definition
+
+CREATE TABLE `llx_flotte_vendor` (
+  `rowid` int NOT NULL AUTO_INCREMENT,
+  `ref` varchar(128) NOT NULL,
+  `entity` int DEFAULT '1',
+  `fk_soc` int DEFAULT NULL,
+  `name` varchar(128) DEFAULT NULL,
+  `phone` varchar(50) DEFAULT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `type` varchar(128) DEFAULT NULL,
+  `website` varchar(255) DEFAULT NULL,
+  `note` text,
+  `address1` varchar(255) DEFAULT NULL,
+  `address2` varchar(255) DEFAULT NULL,
+  `city` varchar(128) DEFAULT NULL,
+  `state` varchar(128) DEFAULT NULL,
+  `picture` varchar(255) DEFAULT NULL,
+  `fk_user_author` int DEFAULT NULL,
+  `datec` datetime DEFAULT NULL,
+  `fk_user_modif` int DEFAULT NULL,
+  `tms` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`rowid`),
+  UNIQUE KEY `uk_flotte_vendor_soc_entity` (`fk_soc`,`entity`),
+  KEY `idx_flotte_vendor_fk_soc` (`fk_soc`),
+  CONSTRAINT `fk_flotte_vendor_soc` FOREIGN KEY (`fk_soc`) REFERENCES `llx_societe` (`rowid`) ON DELETE RESTRICT
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- dolibarr.llx_flotte_workorder definition
+
+CREATE TABLE `llx_flotte_workorder` (
+  `rowid` int NOT NULL AUTO_INCREMENT,
+  `ref` varchar(128) NOT NULL,
+  `entity` int DEFAULT '1',
+  `fk_vehicle` int DEFAULT NULL,
+  `required_by` date DEFAULT NULL,
+  `reading` int DEFAULT NULL,
+  `note` text,
+  `fk_vendor` int DEFAULT NULL,
+  `status` varchar(50) DEFAULT NULL,
+  `price` decimal(10,2) DEFAULT NULL,
+  `description` text,
+  `fk_user_author` int DEFAULT NULL,
+  `fk_user_modif` int DEFAULT NULL,
+  `tms` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`rowid`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
