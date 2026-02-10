@@ -95,43 +95,41 @@ CREATE TABLE IF NOT EXISTS llx_flotte_customer (
 -- Stores driver information including licenses and documents
 -- UPDATED: Now integrates with HRM module via fk_user field
 CREATE TABLE IF NOT EXISTS llx_flotte_driver (
-  rowid INT(11) NOT NULL AUTO_INCREMENT,
-  ref VARCHAR(128) DEFAULT NULL,
-  entity INT(11) DEFAULT 1,
-  fk_user INT(11) DEFAULT NULL,                -- NEW: Links to llx_user (HRM employee)
-  firstname VARCHAR(255) DEFAULT NULL,          -- Kept: Can be modified independently from HRM
-  lastname VARCHAR(255) DEFAULT NULL,           -- Kept: Can be modified independently from HRM
-  job_title VARCHAR(255) DEFAULT NULL,
-  address VARCHAR(255) DEFAULT NULL,
-  email VARCHAR(255) DEFAULT NULL,              -- Kept: Can be modified independently from HRM
-  phone VARCHAR(50) DEFAULT NULL,               -- Kept: Can be modified independently from HRM
-  mobile VARCHAR(50) DEFAULT NULL,
-  license_number VARCHAR(100) DEFAULT NULL,
-  license_type VARCHAR(50) DEFAULT NULL,
-  license_issue_date DATE DEFAULT NULL,
-  license_exp_date DATE DEFAULT NULL,
-  medical_cert_issue_date DATE DEFAULT NULL,
-  medical_cert_exp_date DATE DEFAULT NULL,
-  emergency_contact VARCHAR(255) DEFAULT NULL,
-  age VARCHAR(10) DEFAULT NULL,
-  status VARCHAR(50) DEFAULT NULL,
-  gender VARCHAR(20) DEFAULT NULL,
-  driver_image VARCHAR(255) DEFAULT NULL,
-  license_image VARCHAR(255) DEFAULT NULL,
-  medical_cert_image VARCHAR(255) DEFAULT NULL,
-  national_id VARCHAR(100) DEFAULT NULL,
-  assigned_vehicle_id INT(11) DEFAULT NULL,
-  fk_user_creat INT(11) DEFAULT NULL,
-  datec DATETIME DEFAULT NULL,                  -- NEW: Creation date
-  fk_user_modif INT(11) DEFAULT NULL,
-  tms TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (rowid),
-  UNIQUE KEY uk_flotte_driver_ref (ref, entity),
-  UNIQUE KEY uk_flotte_driver_user_entity (fk_user, entity),  -- NEW: Prevents duplicate drivers per employee
-  KEY idx_flotte_driver_vehicle (assigned_vehicle_id),
-  KEY idx_flotte_driver_fk_user (fk_user),                     -- NEW: Index for performance
-  CONSTRAINT fk_flotte_driver_user FOREIGN KEY (fk_user) REFERENCES llx_user(rowid) ON DELETE RESTRICT  -- NEW: Data integrity
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `rowid` int NOT NULL AUTO_INCREMENT,
+  `ref` varchar(128) NOT NULL,
+  `entity` int DEFAULT '1',
+  `fk_user` int DEFAULT NULL,
+  `firstname` varchar(128) DEFAULT NULL,
+  `middlename` varchar(128) DEFAULT NULL,
+  `lastname` varchar(128) DEFAULT NULL,
+  `address` varchar(255) DEFAULT NULL,
+  `email` varchar(255) DEFAULT NULL,
+  `phone` varchar(50) DEFAULT NULL,
+  `employee_id` varchar(50) DEFAULT NULL,
+  `contract_number` varchar(50) DEFAULT NULL,
+  `license_number` varchar(50) DEFAULT NULL,
+  `license_issue_date` date DEFAULT NULL,
+  `license_expiry_date` date DEFAULT NULL,
+  `join_date` date DEFAULT NULL,
+  `leave_date` date DEFAULT NULL,
+  `password` varchar(128) DEFAULT NULL,
+  `department` varchar(128) DEFAULT NULL,
+  `status` varchar(50) DEFAULT NULL,
+  `gender` varchar(10) DEFAULT NULL,
+  `driver_image` varchar(255) DEFAULT NULL,
+  `documents` varchar(255) DEFAULT NULL,
+  `license_image` varchar(255) DEFAULT NULL,
+  `emergency_contact` varchar(255) DEFAULT NULL,
+  `fk_vehicle` int DEFAULT NULL,
+  `fk_user_author` int DEFAULT NULL,
+  `datec` datetime DEFAULT NULL,
+  `fk_user_modif` int DEFAULT NULL,
+  `tms` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`rowid`),
+  UNIQUE KEY `uk_flotte_driver_user_entity` (`fk_user`,`entity`),
+  KEY `idx_flotte_driver_fk_user` (`fk_user`),
+  CONSTRAINT `fk_flotte_driver_user` FOREIGN KEY (`fk_user`) REFERENCES `llx_user` (`rowid`) ON DELETE RESTRICT RESTRICT  -- NEW: Data integrity
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Table structure for llx_flotte_fuel
 -- Stores fuel consumption and refueling records
