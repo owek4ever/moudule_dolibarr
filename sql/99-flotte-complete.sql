@@ -1,7 +1,13 @@
 -- ============================================================
--- Dolibarr Flotte Module Database Structure
--- Tables for fleet management system
--- Generated: 2026-02-10 - UPDATED VERSION with HRM Integration
+-- Dolibarr Flotte Module - Complete Setup
+-- This file creates fleet tables ONLY
+-- Let Dolibarr create admin user through setup wizard
+-- Compatible with /docker-entrypoint-initdb.d auto-load
+-- Generated: 2026-02-10 - FIXED VERSION
+-- ============================================================
+
+-- ============================================================
+-- FLEET MANAGEMENT TABLES
 -- ============================================================
 
 -- Table structure for llx_flotte_vehicle
@@ -93,43 +99,39 @@ CREATE TABLE IF NOT EXISTS llx_flotte_customer (
 
 -- Table structure for llx_flotte_driver
 -- Stores driver information including licenses and documents
--- UPDATED: Now integrates with HRM module via fk_user field
 CREATE TABLE IF NOT EXISTS llx_flotte_driver (
-  `rowid` int NOT NULL AUTO_INCREMENT,
-  `ref` varchar(128) NOT NULL,
-  `entity` int DEFAULT '1',
-  `fk_user` int DEFAULT NULL,
-  `firstname` varchar(128) DEFAULT NULL,
-  `middlename` varchar(128) DEFAULT NULL,
-  `lastname` varchar(128) DEFAULT NULL,
-  `address` varchar(255) DEFAULT NULL,
-  `email` varchar(255) DEFAULT NULL,
-  `phone` varchar(50) DEFAULT NULL,
-  `employee_id` varchar(50) DEFAULT NULL,
-  `contract_number` varchar(50) DEFAULT NULL,
-  `license_number` varchar(50) DEFAULT NULL,
-  `license_issue_date` date DEFAULT NULL,
-  `license_expiry_date` date DEFAULT NULL,
-  `join_date` date DEFAULT NULL,
-  `leave_date` date DEFAULT NULL,
-  `password` varchar(128) DEFAULT NULL,
-  `department` varchar(128) DEFAULT NULL,
-  `status` varchar(50) DEFAULT NULL,
-  `gender` varchar(10) DEFAULT NULL,
-  `driver_image` varchar(255) DEFAULT NULL,
-  `documents` varchar(255) DEFAULT NULL,
-  `license_image` varchar(255) DEFAULT NULL,
-  `emergency_contact` varchar(255) DEFAULT NULL,
-  `fk_vehicle` int DEFAULT NULL,
-  `fk_user_author` int DEFAULT NULL,
-  `datec` datetime DEFAULT NULL,
-  `fk_user_modif` int DEFAULT NULL,
-  `tms` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`rowid`),
-  UNIQUE KEY `uk_flotte_driver_user_entity` (`fk_user`,`entity`),
-  KEY `idx_flotte_driver_fk_user` (`fk_user`),
-  CONSTRAINT `fk_flotte_driver_user` FOREIGN KEY (`fk_user`) REFERENCES `llx_user` (`rowid`) ON DELETE RESTRICT RESTRICT  -- NEW: Data integrity
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+  rowid INT(11) NOT NULL AUTO_INCREMENT,
+  ref VARCHAR(128) DEFAULT NULL,
+  entity INT(11) DEFAULT 1,
+  firstname VARCHAR(255) DEFAULT NULL,
+  lastname VARCHAR(255) DEFAULT NULL,
+  job_title VARCHAR(255) DEFAULT NULL,
+  address VARCHAR(255) DEFAULT NULL,
+  email VARCHAR(255) DEFAULT NULL,
+  phone VARCHAR(50) DEFAULT NULL,
+  mobile VARCHAR(50) DEFAULT NULL,
+  license_number VARCHAR(100) DEFAULT NULL,
+  license_type VARCHAR(50) DEFAULT NULL,
+  license_issue_date DATE DEFAULT NULL,
+  license_exp_date DATE DEFAULT NULL,
+  medical_cert_issue_date DATE DEFAULT NULL,
+  medical_cert_exp_date DATE DEFAULT NULL,
+  emergency_contact VARCHAR(255) DEFAULT NULL,
+  age VARCHAR(10) DEFAULT NULL,
+  status VARCHAR(50) DEFAULT NULL,
+  gender VARCHAR(20) DEFAULT NULL,
+  driver_image VARCHAR(255) DEFAULT NULL,
+  license_image VARCHAR(255) DEFAULT NULL,
+  medical_cert_image VARCHAR(255) DEFAULT NULL,
+  national_id VARCHAR(100) DEFAULT NULL,
+  assigned_vehicle_id INT(11) DEFAULT NULL,
+  fk_user_creat INT(11) DEFAULT NULL,
+  fk_user_modif INT(11) DEFAULT NULL,
+  tms TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (rowid),
+  UNIQUE KEY uk_flotte_driver_ref (ref, entity),
+  KEY idx_flotte_driver_vehicle (assigned_vehicle_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Table structure for llx_flotte_fuel
 -- Stores fuel consumption and refueling records
@@ -228,7 +230,6 @@ CREATE TABLE IF NOT EXISTS llx_flotte_part (
 
 -- Table structure for llx_flotte_vendor
 -- Stores vendor/supplier information for fleet services and parts
--- CORRECTED: Column names match PHP code
 CREATE TABLE IF NOT EXISTS llx_flotte_vendor (
   rowid INT(11) NOT NULL AUTO_INCREMENT,
   ref VARCHAR(128) DEFAULT NULL,
@@ -279,31 +280,6 @@ CREATE TABLE IF NOT EXISTS llx_flotte_workorder (
   KEY idx_flotte_workorder_vendor (vendor_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ============================================================
--- IMPORTANT NOTES - HRM Integration for Drivers
--- ============================================================
--- 
--- The llx_flotte_driver table now integrates with Dolibarr's HRM module:
---
--- 1. fk_user field: Links driver to an employee in llx_user table
---    - When creating a driver, select from existing employees
---    - Employee must have employee=1 flag set in llx_user
---
--- 2. Contact fields (firstname, lastname, email, phone):
---    - Auto-filled from selected employee on creation
---    - Can be modified independently for driver-specific contact info
---    - Allows flexibility for different work vs. driver contact details
---
--- 3. Data integrity:
---    - Foreign key constraint prevents invalid employee references
---    - Unique constraint prevents duplicate drivers per employee
---    - ON DELETE RESTRICT protects against accidental data loss
---
--- 4. Migration from existing data:
---    - Existing drivers without fk_user continue to work normally
---    - New drivers should always link to an employee
---    - Can manually update existing drivers to link to employees
---
 -- ============================================================
 -- End of Flotte Module Database Structure
 -- ============================================================
