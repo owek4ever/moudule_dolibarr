@@ -395,7 +395,7 @@ print '<div class="fichecenter">';
 print '<div class="fichehalfleft">';
 
 // Basic Information
-print load_fiche_titre($langs->trans('WorkOrderInformation'), '', '');
+print load_fiche_titre($langs->trans('Work Order Information'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // Reference
@@ -463,7 +463,7 @@ print '</div>';
 print '<div class="fichehalfright">';
 
 // Additional Information
-print load_fiche_titre($langs->trans('AdditionalInformation'), '', '');
+print load_fiche_titre($langs->trans('Additional Information'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // Price
