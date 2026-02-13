@@ -365,7 +365,7 @@ print '<div class="fichecenter">';
 print '<div class="fichehalfleft">';
 
 // Basic Information
-print load_fiche_titre($langs->trans('PartInformation'), '', '');
+print load_fiche_titre($langs->trans('Part Information'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // Reference
@@ -387,7 +387,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Part Number
-print '<tr><td>' . $langs->trans('PartNumber') . '</td><td>';
+print '<tr><td>' . $langs->trans('Part Number') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat" name="number" value="' . dol_escape_htmltag($object->number) . '" size="20">';
 } else {
@@ -432,7 +432,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Quantity on Hand
-print '<tr><td>' . $langs->trans('QuantityOnHand') . '</td><td>';
+print '<tr><td>' . $langs->trans('Quantity On Hand') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="number" class="flat" name="qty_on_hand" value="' . (int) $object->qty_on_hand . '" min="0">';
 } else {
@@ -452,7 +452,7 @@ print '</div>';
 print '<div class="fichehalfright">';
 
 // Additional Information
-print load_fiche_titre($langs->trans('AdditionalInformation'), '', '');
+print load_fiche_titre($langs->trans('Additional Information'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // Unit Cost
