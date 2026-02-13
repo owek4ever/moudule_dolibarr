@@ -177,10 +177,10 @@ if ($action == 'add' && !$cancel && $_SERVER["REQUEST_METHOD"] == "POST") {
     $lastname = GETPOST('lastname', 'alpha');
     $address = GETPOST('address', 'restricthtml');
     $email = GETPOST('email', 'email');
-    $phone = GETPOST('phone', 'alpha');
-    $employee_id = GETPOST('employee_id', 'alpha');
-    $contract_number = GETPOST('contract_number', 'alpha');
-    $license_number = GETPOST('license_number', 'alpha');
+    $phone = GETPOST('phone', 'alphanohtml');
+    $employee_id = GETPOST('employee_id', 'alphanohtml');
+    $contract_number = GETPOST('contract_number', 'alphanohtml');
+    $license_number = GETPOST('license_number', 'alphanohtml');
     
     // Handle dates properly
     $license_issue_date = null;
@@ -295,10 +295,10 @@ if ($action == 'update' && $id > 0 && !$cancel && $_SERVER["REQUEST_METHOD"] == 
     $lastname = GETPOST('lastname', 'alpha');
     $address = GETPOST('address', 'restricthtml');
     $email = GETPOST('email', 'email');
-    $phone = GETPOST('phone', 'alpha');
-    $employee_id = GETPOST('employee_id', 'alpha');
-    $contract_number = GETPOST('contract_number', 'alpha');
-    $license_number = GETPOST('license_number', 'alpha');
+    $phone = GETPOST('phone', 'alphanohtml');
+    $employee_id = GETPOST('employee_id', 'alphanohtml');
+    $contract_number = GETPOST('contract_number', 'alphanohtml');
+    $license_number = GETPOST('license_number', 'alphanohtml');
     
     $license_issue_date = null;
     if (GETPOST('license_issue_dateday', 'int') && GETPOST('license_issue_datemonth', 'int') && GETPOST('license_issue_dateyear', 'int')) {

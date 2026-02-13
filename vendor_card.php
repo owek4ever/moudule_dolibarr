@@ -154,18 +154,18 @@ if ($action == 'add') {
     $db->begin();
     
     // Get form data
-    $ref = GETPOST('ref', 'alpha');
+    $ref = GETPOST('ref', 'alphanohtml');
     $fk_soc = GETPOST('fk_soc', 'int');
-    $name = GETPOST('name', 'alpha');
-    $phone = GETPOST('phone', 'alpha');
-    $email = GETPOST('email', 'alpha');
-    $website = GETPOST('website', 'alpha');
-    $address1 = GETPOST('address1', 'alpha');
-    $address2 = GETPOST('address2', 'alpha');
-    $city = GETPOST('city', 'alpha');
-    $state = GETPOST('state', 'alpha');
+    $name = GETPOST('name', 'alphanohtml');
+    $phone = GETPOST('phone', 'alphanohtml');
+    $email = GETPOST('email', 'email');
+    $website = GETPOST('website', 'alphanohtml');
+    $address1 = GETPOST('address1', 'alphanohtml');
+    $address2 = GETPOST('address2', 'alphanohtml');
+    $city = GETPOST('city', 'alphanohtml');
+    $state = GETPOST('state', 'alphanohtml');
     $type = GETPOST('type', 'alpha');
-    $note = GETPOST('note', 'alpha');
+    $note = GETPOST('note', 'restricthtml');
     
     // Auto-generate reference if empty
     if (empty($ref)) {
@@ -240,16 +240,16 @@ if ($action == 'update') {
     $db->begin();
     
     // Get form data
-    $name = GETPOST('name', 'alpha');
-    $phone = GETPOST('phone', 'alpha');
-    $email = GETPOST('email', 'alpha');
-    $website = GETPOST('website', 'alpha');
-    $address1 = GETPOST('address1', 'alpha');
-    $address2 = GETPOST('address2', 'alpha');
-    $city = GETPOST('city', 'alpha');
-    $state = GETPOST('state', 'alpha');
+    $name = GETPOST('name', 'alphanohtml');
+    $phone = GETPOST('phone', 'alphanohtml');
+    $email = GETPOST('email', 'email');
+    $website = GETPOST('website', 'alphanohtml');
+    $address1 = GETPOST('address1', 'alphanohtml');
+    $address2 = GETPOST('address2', 'alphanohtml');
+    $city = GETPOST('city', 'alphanohtml');
+    $state = GETPOST('state', 'alphanohtml');
     $type = GETPOST('type', 'alpha');
-    $note = GETPOST('note', 'alpha');
+    $note = GETPOST('note', 'restricthtml');
     
     if (empty($name)) {
         $error++;
