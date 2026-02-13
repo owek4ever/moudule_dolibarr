@@ -502,7 +502,7 @@ print '<div class="fichecenter">';
 print '<div class="fichehalfleft">';
 
 // Basic Information
-print load_fiche_titre($langs->trans('InspectionInformation'), '', '');
+print load_fiche_titre($langs->trans('Inspection Information'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // Reference
@@ -544,7 +544,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Registration Number
-print '<tr><td>' . $langs->trans('RegistrationNumber') . '</td><td>';
+print '<tr><td>' . $langs->trans('Registration Number') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat" name="registration_number" value="' . dol_escape_htmltag(isset($object->registration_number) ? $object->registration_number : '') . '" size="20">';
 } else {
@@ -576,7 +576,7 @@ print '</div>';
 print '<div class="fichehalfright">';
 
 // Meter and Fuel Information
-print load_fiche_titre($langs->trans('MeterAndFuelInformation'), '', '');
+print load_fiche_titre($langs->trans('Meter And Fuel Information'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // Meter Out
@@ -623,29 +623,29 @@ print '</div>';
 print '<div class="clearboth"></div>';
 
 // Inspection Checklist
-print load_fiche_titre($langs->trans('InspectionChecklist'), '', '');
+print load_fiche_titre($langs->trans('Inspection Checklist'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 $checklist_items = array(
-    'petrol_card' => $langs->trans('PetrolCard'),
-    'lights_indicators' => $langs->trans('LightsIndicators'),
-    'inverter_cigarette' => $langs->trans('InverterCigarette'),
-    'mats_seats' => $langs->trans('MatsSeats'),
-    'interior_damage' => $langs->trans('InteriorDamage'),
-    'interior_lights' => $langs->trans('InteriorLights'),
-    'exterior_damage' => $langs->trans('ExteriorDamage'),
-    'tyres_condition' => $langs->trans('TyresCondition'),
+    'petrol_card' => $langs->trans('Petrol Card'),
+    'lights_indicators' => $langs->trans('Lights Indicators'),
+    'inverter_cigarette' => $langs->trans('Inverter Cigarette'),
+    'mats_seats' => $langs->trans('Mats Seats'),
+    'interior_damage' => $langs->trans('Interior Damage'),
+    'interior_lights' => $langs->trans('Interior Lights'),
+    'exterior_damage' => $langs->trans('Exterior Damage'),
+    'tyres_condition' => $langs->trans('Tyres Condition'),
     'ladders' => $langs->trans('Ladders'),
-    'extension_leeds' => $langs->trans('ExtensionLeeds'),
-    'power_tools' => $langs->trans('PowerTools'),
-    'ac_working' => $langs->trans('ACWorking'),
-    'headlights_working' => $langs->trans('HeadlightsWorking'),
-    'locks_alarms' => $langs->trans('LocksAlarms'),
-    'windows_condition' => $langs->trans('WindowsCondition'),
-    'seats_condition' => $langs->trans('SeatsCondition'),
-    'oil_check' => $langs->trans('OilCheck'),
+    'extension_leeds' => $langs->trans('Extension Leeds'),
+    'power_tools' => $langs->trans('Power Tools'),
+    'ac_working' => $langs->trans('AC Working'),
+    'headlights_working' => $langs->trans('Headlights Working'),
+    'locks_alarms' => $langs->trans('Locks Alarms'),
+    'windows_condition' => $langs->trans('Windows Condition'),
+    'seats_condition' => $langs->trans('Seats Condition'),
+    'oil_check' => $langs->trans('Oil Check'),
     'suspension' => $langs->trans('Suspension'),
-    'toolboxes_condition' => $langs->trans('ToolboxesCondition')
+    'toolboxes_condition' => $langs->trans('Toolboxes Condition')
 );
 
 $i = 0;
