@@ -195,7 +195,7 @@ print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
 print '<input type="hidden" name="page" value="'.$page.'">';
 
 // Print barre liste
-print_barre_liste($langs->trans("VehiclesList"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, '', 0);
+print_barre_liste($langs->trans("Vehicles List"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, '', 0);
 
 print '<div class="div-table-responsive">';
 print '<table class="tagtable liste" id="tablelines">'."\n";

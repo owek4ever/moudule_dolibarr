@@ -147,18 +147,18 @@ if ($resql) {
 }
 
 // Page header
-llxHeader('', $langs->trans("WorkOrdersList"), '');
+llxHeader('', $langs->trans("Work Orders List"), '');
 
 // Page title and buttons
 $newCardButton = '';
 if ($user->rights->flotte->write) {
-    $newCardButton = dolGetButtonTitle($langs->trans('New WorkOrder'), '', 'fa fa-plus-circle', dol_buildpath('/flotte/workorder_card.php', 1).'?action=create', '', $user->rights->flotte->read);
+    $newCardButton = dolGetButtonTitle($langs->trans('New Work Order'), '', 'fa fa-plus-circle', dol_buildpath('/flotte/workorder_card.php', 1).'?action=create', '', $user->rights->flotte->read);
 }
 
 // Actions bar
 print '<div class="tabsAction">'."\n";
 if ($user->rights->flotte->write) {
-    print '<a class="butAction" href="'.dol_buildpath('/flotte/workorder_card.php', 1).'?action=create">'.$langs->trans("New WorkOrder").'</a>'."\n";
+    print '<a class="butAction" href="'.dol_buildpath('/flotte/workorder_card.php', 1).'?action=create">'.$langs->trans("New Work Order").'</a>'."\n";
 }
 if ($user->rights->flotte->read) {
     print '<a class="butAction" href="'.dol_buildpath('/flotte/workorder_list.php', 1).'?action=export">'.$langs->trans("Export").'</a>'."\n";
@@ -190,7 +190,7 @@ print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
 print '<input type="hidden" name="page" value="'.$page.'">';
 
 // Print barre liste
-print_barre_liste($langs->trans("WorkOrdersList"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, 'clipboard-list', 0);
+print_barre_liste($langs->trans("Work Orders List"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, '0', 0);
 
 print '<div class="div-table-responsive">';
 print '<table class="tagtable liste" id="tablelines">'."\n";

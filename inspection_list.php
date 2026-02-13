@@ -150,7 +150,7 @@ if ($resql) {
 }
 
 // Page header
-llxHeader('', $langs->trans("InspectionsList"), '');
+llxHeader('', $langs->trans("Inspections List"), '');
 
 // Page title and buttons
 $newCardButton = '';
@@ -193,7 +193,7 @@ print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
 print '<input type="hidden" name="page" value="'.$page.'">';
 
 // Print barre liste
-print_barre_liste($langs->trans("InspectionsList"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, 'clipboard-list', 0);
+print_barre_liste($langs->trans("Inspections List"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, '0', 0);
 
 print '<div class="div-table-responsive">';
 print '<table class="tagtable liste" id="tablelines">'."\n";
