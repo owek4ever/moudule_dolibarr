@@ -378,7 +378,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Part Title
-print '<tr><td>' . $langs->trans('PartTitle') . '</td><td>';
+print '<tr><td>' . $langs->trans('Part Title') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat" name="title" value="' . dol_escape_htmltag($object->title) . '" size="40">';
 } else {
