@@ -385,22 +385,22 @@ print '</div>';
 // Total Drivers Card
 print '<div class="dashboard-card">';
 print '<div class="stat-number">' . $stats['total_drivers'] . '</div>';
-print '<div class="stat-label">' . $langs->trans("TotalDrivers") . '</div>';
+print '<div class="stat-label">' . $langs->trans("Total Drivers") . '</div>';
 print '</div>';
 
 // Active Bookings Card
 print '<div class="dashboard-card">';
 print '<div class="stat-number">' . $stats['active_bookings'] . '</div>';
-print '<div class="stat-label">' . $langs->trans("ActiveBookings") . '</div>';
+print '<div class="stat-label">' . $langs->trans("Active Bookings") . '</div>';
 print '<div style="text-align: center; margin-top: 10px; color: #17a2b8;">';
-print '<small>' . $stats['monthly_bookings'] . ' ' . $langs->trans("ThisMonth") . '</small>';
+print '<small>' . $stats['monthly_bookings'] . ' ' . $langs->trans("This Month") . '</small>';
 print '</div>';
 print '</div>';
 
 // Revenue Card
 print '<div class="dashboard-card">';
 print '<div class="stat-number">' . price($stats['monthly_revenue']) . '</div>';
-print '<div class="stat-label">' . $langs->trans("MonthlyRevenue") . '</div>';
+print '<div class="stat-label">' . $langs->trans("Monthly Revenue") . '</div>';
 print '</div>';
 
 print '</div>'; // End statistics row
@@ -461,7 +461,7 @@ print '</a>';
 // WorkOrders
 print '<a class="quick-action-item" href="' . dol_buildpath('/flotte/workorder_list.php', 1) . '">';
 print '<div class="quick-action-icon"><i class="fa fa-tools"></i></div>';
-print '<div>' . $langs->trans("WorkOrders") . '</div>';
+print '<div>' . $langs->trans("Work Orders") . '</div>';
 print '</a>';
 
 // Inspections
@@ -518,7 +518,7 @@ if (!empty($recent_bookings)) {
     print '<div class="dashboard-card">';
     print '<h3 style="margin-top: 0; color: #333;">' . $langs->trans("FleetSummary") . '</h3>';
     print '<div style="line-height: 2;">';
-    print '<div><i class="fa fa-car" style="color: #4a90e2; width: 20px;"></i> <strong>' . $stats['total_vehicles'] . '</strong> ' . $langs->trans("TotalVehicles") . '</div>';
+    print '<div><i class="fa fa-car" style="color: #4a90e2; width: 20px;"></i> <strong>' . $stats['total_vehicles'] . '</strong> ' . $langs->trans("Total Vehicles") . '</div>';
     print '<div><i class="fa fa-check-circle" style="color: #28a745; width: 20px;"></i> <strong>' . $stats['available_vehicles'] . '</strong> ' . $langs->trans("Available") . '</div>';
     print '<div><i class="fa fa-user" style="color: #6f42c1; width: 20px;"></i> <strong>' . $stats['total_drivers'] . '</strong> ' . $langs->trans("Drivers") . '</div>';
     print '<div><i class="fa fa-users" style="color: #fd7e14; width: 20px;"></i> <strong>' . $stats['total_customers'] . '</strong> ' . $langs->trans("Customers") . '</div>';
