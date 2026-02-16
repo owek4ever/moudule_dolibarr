@@ -314,7 +314,7 @@ print '<div class="fichecenter">';
 print '<div class="fichehalfleft">';
 
 // Basic Information
-print load_fiche_titre($langs->trans('CustomerInformation'), '', '');
+print load_fiche_titre($langs->trans('Customer Information'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // Reference
@@ -327,7 +327,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // First Name
-print '<tr><td>' . $langs->trans('FirstName') . '</td><td>';
+print '<tr><td>' . $langs->trans('First Name') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat" name="firstname" value="' . (isset($object->firstname) ? $object->firstname : '') . '" size="20" required>';
 } else {
@@ -336,7 +336,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Last Name
-print '<tr><td>' . $langs->trans('LastName') . '</td><td>';
+print '<tr><td>' . $langs->trans('Last Name') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat" name="lastname" value="' . (isset($object->lastname) ? $object->lastname : '') . '" size="20" required>';
 } else {
@@ -368,11 +368,11 @@ print '</div>';
 print '<div class="fichehalfright">';
 
 // Additional Information
-print load_fiche_titre($langs->trans('AdditionalInformation'), '', '');
+print load_fiche_titre($langs->trans('Additional Information'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // Company Name
-print '<tr><td class="titlefield">' . $langs->trans('CompanyName') . '</td><td>';
+print '<tr><td class="titlefield">' . $langs->trans('Company Name') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat" name="company_name" value="' . (isset($object->company_name) ? $object->company_name : '') . '" size="20">';
 } else {
@@ -381,7 +381,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Tax Number
-print '<tr><td>' . $langs->trans('TaxNumber') . '</td><td>';
+print '<tr><td>' . $langs->trans('Tax Number') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat" name="tax_no" value="' . (isset($object->tax_no) ? $object->tax_no : '') . '" size="20">';
 } else {
@@ -390,7 +390,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Payment Delay
-print '<tr><td>' . $langs->trans('PaymentDelay') . '</td><td>';
+print '<tr><td>' . $langs->trans('Payment Delay') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="number" class="flat" name="payment_delay" value="' . (isset($object->payment_delay) ? $object->payment_delay : '') . '" min="0"> ' . $langs->trans('Days');
 } else {
