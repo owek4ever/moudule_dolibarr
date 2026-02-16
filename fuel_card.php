@@ -431,7 +431,7 @@ print '<div class="fichecenter">';
 print '<div class="fichehalfleft">';
 
 // Basic Information
-print load_fiche_titre($langs->trans('FuelRecordInformation'), '', '');
+print load_fiche_titre($langs->trans('Fuel Record Information'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // Reference
@@ -464,7 +464,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Meter Reading
-print '<tr><td>' . $langs->trans('MeterReading') . '</td><td>';
+print '<tr><td>' . $langs->trans('Meter Reading') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="number" class="flat" name="start_meter" value="' . (isset($object->start_meter) ? $object->start_meter : '') . '" size="10" min="0" step="1"> km';
 } else {
@@ -473,7 +473,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Reference Number
-print '<tr><td>' . $langs->trans('ReferenceNumber') . '</td><td>';
+print '<tr><td>' . $langs->trans('Reference Number') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat" name="reference" value="' . (isset($object->reference) ? $object->reference : '') . '" size="20">';
 } else {
@@ -509,11 +509,11 @@ print '</div>';
 print '<div class="fichehalfright">';
 
 // Fuel Details
-print load_fiche_titre($langs->trans('FuelDetails'), '', '');
+print load_fiche_titre($langs->trans('Fuel Details'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // Fuel Source
-print '<tr><td class="titlefield">' . $langs->trans('FuelSource') . '</td><td>';
+print '<tr><td class="titlefield">' . $langs->trans('Fuel Source') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     $source_options = array(
         'Station' => $langs->trans('Station'),
@@ -542,7 +542,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Cost per Unit
-print '<tr><td>' . $langs->trans('CostUnit') . '</td><td>';
+print '<tr><td>' . $langs->trans('Cost Unit') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="number" class="flat" name="cost_unit" value="' . (isset($object->cost_unit) ? $object->cost_unit : '') . '" size="10" min="0.01" step="0.01" required> ' . $conf->currency;
 } else {
@@ -551,7 +551,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Total Cost
-print '<tr><td>' . $langs->trans('TotalCost') . '</td><td>';
+print '<tr><td>' . $langs->trans('Total Cost') . '</td><td>';
 $total_cost = 0;
 if (is_numeric($object->qty) && is_numeric($object->cost_unit)) {
     $total_cost = (float)$object->qty * (float)$object->cost_unit;
@@ -560,7 +560,7 @@ print '<strong>' . price($total_cost) . '</strong>';
 print '</td></tr>';
 
 // Complete Fill-up
-print '<tr><td>' . $langs->trans('CompleteFillup') . '</td><td>';
+print '<tr><td>' . $langs->trans('Complete Fill up') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="checkbox" name="complete_fillup" value="1"' . (isset($object->complete_fillup) && $object->complete_fillup ? ' checked' : '') . '>';
 } else {
