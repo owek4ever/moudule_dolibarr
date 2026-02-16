@@ -153,6 +153,11 @@ if ($action == 'add' && $_POST) {
         $platform_registration_card = handleFileUpload('platform_registration_card', $upload_dir);
         $insurance_document = handleFileUpload('insurance_document', $upload_dir);
         
+        // Convert dates to timestamps and validate
+        $registration_expiry_ts = dol_stringtotime($registration_expiry);
+        $license_expiry_ts = dol_stringtotime($license_expiry);
+        $insurance_expiry_ts = dol_stringtotime($insurance_expiry);
+        
         // Insert into database
         $sql = "INSERT INTO ".MAIN_DB_PREFIX."flotte_vehicle (";
         $sql .= "ref, entity, maker, model, type, year, initial_mileage, registration_expiry, in_service, department, ";
@@ -162,17 +167,17 @@ if ($action == 'add' && $_POST) {
         $sql .= ") VALUES (";
         $sql .= "'".$db->escape($ref)."', ".getEntity('flotte').", '".$db->escape($maker)."', '".$db->escape($model)."', ";
         $sql .= "'".$db->escape($type)."', ".($year ? $year : "NULL").", ".($initial_mileage ? $initial_mileage : "NULL").", ";
-        $sql .= ($registration_expiry ? "'".$db->idate(dol_stringtotime($registration_expiry))."'" : "NULL").", ";
+        $sql .= (!empty($registration_expiry) && $registration_expiry_ts > 0 ? "'".$db->idate($registration_expiry_ts)."'" : "NULL").", ";
         $sql .= $in_service.", '".$db->escape($department)."', '".$db->escape($engine_type)."', ";
         $sql .= "'".$db->escape($horsepower)."', '".$db->escape($color)."', '".$db->escape($vin)."', ";
         $sql .= "'".$db->escape($license_plate)."', ";
-        $sql .= ($license_expiry ? "'".$db->idate(dol_stringtotime($license_expiry))."'" : "NULL").", ";
+        $sql .= (!empty($license_expiry) && $license_expiry_ts > 0 ? "'".$db->idate($license_expiry_ts)."'" : "NULL").", ";
         $sql .= ($length_cm ? "'".$db->escape($length_cm)."'" : "NULL").", ";
         $sql .= ($width_cm ? "'".$db->escape($width_cm)."'" : "NULL").", ";
         $sql .= ($height_cm ? "'".$db->escape($height_cm)."'" : "NULL").", ";
         $sql .= ($max_weight_kg ? "'".$db->escape($max_weight_kg)."'" : "NULL").", ";
         $sql .= ($ground_height_cm ? "'".$db->escape($ground_height_cm)."'" : "NULL").", ";
-        $sql .= ($insurance_expiry ? "'".$db->idate(dol_stringtotime($insurance_expiry))."'" : "NULL").", ";
+        $sql .= (!empty($insurance_expiry) && $insurance_expiry_ts > 0 ? "'".$db->idate($insurance_expiry_ts)."'" : "NULL").", ";
         $sql .= ($vehicle_photo ? "'".$db->escape($vehicle_photo)."'" : "NULL").", ";
         $sql .= ($registration_card ? "'".$db->escape($registration_card)."'" : "NULL").", ";
         $sql .= ($platform_registration_card ? "'".$db->escape($platform_registration_card)."'" : "NULL").", ";
@@ -184,6 +189,7 @@ if ($action == 'add' && $_POST) {
         if ($resql) {
             $id = $db->last_insert_id(MAIN_DB_PREFIX."flotte_vehicle");
             $db->commit();
+            setEventMessages($langs->trans("VehicleCreatedSuccessfully"), null, 'mesgs');
             header("Location: ".$_SERVER['PHP_SELF']."?id=".$id);
             exit;
         } else {
@@ -235,6 +241,11 @@ if ($action == 'update' && $_POST && $id > 0) {
         $platform_registration_card = handleFileUpload('platform_registration_card', $upload_dir);
         $insurance_document = handleFileUpload('insurance_document', $upload_dir);
         
+        // Convert dates to timestamps and validate
+        $registration_expiry_ts = dol_stringtotime($registration_expiry);
+        $license_expiry_ts = dol_stringtotime($license_expiry);
+        $insurance_expiry_ts = dol_stringtotime($insurance_expiry);
+        
         // Update database
         $sql = "UPDATE ".MAIN_DB_PREFIX."flotte_vehicle SET ";
         $sql .= "ref = '".$db->escape($ref)."', ";
@@ -243,7 +254,7 @@ if ($action == 'update' && $_POST && $id > 0) {
         $sql .= "type = '".$db->escape($type)."', ";
         $sql .= "year = ".($year ? $year : "NULL").", ";
         $sql .= "initial_mileage = ".($initial_mileage ? $initial_mileage : "NULL").", ";
-        $sql .= "registration_expiry = ".($registration_expiry ? "'".$db->idate(dol_stringtotime($registration_expiry))."'" : "NULL").", ";
+        $sql .= "registration_expiry = ".(!empty($registration_expiry) && $registration_expiry_ts > 0 ? "'".$db->idate($registration_expiry_ts)."'" : "NULL").", ";
         $sql .= "in_service = ".$in_service.", ";
         $sql .= "department = '".$db->escape($department)."', ";
         $sql .= "engine_type = '".$db->escape($engine_type)."', ";
@@ -251,13 +262,13 @@ if ($action == 'update' && $_POST && $id > 0) {
         $sql .= "color = '".$db->escape($color)."', ";
         $sql .= "vin = '".$db->escape($vin)."', ";
         $sql .= "license_plate = '".$db->escape($license_plate)."', ";
-        $sql .= "license_expiry = ".($license_expiry ? "'".$db->idate(dol_stringtotime($license_expiry))."'" : "NULL").", ";
+        $sql .= "license_expiry = ".(!empty($license_expiry) && $license_expiry_ts > 0 ? "'".$db->idate($license_expiry_ts)."'" : "NULL").", ";
         $sql .= "length_cm = ".($length_cm ? "'".$db->escape($length_cm)."'" : "NULL").", ";
         $sql .= "width_cm = ".($width_cm ? "'".$db->escape($width_cm)."'" : "NULL").", ";
         $sql .= "height_cm = ".($height_cm ? "'".$db->escape($height_cm)."'" : "NULL").", ";
         $sql .= "max_weight_kg = ".($max_weight_kg ? "'".$db->escape($max_weight_kg)."'" : "NULL").", ";
         $sql .= "ground_height_cm = ".($ground_height_cm ? "'".$db->escape($ground_height_cm)."'" : "NULL").", ";
-        $sql .= "insurance_expiry = ".($insurance_expiry ? "'".$db->idate(dol_stringtotime($insurance_expiry))."'" : "NULL").", ";
+        $sql .= "insurance_expiry = ".(!empty($insurance_expiry) && $insurance_expiry_ts > 0 ? "'".$db->idate($insurance_expiry_ts)."'" : "NULL").", ";
         
         // Update file fields only if new files were uploaded
         if ($vehicle_photo) {
@@ -279,6 +290,7 @@ if ($action == 'update' && $_POST && $id > 0) {
         $resql = $db->query($sql);
         if ($resql) {
             $db->commit();
+            setEventMessages($langs->trans("VehicleUpdatedSuccessfully"), null, 'mesgs');
             header("Location: ".$_SERVER['PHP_SELF']."?id=".$id);
             exit;
         } else {
@@ -298,6 +310,7 @@ if ($action == 'confirm_delete' && $confirm == 'yes' && $id > 0) {
     
     if ($resql) {
         $db->commit();
+        setEventMessages($langs->trans("VehicleDeletedSuccessfully"), null, 'mesgs');
         header("Location: vehicle_list.php");
         exit;
     } else {
@@ -855,91 +868,6 @@ if ($action == 'create' || $action == 'edit') {
 }
 
 dol_fiche_end();
-
-// Related records section
-if ($id > 0 && $action != 'edit' && $action != 'create') {
-    print '<br>';
-    
-    $head = array();
-    $h = 0;
-    $head[$h][0] = DOL_URL_ROOT.'/flotte/vehicle_card.php?id='.$id;
-    $head[$h][1] = $langs->trans('RelatedRecords');
-    $head[$h][2] = 'related';
-    $h++;
-    
-    dol_fiche_head($head, 'related', $langs->trans('RelatedRecords'), -1, '');
-
-    print '<table class="noborder" width="100%">';
-    print '<tr class="liste_titre">';
-    print '<td>'.$langs->trans('Type').'</td>';
-    print '<td>'.$langs->trans('Count').'</td>';
-    print '<td class="right">'.$langs->trans('Action').'</td>';
-    print '</tr>';
-    
-    // Bookings
-    $sql_bookings = "SELECT COUNT(*) as count FROM ".MAIN_DB_PREFIX."flotte_booking WHERE fk_vehicle = ".((int) $id);
-    $resql_bookings = $db->query($sql_bookings);
-    $bookings_count = 0;
-    if ($resql_bookings) {
-        $obj_bookings = $db->fetch_object($resql_bookings);
-        $bookings_count = $obj_bookings->count;
-    }
-    
-    print '<tr class="oddeven">';
-    print '<td>'.$langs->trans('Bookings').'</td>';
-    print '<td>'.$bookings_count.'</td>';
-    print '<td class="right"><a class="butAction" href="'.DOL_URL_ROOT.'/flotte/booking_list.php?search_vehicle='.$object->ref.'">'.$langs->trans('View').'</a></td>';
-    print '</tr>';
-    
-    // Fuel Records
-    $sql_fuel = "SELECT COUNT(*) as count FROM ".MAIN_DB_PREFIX."flotte_fuel WHERE fk_vehicle = ".((int) $id);
-    $resql_fuel = $db->query($sql_fuel);
-    $fuel_count = 0;
-    if ($resql_fuel) {
-        $obj_fuel = $db->fetch_object($resql_fuel);
-        $fuel_count = $obj_fuel->count;
-    }
-    
-    print '<tr class="oddeven">';
-    print '<td>'.$langs->trans('FuelRecords').'</td>';
-    print '<td>'.$fuel_count.'</td>';
-    print '<td class="right"><a class="butAction" href="'.DOL_URL_ROOT.'/flotte/fuel_list.php?search_vehicle='.$object->ref.'">'.$langs->trans('View').'</a></td>';
-    print '</tr>';
-    
-    // Work Orders
-    $sql_workorders = "SELECT COUNT(*) as count FROM ".MAIN_DB_PREFIX."flotte_workorder WHERE fk_vehicle = ".((int) $id);
-    $resql_workorders = $db->query($sql_workorders);
-    $workorders_count = 0;
-    if ($resql_workorders) {
-        $obj_workorders = $db->fetch_object($resql_workorders);
-        $workorders_count = $obj_workorders->count;
-    }
-    
-    print '<tr class="oddeven">';
-    print '<td>'.$langs->trans('WorkOrders').'</td>';
-    print '<td>'.$workorders_count.'</td>';
-    print '<td class="right"><a class="butAction" href="'.DOL_URL_ROOT.'/flotte/workorder_list.php?search_vehicle='.$object->ref.'">'.$langs->trans('View').'</a></td>';
-    print '</tr>';
-    
-    // Inspections
-    $sql_inspections = "SELECT COUNT(*) as count FROM ".MAIN_DB_PREFIX."flotte_inspection WHERE fk_vehicle = ".((int) $id);
-    $resql_inspections = $db->query($sql_inspections);
-    $inspections_count = 0;
-    if ($resql_inspections) {
-        $obj_inspections = $db->fetch_object($resql_inspections);
-        $inspections_count = $obj_inspections->count;
-    }
-    
-    print '<tr class="oddeven">';
-    print '<td>'.$langs->trans('Inspections').'</td>';
-    print '<td>'.$inspections_count.'</td>';
-    print '<td class="right"><a class="butAction" href="'.DOL_URL_ROOT.'/flotte/inspection_list.php?search_vehicle='.$object->ref.'">'.$langs->trans('View').'</a></td>';
-    print '</tr>';
-    
-    print '</table>';
-    
-    dol_fiche_end();
-}
 
 // End of page
 llxFooter();
