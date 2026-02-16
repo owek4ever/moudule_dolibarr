@@ -421,7 +421,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Model
-print '<tr><td>' . $langs->trans('VehicleModel') . '</td><td>';
+print '<tr><td>' . $langs->trans('Vehicle Model') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat" name="model" value="' . (isset($object->model) ? $object->model : '') . '" size="20" required>';
 } else {
@@ -509,7 +509,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Horsepower
-print '<tr><td>' . $langs->trans('Horsepower') . '</td><td>';
+print '<tr><td>' . $langs->trans('Horse power') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat" name="horsepower" value="' . (isset($object->horsepower) ? $object->horsepower : '') . '" size="20">';
 } else {
