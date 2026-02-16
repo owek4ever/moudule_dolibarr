@@ -412,7 +412,7 @@ print '<div class="fichecenter">';
 print '<div class="fichehalfleft">';
 
 // Basic Information
-print load_fiche_titre($langs->trans('BookingInformation'), '', '');
+print load_fiche_titre($langs->trans('Booking Information'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // Reference
@@ -520,7 +520,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Booking Date
-print '<tr><td>' . $langs->trans('BookingDate') . '</td><td>';
+print '<tr><td>' . $langs->trans('Booking Date') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     $selected_date = '';
     if (isset($object->booking_date) && !empty($object->booking_date)) {
@@ -554,7 +554,7 @@ print '</div>';
 print '<div class="fichehalfright">';
 
 // Additional Information
-print load_fiche_titre($langs->trans('AdditionalInformation'), '', '');
+print load_fiche_titre($langs->trans('Additional Information'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // Distance
@@ -567,7 +567,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Departure Address
-print '<tr><td>' . $langs->trans('DepartureAddress') . '</td><td>';
+print '<tr><td>' . $langs->trans('Departure Address') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat" name="departure_address" value="' . dol_escape_htmltag(isset($object->departure_address) ? $object->departure_address : '') . '" size="40">';
 } else {
@@ -576,7 +576,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Arriving Address
-print '<tr><td>' . $langs->trans('ArrivingAddress') . '</td><td>';
+print '<tr><td>' . $langs->trans('Arriving Address') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat" name="arriving_address" value="' . dol_escape_htmltag(isset($object->arriving_address) ? $object->arriving_address : '') . '" size="40">';
 } else {
@@ -585,7 +585,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Buying Amount
-print '<tr><td>' . $langs->trans('BuyingAmount') . '</td><td>';
+print '<tr><td>' . $langs->trans('Buying Amount') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="number" class="flat" name="buying_amount" value="' . dol_escape_htmltag(isset($object->buying_amount) ? $object->buying_amount : '') . '" min="0" step="0.01">';
 } else {
@@ -594,7 +594,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Selling Amount
-print '<tr><td>' . $langs->trans('SellingAmount') . '</td><td>';
+print '<tr><td>' . $langs->trans('Selling Amount') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="number" class="flat" name="selling_amount" value="' . dol_escape_htmltag(isset($object->selling_amount) ? $object->selling_amount : '') . '" min="0" step="0.01">';
 } else {
