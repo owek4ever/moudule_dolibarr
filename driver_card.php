@@ -481,7 +481,7 @@ print '<div class="fichecenter">';
 print '<div class="fichehalfleft">';
 
 // Basic Information
-print load_fiche_titre($langs->trans('BasicInformation'), '', '');
+print load_fiche_titre($langs->trans('Basic Information'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // Reference
@@ -505,7 +505,7 @@ if ($action == 'create') {
     $sql_users .= " ORDER BY u.lastname, u.firstname";
     
     print '<select class="flat minwidth300" name="fk_user" id="fk_user">';
-    print '<option value="">-- '.$langs->trans('SelectEmployee').' --</option>';
+    print '<option value="">-- '.$langs->trans('Select Employee').' --</option>';
     
     $resql_users = $db->query($sql_users);
     if ($resql_users) {
@@ -522,7 +522,7 @@ if ($action == 'create') {
     print '</select>';
     
     print ' <a href="'.DOL_URL_ROOT.'/user/card.php?action=create&employee=1&backtopage='.urlencode($_SERVER['PHP_SELF'].'?action=create').'" target="_blank">';
-    print img_picto($langs->trans("CreateEmployee"), 'add', 'class="paddingleft"');
+    print img_picto($langs->trans("Create Employee"), 'add', 'class="paddingleft"');
     print '</a>';
 } else {
     if ($employee->id > 0) {
@@ -535,7 +535,7 @@ if ($action == 'create') {
 print '</td></tr>';
 
 // First Name
-print '<tr><td class="fieldrequired">' . $langs->trans('FirstName') . '</td><td>';
+print '<tr><td class="fieldrequired">' . $langs->trans('First Name') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat minwidth200" name="firstname" value="' . (isset($driver_data['firstname']) ? dol_escape_htmltag($driver_data['firstname']) : '') . '">';
 } else {
@@ -544,7 +544,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Middle Name
-print '<tr><td>' . $langs->trans('MiddleName') . '</td><td>';
+print '<tr><td>' . $langs->trans('Middle Name') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat minwidth200" name="middlename" value="' . (isset($driver_data['middlename']) ? dol_escape_htmltag($driver_data['middlename']) : '') . '">';
 } else {
@@ -553,7 +553,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Last Name
-print '<tr><td class="fieldrequired">' . $langs->trans('LastName') . '</td><td>';
+print '<tr><td class="fieldrequired">' . $langs->trans('Last Name') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat minwidth200" name="lastname" value="' . (isset($driver_data['lastname']) ? dol_escape_htmltag($driver_data['lastname']) : '') . '">';
 } else {
@@ -598,11 +598,11 @@ print '</div>';
 print '<div class="fichehalfright">';
 
 // Employment Information
-print load_fiche_titre($langs->trans('EmploymentInformation'), '', '');
+print load_fiche_titre($langs->trans('Employment Information'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // Employee ID
-print '<tr><td class="titlefield">' . $langs->trans('EmployeeID') . '</td><td>';
+print '<tr><td class="titlefield">' . $langs->trans('Employee ID') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat minwidth150" name="employee_id" value="' . (isset($driver_data['employee_id']) ? dol_escape_htmltag($driver_data['employee_id']) : '') . '">';
 } else {
@@ -611,7 +611,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Contract Number
-print '<tr><td>' . $langs->trans('ContractNumber') . '</td><td>';
+print '<tr><td>' . $langs->trans('Contract Number') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat minwidth150" name="contract_number" value="' . (isset($driver_data['contract_number']) ? dol_escape_htmltag($driver_data['contract_number']) : '') . '">';
 } else {
@@ -629,7 +629,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Join Date
-print '<tr><td>' . $langs->trans('JoinDate') . '</td><td>';
+print '<tr><td>' . $langs->trans('Join Date') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print $form->selectDate(isset($driver_data['join_date']) ? $driver_data['join_date'] : -1, 'join_date', 0, 0, 1, '', 1, 0);
 } else {
@@ -638,7 +638,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Leave Date
-print '<tr><td>' . $langs->trans('LeaveDate') . '</td><td>';
+print '<tr><td>' . $langs->trans('Leave Date') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print $form->selectDate(isset($driver_data['leave_date']) ? $driver_data['leave_date'] : -1, 'leave_date', 0, 0, 1, '', 1, 0);
 } else {
@@ -669,7 +669,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // Assigned Vehicle
-print '<tr><td>' . $langs->trans('AssignedVehicle') . '</td><td>';
+print '<tr><td>' . $langs->trans('Assigned Vehicle') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<select class="flat minwidth200" name="fk_vehicle">';
     print '<option value="">-- '.$langs->trans('SelectVehicle').' --</option>';
@@ -697,11 +697,11 @@ print '<div class="clearboth"></div><br>';
 print '<div class="fichecenter">';
 print '<div class="ficheaddleft">';
 
-print load_fiche_titre($langs->trans('LicenseInformation'), '', '');
+print load_fiche_titre($langs->trans('License Information'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 // License Number
-print '<tr><td class="titlefield">' . $langs->trans('LicenseNumber') . '</td><td>';
+print '<tr><td class="titlefield">' . $langs->trans('License Number') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print '<input type="text" class="flat minwidth200" name="license_number" value="' . (isset($driver_data['license_number']) ? dol_escape_htmltag($driver_data['license_number']) : '') . '">';
 } else {
@@ -710,7 +710,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // License Issue Date
-print '<tr><td>' . $langs->trans('LicenseIssueDate') . '</td><td>';
+print '<tr><td>' . $langs->trans('License Issue Date') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print $form->selectDate(isset($driver_data['license_issue_date']) ? $driver_data['license_issue_date'] : -1, 'license_issue_date', 0, 0, 1, '', 1, 0);
 } else {
@@ -719,7 +719,7 @@ if ($action == 'create' || $action == 'edit') {
 print '</td></tr>';
 
 // License Expiry Date
-print '<tr><td>' . $langs->trans('LicenseExpiryDate') . '</td><td>';
+print '<tr><td>' . $langs->trans('License Expiry Date') . '</td><td>';
 if ($action == 'create' || $action == 'edit') {
     print $form->selectDate(isset($driver_data['license_expiry_date']) ? $driver_data['license_expiry_date'] : -1, 'license_expiry_date', 0, 0, 1, '', 1, 0);
 } else {
@@ -758,7 +758,7 @@ print '<div class="clearboth"></div><br>';
 print '<div class="fichecenter">';
 print '<div class="ficheaddleft">';
 
-print load_fiche_titre($langs->trans('EmergencyContact'), '', '');
+print load_fiche_titre($langs->trans('Emergency Contact'), '', '');
 print '<table class="border tableforfield" width="100%">';
 
 print '<tr><td>';
