@@ -168,14 +168,18 @@ if ($resql) {
     $num = $db->num_rows($resql);
 }
 
+// Build param string for URL
+$param = '';
+if (!empty($search_ref))        $param .= '&search_ref='.urlencode($search_ref);
+if (!empty($search_vehicle))    $param .= '&search_vehicle='.urlencode($search_vehicle);
+if (!empty($search_driver))     $param .= '&search_driver='.urlencode($search_driver);
+if (!empty($search_customer))   $param .= '&search_customer='.urlencode($search_customer);
+if (!empty($search_status))     $param .= '&search_status='.urlencode($search_status);
+if (!empty($search_date_from))  $param .= '&search_date_from='.urlencode($search_date_from);
+if (!empty($search_date_to))    $param .= '&search_date_to='.urlencode($search_date_to);
+
 // Page header
 llxHeader('', $langs->trans("Bookings List"), '');
-
-// Page title and buttons
-$newCardButton = '';
-if ($user->rights->flotte->write) {
-    $newCardButton = dolGetButtonTitle($langs->trans('New Booking'), '', 'fa fa-plus-circle', dol_buildpath('/flotte/booking_card.php', 1).'?action=create', '', $user->rights->flotte->read);
-}
 
 // Show delete confirmation dialog if requested
 if ($action == 'delete') {
@@ -186,198 +190,485 @@ if ($action == 'delete') {
     }
 }
 
-// Actions bar
-print '<div class="tabsAction">'."\n";
-if ($user->rights->flotte->write) {
-    print '<a class="butAction" href="'.dol_buildpath('/flotte/booking_card.php', 1).'?action=create">'.$langs->trans("New Booking").'</a>'."\n";
-}
-if ($user->rights->flotte->read) {
-    print '<a class="butAction" href="'.dol_buildpath('/flotte/booking_list.php', 1).'?action=export">'.$langs->trans("Export").'</a>'."\n";
-}
-print '</div>'."\n";
-
-// Build param string for URL
-$param = '';
-if (!empty($search_ref))           $param .= '&search_ref='.urlencode($search_ref);
-if (!empty($search_vehicle))       $param .= '&search_vehicle='.urlencode($search_vehicle);
-if (!empty($search_driver))        $param .= '&search_driver='.urlencode($search_driver);
-if (!empty($search_customer))      $param .= '&search_customer='.urlencode($search_customer);
-if (!empty($search_status))        $param .= '&search_status='.urlencode($search_status);
-if (!empty($search_date_from))     $param .= '&search_date_from='.urlencode($search_date_from);
-if (!empty($search_date_to))       $param .= '&search_date_to='.urlencode($search_date_to);
-
-// Search form
-print '<form method="POST" action="'.$_SERVER["PHP_SELF"].'">'."\n";
-print '<input type="hidden" name="token" value="'.newToken().'">';
-print '<input type="hidden" name="formfilteraction" id="formfilteraction" value="list">';
-print '<input type="hidden" name="action" value="list">';
-print '<input type="hidden" name="sortfield" value="'.$sortfield.'">';
-print '<input type="hidden" name="sortorder" value="'.$sortorder.'">';
-print '<input type="hidden" name="page" value="'.$page.'">';
-
-// Print barre liste - removed 'calendar' icon parameter
-print_barre_liste($langs->trans("Bookings List"), $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, '', 0);
-
-print '<div class="div-table-responsive">';
-print '<table class="tagtable liste" id="tablelines">'."\n";
-
-// Search fields - restructured to match driver_list.php style
-print '<tr class="liste_titre_filter">';
-print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name="search_ref" value="'.dol_escape_htmltag($search_ref).'"></td>';
-print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name="search_vehicle" value="'.dol_escape_htmltag($search_vehicle).'"></td>';
-print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name="search_driver" value="'.dol_escape_htmltag($search_driver).'"></td>';
-print '<td class="liste_titre"><input type="text" class="flat maxwidth100" name="search_customer" value="'.dol_escape_htmltag($search_customer).'"></td>';
-print '<td class="liste_titre"></td>'; // Booking Date
-print '<td class="liste_titre"></td>'; // Distance
-print '<td class="liste_titre"></td>'; // Amount
-print '<td class="liste_titre center">';
-$statusarray = array(
-    '' => '',
-    'pending' => $langs->trans('Pending'),
-    'confirmed' => $langs->trans('Confirmed'),
-    'in_progress' => $langs->trans('InProgress'),
-    'completed' => $langs->trans('Completed'),
-    'cancelled' => $langs->trans('Cancelled')
-);
-print $form->selectarray('search_status', $statusarray, $search_status, 0, 0, 0, '', 0, 0, 0, '', 'search_status width100 onrightofpage');
-print '</td>';
-print '<td class="liste_titre maxwidthsearch">';
-$searchpicto = $form->showFilterButtons();
-print $searchpicto;
-print '</td>';
-print '</tr>'."\n";
-
-// Table headers - restructured to match driver_list.php style
-print '<tr class="liste_titre">';
-print_liste_field_titre("Ref", $_SERVER["PHP_SELF"], "t.ref", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("Vehicle", $_SERVER["PHP_SELF"], "v.ref", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("Driver", $_SERVER["PHP_SELF"], "d.lastname", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("Customer", $_SERVER["PHP_SELF"], "c.lastname", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("BookingDate", $_SERVER["PHP_SELF"], "t.booking_date", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("Distance", $_SERVER["PHP_SELF"], "t.distance", "", $param, '', $sortfield, $sortorder);
-print_liste_field_titre("Amount", $_SERVER["PHP_SELF"], "t.selling_amount", "", $param, '', $sortfield, $sortorder);
-// Manually create centered header for status column like driver list
-print '<td class="liste_titre center">';
-print '<a class="reposition" href="'.$_SERVER["PHP_SELF"].'?sortfield=t.status&sortorder='.($sortfield == 't.status' && $sortorder == 'ASC' ? 'DESC' : 'ASC').$param.'">';
-print $langs->trans("Status");
-if ($sortfield == 't.status') print img_picto('', 'sort'.strtolower($sortorder));
-print '</a></td>';
-print_liste_field_titre("Action", $_SERVER["PHP_SELF"], "", "", "", '', '', '', 'maxwidthsearch ');
-print '</tr>'."\n";
-
-// Display data
+// Collect rows
+$rows = array();
 if ($resql && $num > 0) {
     $i = 0;
     while ($i < min($num, $limit)) {
         $obj = $db->fetch_object($resql);
         if (empty($obj)) break;
-        
-        print '<tr class="oddeven">';
-        
-        // Reference - Removed the calendar icon
-        print '<td class="nowrap"><a href="'.dol_buildpath('/flotte/booking_card.php', 1).'?id='.$obj->rowid.'">';
-        print '<strong>'.dol_escape_htmltag($obj->ref).'</strong></a></td>';
-        
-        // Vehicle - like driver_list.php style
-        print '<td>';
-        if (!empty($obj->vehicle_ref)) {
-            print dol_escape_htmltag($obj->vehicle_ref);
-            if ($obj->maker || $obj->model) {
-                print '<br><small style="color: #666;">'.dol_escape_htmltag(trim($obj->maker . ' ' . $obj->model)).'</small>';
-            }
-        } else {
-            print '<em style="color: #999;">'.$langs->trans("NotAssigned").'</em>';
-        }
-        print '</td>';
-        
-        // Driver - like driver_list.php style
-        print '<td>';
-        if (!empty($obj->driver_firstname) || !empty($obj->driver_lastname)) {
-            print dol_escape_htmltag($obj->driver_firstname.' '.$obj->driver_lastname);
-        } else {
-            print '<em style="color: #999;">'.$langs->trans("NotAssigned").'</em>';
-        }
-        print '</td>';
-        
-        // Customer - like driver_list.php style
-        print '<td>';
-        if (!empty($obj->customer_firstname) || !empty($obj->customer_lastname) || !empty($obj->company_name)) {
-            $customer_info = '';
-            if (!empty($obj->customer_firstname) || !empty($obj->customer_lastname)) {
-                $customer_info = $obj->customer_firstname.' '.$obj->customer_lastname;
-            }
-            if (!empty($obj->company_name)) {
-                if (!empty($customer_info)) {
-                    $customer_info .= ' ('.$obj->company_name.')';
-                } else {
-                    $customer_info = $obj->company_name;
-                }
-            }
-            print dol_escape_htmltag($customer_info);
-        } else {
-            print '<em style="color: #999;">'.$langs->trans("NotAssigned").'</em>';
-        }
-        print '</td>';
-        
-        // Booking Date
-        print '<td class="center">'.dol_print_date($db->jdate($obj->booking_date), 'day').'</td>';
-        
-        // Distance
-        print '<td class="right">'.($obj->distance ? $obj->distance.' km' : '-').'</td>';
-        
-        // Amount
-        print '<td class="right">'.($obj->selling_amount ? price($obj->selling_amount) : '-').'</td>';
-        
-        // Status - centered like driver_list.php
-        print '<td class="center">';
-        if ($obj->status == 'pending') {
-            print dolGetStatus($langs->trans('Pending'), '', '', 'status0', 1);
-        } elseif ($obj->status == 'confirmed') {
-            print dolGetStatus($langs->trans('Confirmed'), '', '', 'status1', 1);
-        } elseif ($obj->status == 'in_progress') {
-            print dolGetStatus($langs->trans('InProgress'), '', '', 'status4', 1);
-        } elseif ($obj->status == 'completed') {
-            print dolGetStatus($langs->trans('Completed'), '', '', 'status6', 1);
-        } elseif ($obj->status == 'cancelled') {
-            print dolGetStatus($langs->trans('Cancelled'), '', '', 'status9', 1);
-        } else {
-            print dolGetStatus($langs->trans('Unknown'), '', '', 'status0', 1);
-        }
-        print '</td>';
-        
-        // Actions - like driver_list.php (only edit and delete, no view button)
-        print '<td class="nowrap center">';
-        if ($user->rights->flotte->write) {
-            print '<a class="editfielda" href="'.dol_buildpath('/flotte/booking_card.php', 1).'?id='.$obj->rowid.'&action=edit" title="'.$langs->trans("Edit").'">'.img_edit($langs->trans("Edit")).'</a>';
-        }
-        if ($user->rights->flotte->delete) {
-            print '<a class="editfielda" href="'.dol_buildpath('/flotte/booking_list.php', 1).'?action=delete&id='.$obj->rowid.'&token='.newToken().'" title="'.$langs->trans("Delete").'">'.img_delete($langs->trans("Delete")).'</a>';
-        }
-        print '</td>';
-        
-        print '</tr>'."\n";
+        $rows[] = $obj;
         $i++;
     }
-} else {
-    $colspan = 9;
-    print '<tr class="oddeven"><td colspan="'.$colspan.'" class="opacitymedium">'.$langs->trans("NoRecordFound").'</td></tr>';
 }
 
-print '</table>'."\n";
-print '</div>'."\n";
-
-print '</form>'."\n";
-
-// Print pagination
-if ($nbtotalofrecords > $limit) {
-    print_barre_liste('', $page, $_SERVER["PHP_SELF"], $param, $sortfield, $sortorder, '', $num, $nbtotalofrecords, '', 0, '', '', $limit, 1);
+// Sort helpers
+function bl_sortArrow($field, $sortfield, $sortorder) {
+    if ($sortfield == $field) return $sortorder == 'ASC' ? ' <span class="vl-sort-arrow">↑</span>' : ' <span class="vl-sort-arrow">↓</span>';
+    return ' <span class="vl-sort-arrow muted">↕</span>';
+}
+function bl_sortHref($field, $sortfield, $sortorder, $self, $param) {
+    $dir = ($sortfield == $field && $sortorder == 'ASC') ? 'DESC' : 'ASC';
+    return $self.'?sortfield='.$field.'&sortorder='.$dir.'&'.$param;
 }
 
-if ($resql) {
-    $db->free($resql);
+$self = $_SERVER["PHP_SELF"];
+
+// Count by status
+$cnt_pending = 0; $cnt_confirmed = 0; $cnt_inprogress = 0; $cnt_completed = 0; $cnt_cancelled = 0;
+foreach ($rows as $r) {
+    if ($r->status == 'pending')      $cnt_pending++;
+    elseif ($r->status == 'confirmed')   $cnt_confirmed++;
+    elseif ($r->status == 'in_progress') $cnt_inprogress++;
+    elseif ($r->status == 'completed')   $cnt_completed++;
+    elseif ($r->status == 'cancelled')   $cnt_cancelled++;
+}
+?>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+.vl-wrap * { box-sizing: border-box; }
+.vl-wrap {
+    font-family: 'DM Sans', sans-serif;
+    max-width: 1480px; margin: 0 auto; padding: 0 4px 40px; color: #1a1f2e;
 }
 
-// End of page
+/* Header */
+.vl-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 28px 0 24px; border-bottom: 1px solid #e8eaf0;
+    margin-bottom: 24px; gap: 16px; flex-wrap: wrap;
+}
+.vl-header-left h1 { font-size: 22px; font-weight: 700; color: #1a1f2e; margin: 0 0 4px; letter-spacing: -0.3px; }
+.vl-header-left .vl-subtitle { font-size: 13px; color: #7c859c; font-weight: 400; }
+.vl-header-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+/* Buttons */
+.vl-btn {
+    display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px;
+    border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none !important;
+    transition: all 0.15s ease; border: none; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; white-space: nowrap;
+}
+.vl-btn-primary   { background: #3c4758 !important; color: #fff !important; }
+.vl-btn-primary:hover  { background: #2a3346 !important; color: #fff !important; }
+.vl-btn-secondary { background: #3c4758 !important; color: #fff !important; border: none !important; }
+.vl-btn-secondary:hover { background: #2a3346 !important; color: #fff !important; }
+
+/* Filters */
+.vl-filters {
+    background: #fff; border: 1px solid #e8eaf0; border-radius: 12px;
+    padding: 18px 20px; margin-bottom: 20px; display: flex;
+    gap: 12px; align-items: flex-end; flex-wrap: wrap;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.vl-filter-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 130px; }
+.vl-filter-group label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: #9aa0b4; }
+.vl-filter-group input,
+.vl-filter-group select {
+    padding: 8px 12px; border: 1.5px solid #e2e5f0; border-radius: 8px;
+    font-size: 13px; font-family: 'DM Sans', sans-serif; color: #2d3748;
+    background: #fafbfe; outline: none; transition: border-color 0.15s, box-shadow 0.15s; width: 100%;
+}
+.vl-filter-group input:focus,
+.vl-filter-group select:focus { border-color: #3c4758; box-shadow: 0 0 0 3px rgba(60,71,88,0.1); background: #fff; }
+.vl-filter-actions { display: flex; gap: 8px; align-items: flex-end; padding-bottom: 1px; }
+.vl-btn-filter {
+    padding: 8px 16px; font-size: 13px; border-radius: 6px; font-weight: 600;
+    border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; white-space: nowrap;
+}
+.vl-btn-filter.apply { background: #3c4758 !important; color: #fff !important; }
+.vl-btn-filter.apply:hover { background: #2a3346 !important; }
+.vl-btn-filter.reset { background: #3c4758 !important; color: #fff !important; }
+.vl-btn-filter.reset:hover { background: #2a3346 !important; }
+
+/* Stats chips */
+.vl-stats { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.vl-stat-chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px;
+    border-radius: 20px; font-size: 12px; font-weight: 600; background: #f0f2fa; color: #5a6482;
+}
+.vl-stat-chip .vl-stat-num { font-size: 14px; font-weight: 700; color: #1a1f2e; }
+.vl-stat-chip.confirmed  { background: #eff6ff; color: #1d4ed8; }
+.vl-stat-chip.confirmed .vl-stat-num { color: #1d4ed8; }
+.vl-stat-chip.inprogress { background: #edfaf3; color: #1a7d4a; }
+.vl-stat-chip.inprogress .vl-stat-num { color: #1a7d4a; }
+.vl-stat-chip.completed  { background: #f0fdf4; color: #15803d; }
+.vl-stat-chip.completed .vl-stat-num { color: #15803d; }
+.vl-stat-chip.pending    { background: #fff8ec; color: #b45309; }
+.vl-stat-chip.pending .vl-stat-num { color: #b45309; }
+.vl-stat-chip.cancelled  { background: #fef2f2; color: #b91c1c; }
+.vl-stat-chip.cancelled .vl-stat-num { color: #b91c1c; }
+
+/* Table */
+.vl-table-card {
+    background: #fff; border: 1px solid #e8eaf0; border-radius: 14px;
+    overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+}
+.vl-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table.vl-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.vl-table thead tr { background: #f7f8fc; border-bottom: 2px solid #e8eaf0; }
+table.vl-table thead th {
+    padding: 13px 16px; text-align: left; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.7px; color: #8b92a9; white-space: nowrap;
+}
+table.vl-table thead th a { color: #8b92a9; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: color 0.15s; }
+table.vl-table thead th a:hover { color: #3c4758; }
+table.vl-table thead th.center { text-align: center; }
+table.vl-table thead th.right  { text-align: right; }
+.vl-sort-arrow { font-size: 10px; opacity: 0.6; }
+.vl-sort-arrow.muted { opacity: 0.25; }
+table.vl-table tbody tr { border-bottom: 1px solid #f0f2f8; transition: background 0.12s; }
+table.vl-table tbody tr:last-child { border-bottom: none; }
+table.vl-table tbody tr:hover { background: #fafbff; }
+table.vl-table tbody td { padding: 14px 16px; color: #2d3748; vertical-align: middle; }
+table.vl-table tbody td.center { text-align: center; }
+table.vl-table tbody td.right  { text-align: right; }
+
+/* Ref link */
+.vl-ref-link {
+    display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+    color: #3c4758; font-weight: 600; font-family: 'DM Mono', monospace; font-size: 13px; transition: color 0.15s;
+}
+.vl-ref-link:hover { color: #2a3346; text-decoration: none; }
+.vl-ref-icon {
+    width: 30px; height: 30px; background: rgba(60,71,88,0.08); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; color: #3c4758; font-size: 14px; flex-shrink: 0;
+}
+
+/* Vehicle chip */
+.vl-vehicle-chip {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px;
+    font-weight: 600; color: #3c4758; background: rgba(60,71,88,0.07);
+    padding: 4px 10px; border-radius: 6px;
+}
+.vl-sub { font-size: 11px; color: #9aa0b4; margin-top: 2px; }
+
+/* Amount */
+.vl-amount { font-weight: 700; color: #1a7d4a; font-size: 13.5px; }
+
+/* Distance */
+.vl-distance { font-weight: 600; color: #2d3748; font-size: 13px; }
+.vl-distance-unit { font-size: 11px; color: #9aa0b4; font-weight: 400; margin-left: 2px; }
+
+/* Date chip */
+.vl-date-chip {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px;
+    color: #4a5568; background: #f0f2fa; padding: 4px 10px; border-radius: 6px; white-space: nowrap;
+}
+
+/* Status badge */
+.vl-badge {
+    display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px;
+    border-radius: 20px; font-size: 11.5px; font-weight: 600; white-space: nowrap;
+}
+.vl-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.vl-badge.pending     { background: #fff8ec; color: #b45309; }
+.vl-badge.pending::before     { background: #f59e0b; }
+.vl-badge.confirmed   { background: #eff6ff; color: #1d4ed8; }
+.vl-badge.confirmed::before   { background: #3b82f6; }
+.vl-badge.in-progress { background: #edfaf3; color: #1a7d4a; }
+.vl-badge.in-progress::before { background: #22c55e; }
+.vl-badge.completed   { background: #f0fdf4; color: #15803d; }
+.vl-badge.completed::before   { background: #16a34a; }
+.vl-badge.cancelled   { background: #fef2f2; color: #b91c1c; }
+.vl-badge.cancelled::before   { background: #ef4444; }
+
+/* Action buttons */
+.vl-actions { display: flex; gap: 4px; justify-content: center; }
+.vl-action-btn {
+    width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center;
+    justify-content: center; text-decoration: none; transition: all 0.15s; font-size: 13px; border: 1.5px solid transparent;
+}
+.vl-action-btn.view { color: #3c4758; background: #eaecf0; border-color: #c4c9d4; }
+.vl-action-btn.edit { color: #d97706; background: #fef9ec; border-color: #fde9a2; }
+.vl-action-btn.del  { color: #dc2626; background: #fef2f2; border-color: #fecaca; }
+.vl-action-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.1); text-decoration: none; }
+
+/* Empty state */
+.vl-empty { padding: 70px 20px; text-align: center; color: #9aa0b4; }
+.vl-empty-icon { font-size: 52px; opacity: 0.3; margin-bottom: 16px; }
+.vl-empty p { font-size: 15px; font-weight: 500; margin: 0 0 20px; color: #7c859c; }
+
+/* Pagination */
+.vl-pagination {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-top: 1px solid #f0f2f8; flex-wrap: wrap; gap: 12px;
+}
+.vl-pagination-info { font-size: 12.5px; color: #9aa0b4; }
+.vl-page-btns { display: flex; gap: 4px; }
+.vl-page-btn {
+    min-width: 34px; height: 34px; padding: 0 10px; border-radius: 8px;
+    display: inline-flex; align-items: center; justify-content: center; font-size: 13px;
+    font-weight: 600; text-decoration: none; transition: all 0.15s;
+    border: 1.5px solid #e2e5f0; color: #5a6482; background: #fff;
+}
+.vl-page-btn:hover { background: #f0f2fa; border-color: #c4c9d8; text-decoration: none; color: #2d3748; }
+.vl-page-btn.active { background: #3c4758; color: #fff; border-color: transparent; }
+.vl-page-btn.disabled { opacity: 0.35; pointer-events: none; }
+
+@media (max-width: 900px) { .vl-filters { flex-direction: column; } .vl-filter-group { min-width: 100%; } }
+@media (max-width: 600px) { .vl-header { flex-direction: column; align-items: flex-start; } }
+</style>
+
+<div class="vl-wrap">
+
+<!-- Header -->
+<div class="vl-header">
+    <div class="vl-header-left">
+        <h1><i class="fa fa-calendar-check" style="color:#3c4758;margin-right:10px;"></i><?php echo $langs->trans("Bookings List"); ?></h1>
+        <div class="vl-subtitle"><?php echo $nbtotalofrecords; ?> booking<?php echo $nbtotalofrecords != 1 ? 's' : ''; ?> found</div>
+    </div>
+    <div class="vl-header-actions">
+        <?php if ($user->rights->flotte->read) { ?>
+        <a class="vl-btn vl-btn-secondary" href="<?php echo dol_buildpath('/flotte/booking_list.php', 1); ?>?action=export">
+            <i class="fa fa-download"></i> Export
+        </a>
+        <?php } ?>
+        <?php if ($user->rights->flotte->write) { ?>
+        <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/booking_card.php', 1); ?>?action=create">
+            <i class="fa fa-plus"></i> New Booking
+        </a>
+        <?php } ?>
+    </div>
+</div>
+
+<!-- Filter Form -->
+<form method="POST" action="<?php echo $self; ?>">
+<input type="hidden" name="token" value="<?php echo newToken(); ?>">
+<input type="hidden" name="formfilteraction" value="list">
+<input type="hidden" name="action" value="list">
+<input type="hidden" name="sortfield" value="<?php echo $sortfield; ?>">
+<input type="hidden" name="sortorder" value="<?php echo $sortorder; ?>">
+<input type="hidden" name="page" value="<?php echo $page; ?>">
+
+<div class="vl-filters">
+    <div class="vl-filter-group">
+        <label>Reference</label>
+        <input type="text" name="search_ref" placeholder="Search ref…" value="<?php echo dol_escape_htmltag($search_ref); ?>">
+    </div>
+    <div class="vl-filter-group">
+        <label>Vehicle</label>
+        <input type="text" name="search_vehicle" placeholder="Ref, maker, model…" value="<?php echo dol_escape_htmltag($search_vehicle); ?>">
+    </div>
+    <div class="vl-filter-group">
+        <label>Driver</label>
+        <input type="text" name="search_driver" placeholder="First or last name…" value="<?php echo dol_escape_htmltag($search_driver); ?>">
+    </div>
+    <div class="vl-filter-group">
+        <label>Customer</label>
+        <input type="text" name="search_customer" placeholder="Name or company…" value="<?php echo dol_escape_htmltag($search_customer); ?>">
+    </div>
+    <div class="vl-filter-group" style="max-width:120px;">
+        <label>Date From</label>
+        <input type="date" name="search_date_from" value="<?php echo dol_escape_htmltag($search_date_from); ?>">
+    </div>
+    <div class="vl-filter-group" style="max-width:120px;">
+        <label>Date To</label>
+        <input type="date" name="search_date_to" value="<?php echo dol_escape_htmltag($search_date_to); ?>">
+    </div>
+    <div class="vl-filter-group" style="max-width:150px;">
+        <label>Status</label>
+        <select name="search_status">
+            <option value="">All statuses</option>
+            <option value="pending"     <?php echo $search_status === 'pending'     ? 'selected' : ''; ?>>Pending</option>
+            <option value="confirmed"   <?php echo $search_status === 'confirmed'   ? 'selected' : ''; ?>>Confirmed</option>
+            <option value="in_progress" <?php echo $search_status === 'in_progress' ? 'selected' : ''; ?>>In Progress</option>
+            <option value="completed"   <?php echo $search_status === 'completed'   ? 'selected' : ''; ?>>Completed</option>
+            <option value="cancelled"   <?php echo $search_status === 'cancelled'   ? 'selected' : ''; ?>>Cancelled</option>
+        </select>
+    </div>
+    <div class="vl-filter-actions">
+        <button type="submit" class="vl-btn-filter apply"><i class="fa fa-search"></i> Search</button>
+        <button type="submit" name="button_removefilter" value="1" class="vl-btn-filter reset"><i class="fa fa-times"></i> Reset</button>
+    </div>
+</div>
+
+<!-- Stats chips -->
+<div class="vl-stats">
+    <div class="vl-stat-chip">
+        <span class="vl-stat-num"><?php echo $nbtotalofrecords; ?></span> Total
+    </div>
+    <?php if ($cnt_pending > 0) { ?><div class="vl-stat-chip pending"><span class="vl-stat-num"><?php echo $cnt_pending; ?></span> Pending</div><?php } ?>
+    <?php if ($cnt_confirmed > 0) { ?><div class="vl-stat-chip confirmed"><span class="vl-stat-num"><?php echo $cnt_confirmed; ?></span> Confirmed</div><?php } ?>
+    <?php if ($cnt_inprogress > 0) { ?><div class="vl-stat-chip inprogress"><span class="vl-stat-num"><?php echo $cnt_inprogress; ?></span> In Progress</div><?php } ?>
+    <?php if ($cnt_completed > 0) { ?><div class="vl-stat-chip completed"><span class="vl-stat-num"><?php echo $cnt_completed; ?></span> Completed</div><?php } ?>
+    <?php if ($cnt_cancelled > 0) { ?><div class="vl-stat-chip cancelled"><span class="vl-stat-num"><?php echo $cnt_cancelled; ?></span> Cancelled</div><?php } ?>
+</div>
+
+<!-- Table -->
+<div class="vl-table-card">
+    <div class="vl-table-wrap">
+    <table class="vl-table">
+        <thead>
+            <tr>
+                <th><a href="<?php echo bl_sortHref('t.ref', $sortfield, $sortorder, $self, $param); ?>">Ref <?php echo bl_sortArrow('t.ref', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo bl_sortHref('v.ref', $sortfield, $sortorder, $self, $param); ?>">Vehicle <?php echo bl_sortArrow('v.ref', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo bl_sortHref('d.lastname', $sortfield, $sortorder, $self, $param); ?>">Driver <?php echo bl_sortArrow('d.lastname', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo bl_sortHref('c.lastname', $sortfield, $sortorder, $self, $param); ?>">Customer <?php echo bl_sortArrow('c.lastname', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo bl_sortHref('t.booking_date', $sortfield, $sortorder, $self, $param); ?>">Date <?php echo bl_sortArrow('t.booking_date', $sortfield, $sortorder); ?></a></th>
+                <th class="right"><a href="<?php echo bl_sortHref('t.distance', $sortfield, $sortorder, $self, $param); ?>">Distance <?php echo bl_sortArrow('t.distance', $sortfield, $sortorder); ?></a></th>
+                <th class="right"><a href="<?php echo bl_sortHref('t.selling_amount', $sortfield, $sortorder, $self, $param); ?>">Amount <?php echo bl_sortArrow('t.selling_amount', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><a href="<?php echo bl_sortHref('t.status', $sortfield, $sortorder, $self, $param); ?>">Status <?php echo bl_sortArrow('t.status', $sortfield, $sortorder); ?></a></th>
+                <th class="center">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        <?php if (!empty($rows)) {
+            foreach ($rows as $obj) {
+                $cardUrl = dol_buildpath('/flotte/booking_card.php', 1).'?id='.$obj->rowid;
+                // Build customer display
+                $customerName = trim($obj->customer_firstname.' '.$obj->customer_lastname);
+                $driverName   = trim($obj->driver_firstname.' '.$obj->driver_lastname);
+                // Status css class
+                $statusClass = str_replace('_', '-', $obj->status ?: 'pending');
+        ?>
+            <tr>
+                <!-- Ref -->
+                <td>
+                    <a href="<?php echo $cardUrl; ?>" class="vl-ref-link">
+                        <span class="vl-ref-icon"><i class="fa fa-calendar"></i></span>
+                        <?php echo dol_escape_htmltag($obj->ref); ?>
+                    </a>
+                </td>
+
+                <!-- Vehicle -->
+                <td>
+                    <?php if (!empty($obj->vehicle_ref)) { ?>
+                    <div class="vl-vehicle-chip">
+                        <i class="fa fa-car" style="font-size:11px;opacity:0.6;"></i>
+                        <?php echo dol_escape_htmltag($obj->vehicle_ref); ?>
+                    </div>
+                    <?php if ($obj->maker || $obj->model) { ?>
+                    <div class="vl-sub"><?php echo dol_escape_htmltag(trim($obj->maker.' '.$obj->model)); ?></div>
+                    <?php } ?>
+                    <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
+                </td>
+
+                <!-- Driver -->
+                <td>
+                    <?php if (!empty($driverName)) { ?>
+                    <div style="font-weight:500;"><?php echo dol_escape_htmltag($driverName); ?></div>
+                    <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
+                </td>
+
+                <!-- Customer -->
+                <td>
+                    <?php if (!empty($customerName) || !empty($obj->company_name)) { ?>
+                    <?php if (!empty($customerName)) { ?>
+                    <div style="font-weight:500;"><?php echo dol_escape_htmltag($customerName); ?></div>
+                    <?php } ?>
+                    <?php if (!empty($obj->company_name)) { ?>
+                    <div class="vl-sub"><?php echo dol_escape_htmltag($obj->company_name); ?></div>
+                    <?php } ?>
+                    <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
+                </td>
+
+                <!-- Date -->
+                <td>
+                    <span class="vl-date-chip">
+                        <i class="fa fa-calendar-day" style="font-size:11px;opacity:0.6;"></i>
+                        <?php echo dol_print_date($db->jdate($obj->booking_date), 'day'); ?>
+                    </span>
+                </td>
+
+                <!-- Distance -->
+                <td class="right">
+                    <?php if ($obj->distance) { ?>
+                    <span class="vl-distance"><?php echo number_format((int)$obj->distance, 0, '.', ' '); ?><span class="vl-distance-unit">km</span></span>
+                    <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
+                </td>
+
+                <!-- Amount -->
+                <td class="right">
+                    <?php if ($obj->selling_amount) { ?>
+                    <span class="vl-amount"><?php echo price($obj->selling_amount); ?></span>
+                    <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
+                </td>
+
+                <!-- Status -->
+                <td class="center">
+                    <?php
+                    $labels = array(
+                        'pending'     => 'Pending',
+                        'confirmed'   => 'Confirmed',
+                        'in_progress' => 'In Progress',
+                        'completed'   => 'Completed',
+                        'cancelled'   => 'Cancelled',
+                    );
+                    $label = isset($labels[$obj->status]) ? $labels[$obj->status] : ucfirst($obj->status ?: 'Unknown');
+                    echo '<span class="vl-badge '.$statusClass.'">'.$label.'</span>';
+                    ?>
+                </td>
+
+                <!-- Actions -->
+                <td>
+                    <div class="vl-actions">
+                        <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="View"><i class="fa fa-eye"></i></a>
+                        <?php if ($user->rights->flotte->write) { ?>
+                        <a href="<?php echo $cardUrl; ?>&action=edit" class="vl-action-btn edit" title="Edit"><i class="fa fa-pen"></i></a>
+                        <?php } ?>
+                        <?php if ($user->rights->flotte->delete) { ?>
+                        <a href="<?php echo dol_buildpath('/flotte/booking_list.php', 1); ?>?action=delete&id=<?php echo $obj->rowid; ?>&token=<?php echo newToken(); ?>" class="vl-action-btn del" title="Delete"><i class="fa fa-trash"></i></a>
+                        <?php } ?>
+                    </div>
+                </td>
+            </tr>
+        <?php }} else { ?>
+            <tr>
+                <td colspan="9">
+                    <div class="vl-empty">
+                        <div class="vl-empty-icon"><i class="fa fa-calendar-check"></i></div>
+                        <p>No bookings found</p>
+                        <?php if ($user->rights->flotte->write) { ?>
+                        <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/booking_card.php', 1); ?>?action=create">
+                            <i class="fa fa-plus"></i> Add First Booking
+                        </a>
+                        <?php } ?>
+                    </div>
+                </td>
+            </tr>
+        <?php } ?>
+        </tbody>
+    </table>
+    </div>
+
+    <!-- Pagination -->
+    <?php if ($nbtotalofrecords > $limit) {
+        $totalpages   = ceil($nbtotalofrecords / $limit);
+        $prevpage     = max(0, $page - 1);
+        $nextpage     = min($totalpages - 1, $page + 1);
+        $showing_from = $offset + 1;
+        $showing_to   = min($offset + $limit, $nbtotalofrecords);
+    ?>
+    <div class="vl-pagination">
+        <div class="vl-pagination-info">
+            Showing <strong><?php echo $showing_from; ?></strong>–<strong><?php echo $showing_to; ?></strong> of <strong><?php echo $nbtotalofrecords; ?></strong> bookings
+        </div>
+        <div class="vl-page-btns">
+            <a class="vl-page-btn <?php echo $page == 0 ? 'disabled' : ''; ?>" href="<?php echo $self; ?>?page=0&sortfield=<?php echo $sortfield; ?>&sortorder=<?php echo $sortorder; ?>&<?php echo $param; ?>">«</a>
+            <a class="vl-page-btn <?php echo $page == 0 ? 'disabled' : ''; ?>" href="<?php echo $self; ?>?page=<?php echo $prevpage; ?>&sortfield=<?php echo $sortfield; ?>&sortorder=<?php echo $sortorder; ?>&<?php echo $param; ?>">‹</a>
+            <?php
+            $start = max(0, $page - 2);
+            $end   = min($totalpages - 1, $page + 2);
+            for ($p = $start; $p <= $end; $p++) {
+                $active = $p == $page ? 'active' : '';
+                echo '<a class="vl-page-btn '.$active.'" href="'.$self.'?page='.$p.'&sortfield='.$sortfield.'&sortorder='.$sortorder.'&'.$param.'">'.($p + 1).'</a>';
+            }
+            ?>
+            <a class="vl-page-btn <?php echo $page >= $totalpages - 1 ? 'disabled' : ''; ?>" href="<?php echo $self; ?>?page=<?php echo $nextpage; ?>&sortfield=<?php echo $sortfield; ?>&sortorder=<?php echo $sortorder; ?>&<?php echo $param; ?>">›</a>
+            <a class="vl-page-btn <?php echo $page >= $totalpages - 1 ? 'disabled' : ''; ?>" href="<?php echo $self; ?>?page=<?php echo $totalpages - 1; ?>&sortfield=<?php echo $sortfield; ?>&sortorder=<?php echo $sortorder; ?>&<?php echo $param; ?>">»</a>
+        </div>
+    </div>
+    <?php } ?>
+</div>
+
+</form>
+</div><!-- .vl-wrap -->
+
+<?php
+if ($resql) { $db->free($resql); }
 llxFooter();
 $db->close();
 ?>
