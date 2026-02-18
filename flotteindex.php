@@ -86,6 +86,10 @@ function getFleetStats($db) {
     $stats = array(
         'total_vehicles' => 0,
         'available_vehicles' => 0,
+        'in_use_vehicles' => 0,
+        'active_vehicles' => 0,
+        'outofservice_vehicles' => 0,
+        'maintenance_vehicles' => 0,
         'total_drivers' => 0,
         'total_customers' => 0,
         'active_bookings' => 0,
@@ -105,15 +109,40 @@ function getFleetStats($db) {
         return $stats;
     }
     
-    // Total vehicles
-    $sql = "SELECT COUNT(*) as total FROM " . MAIN_DB_PREFIX . "flotte_vehicle WHERE entity = " . ((int) $conf->entity);
-    $obj = safeQuery($db, $sql);
-    $stats['total_vehicles'] = (int) $obj->total;
-    
-    // Available vehicles
-    $sql = "SELECT COUNT(*) as available FROM " . MAIN_DB_PREFIX . "flotte_vehicle WHERE entity = " . ((int) $conf->entity);
-    $obj = safeQuery($db, $sql);
-    $stats['available_vehicles'] = (int) $obj->available;
+    // Total active vehicles (in_service = 1)
+    $sql = "SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN in_service = 1 THEN 1 ELSE 0 END) as active,
+                SUM(CASE WHEN in_service = 0 THEN 1 ELSE 0 END) as inactive
+            FROM " . MAIN_DB_PREFIX . "flotte_vehicle 
+            WHERE entity = " . ((int) $conf->entity);
+    $resql = $db->query($sql);
+    if ($resql) {
+        $obj = $db->fetch_object($resql);
+        if ($obj) {
+            $stats['total_vehicles']        = (int) $obj->total;
+            $stats['active_vehicles']       = (int) $obj->active;
+            $stats['outofservice_vehicles'] = (int) $obj->inactive;
+        }
+    }
+
+    // Vehicles currently booked — count distinct vehicles that have an
+    // active/ongoing booking (booking_date = today and status not cancelled/completed)
+    // Since there is no end_date, we treat today's booking_date as "in use today"
+    $sql = "SELECT COUNT(DISTINCT fk_vehicle) as in_use
+            FROM " . MAIN_DB_PREFIX . "flotte_booking
+            WHERE entity = " . ((int) $conf->entity) . "
+            AND booking_date = CURDATE()
+            AND (status IS NULL 
+                 OR status NOT IN ('cancelled', 'canceled', 'completed', 'done', 'finished', 'rejected'))";
+    $resql = $db->query($sql);
+    if ($resql) {
+        $obj = $db->fetch_object($resql);
+        $stats['in_use_vehicles'] = $obj ? (int) $obj->in_use : 0;
+    }
+
+    // Available = active vehicles minus those currently booked
+    $stats['available_vehicles'] = max(0, $stats['active_vehicles'] - $stats['in_use_vehicles']);
     
     // Count from other tables
     $tables = array(
@@ -136,10 +165,11 @@ function getFleetStats($db) {
     
     // Booking statistics
     if (tableExists($db, 'flotte_booking')) {
-        // Active bookings (today)
+        // Active bookings today = bookings with today's date that are not cancelled/completed
         $sql = "SELECT COUNT(*) as active FROM " . MAIN_DB_PREFIX . "flotte_booking 
-                WHERE DATE(start_date) <= CURDATE() 
-                AND DATE(end_date) >= CURDATE() 
+                WHERE booking_date = CURDATE()
+                AND (status IS NULL 
+                     OR status NOT IN ('cancelled', 'canceled', 'completed', 'done', 'finished', 'rejected'))
                 AND entity = " . ((int) $conf->entity);
         $obj = safeQuery($db, $sql);
         $stats['active_bookings'] = (int) $obj->active;
@@ -211,14 +241,26 @@ $stats = getFleetStats($db);
 $recent_bookings = getRecentBookings($db, 5);
 
 // Calculate metrics
-$utilization_rate = $stats['total_vehicles'] > 0 ? 
-    round((($stats['total_vehicles'] - $stats['available_vehicles']) / $stats['total_vehicles']) * 100, 1) : 0;
+// in_use = vehicles with an active booking today
+// available = active (in_service=1) vehicles minus those currently booked
+// out of service = vehicles with in_service=0
+$vehicles_in_use = $stats['in_use_vehicles'];
+
+$utilization_rate = $stats['active_vehicles'] > 0 ? 
+    round(($vehicles_in_use / $stats['active_vehicles']) * 100, 1) : 0;
 
 $completion_rate = $stats['total_workorders'] > 0 ? 
     round(($stats['completed_workorders'] / $stats['total_workorders']) * 100, 1) : 0;
 
-// Calculate vehicles in use
-$vehicles_in_use = $stats['total_vehicles'] - $stats['available_vehicles'];
+// Build chart segments (only include non-zero values)
+$chart_segments = array();
+if ($vehicles_in_use > 0)                    $chart_segments['In Use']         = $vehicles_in_use;
+if ($stats['available_vehicles'] > 0)        $chart_segments['Available']      = $stats['available_vehicles'];
+if ($stats['outofservice_vehicles'] > 0)     $chart_segments['Out of Service'] = $stats['outofservice_vehicles'];
+// If everything is zero but total > 0, show all as available
+if (empty($chart_segments) && $stats['total_vehicles'] > 0) {
+    $chart_segments['Available'] = $stats['total_vehicles'];
+}
 
 // ============================================
 // PAGE HEADER
@@ -349,6 +391,38 @@ print '<div class="fichecenter">';
 .stat-card.bookings { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
 .stat-card.revenue { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
 
+a.stat-card {
+    display: block;
+    text-decoration: none;
+    color: white;
+    cursor: pointer;
+}
+
+a.stat-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+    color: white;
+    text-decoration: none;
+}
+
+a.stat-card::after {
+    content: '\f061';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    position: absolute;
+    bottom: 15px;
+    right: 18px;
+    font-size: 13px;
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: all 0.3s ease;
+}
+
+a.stat-card:hover::after {
+    opacity: 0.7;
+    transform: translateX(0);
+}
+
 /* Two Column */
 .two-col { 
     display: grid; 
@@ -386,68 +460,163 @@ print '<div class="fichecenter">';
     width: 100% !important;
 }
 
-/* Metrics */
-.metrics { 
-    display: flex; 
-    flex-direction: column; 
-    gap: 18px; 
+.chart-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-.metric { 
-    display: flex; 
-    align-items: center; 
-    justify-content: space-between; 
+.chart-center-text {
+    position: absolute;
+    text-align: center;
+    pointer-events: none;
 }
 
-.metric-info { 
-    display: flex; 
-    align-items: center; 
-    gap: 12px; 
+.chart-center-rate {
+    font-size: 28px;
+    font-weight: 800;
+    color: #2c3e50;
+    line-height: 1;
 }
 
-.metric-icon { 
-    width: 40px; 
-    height: 40px; 
-    border-radius: 10px; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    font-size: 18px; 
+.chart-center-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #95a5a6;
+    margin-top: 4px;
 }
 
-.metric-icon.blue { background: #e3f2fd; color: #1976d2; }
-.metric-icon.green { background: #e8f5e9; color: #388e3c; }
-.metric-icon.orange { background: #fff3e0; color: #f57c00; }
-.metric-icon.purple { background: #f3e5f5; color: #7b1fa2; }
-
-.metric-label { 
-    font-size: 14px; 
-    color: #5a6c7d; 
-    font-weight: 500; 
+.chart-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: center;
 }
 
-.metric-value { 
-    font-size: 24px; 
-    font-weight: 700; 
-    color: #2c3e50; 
+.chart-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
 }
 
-.metric-bar-wrap { 
-    margin-top: 8px; 
+.pill-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
 }
 
-.metric-bar { 
-    height: 8px; 
-    background: #ecf0f1; 
-    border-radius: 10px; 
-    overflow: hidden; 
+.pill-label { color: #5a6c7d; }
+.chart-pill strong { color: #2c3e50; font-size: 14px; }
+
+.pill-inuse       .pill-dot { background: rgba(102,126,234,0.9); }
+.pill-available   .pill-dot { background: rgba(67,233,123,0.9); }
+.pill-maintenance .pill-dot { background: rgba(253,203,110,0.9); }
+.pill-outofservice .pill-dot { background: rgba(231,76,60,0.9); }
+
+/* Alerts & Notifications */
+.alerts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
-.metric-fill { 
-    height: 100%; 
-    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); 
-    border-radius: 10px; 
-    transition: width 0.8s ease; 
+.alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border-left: 4px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.alert-item:hover {
+    transform: translateX(4px);
+}
+
+.alert-item.alert-danger {
+    background: #fff5f5;
+    border-left-color: #e53e3e;
+}
+
+.alert-item.alert-warning {
+    background: #fffbeb;
+    border-left-color: #d97706;
+}
+
+.alert-item.alert-info {
+    background: #eff6ff;
+    border-left-color: #3b82f6;
+}
+
+.alert-item.alert-success {
+    background: #f0fdf4;
+    border-left-color: #16a34a;
+}
+
+.alert-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.alert-danger .alert-icon  { background: #fed7d7; color: #e53e3e; }
+.alert-warning .alert-icon { background: #fde68a; color: #d97706; }
+.alert-info .alert-icon    { background: #bfdbfe; color: #3b82f6; }
+.alert-success .alert-icon { background: #bbf7d0; color: #16a34a; }
+
+.alert-body {
+    flex: 1;
+}
+
+.alert-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 3px;
+}
+
+.alert-desc {
+    font-size: 12px;
+    color: #5a6c7d;
+    line-height: 1.4;
+}
+
+.alert-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+    align-self: center;
+}
+
+.alert-danger  .alert-badge { background: #e53e3e; color: #fff; }
+.alert-warning .alert-badge { background: #d97706; color: #fff; }
+.alert-info    .alert-badge { background: #3b82f6; color: #fff; }
+.alert-success .alert-badge { background: #16a34a; color: #fff; }
+
+.no-alerts {
+    text-align: center;
+    padding: 30px 20px;
+    color: #95a5a6;
+    font-size: 14px;
 }
 
 /* Quick Actions */
@@ -624,7 +793,7 @@ print '<div class="fichecenter">';
     </div>
     <div class="stats-grid">
         <!-- Vehicles -->
-        <div class="stat-card vehicles">
+        <a href="<?php echo dol_buildpath('/flotte/vehicle_list.php', 1); ?>" class="stat-card vehicles">
             <div class="stat-icon"><i class="fa fa-car"></i></div>
             <div class="stat-content">
                 <div class="stat-value"><?php echo $stats['total_vehicles']; ?></div>
@@ -634,10 +803,10 @@ print '<div class="fichecenter">';
                     <?php echo $stats['available_vehicles']; ?> Available
                 </div>
             </div>
-        </div>
+        </a>
         
         <!-- Drivers -->
-        <div class="stat-card drivers">
+        <a href="<?php echo dol_buildpath('/flotte/driver_list.php', 1); ?>" class="stat-card drivers">
             <div class="stat-icon"><i class="fa fa-users"></i></div>
             <div class="stat-content">
                 <div class="stat-value"><?php echo $stats['total_drivers']; ?></div>
@@ -646,10 +815,10 @@ print '<div class="fichecenter">';
                     <i class="fa fa-user-check"></i> Active Personnel
                 </div>
             </div>
-        </div>
+        </a>
         
         <!-- Bookings -->
-        <div class="stat-card bookings">
+        <a href="<?php echo dol_buildpath('/flotte/booking_list.php', 1); ?>" class="stat-card bookings">
             <div class="stat-icon"><i class="fa fa-calendar-check"></i></div>
             <div class="stat-content">
                 <div class="stat-value"><?php echo $stats['active_bookings']; ?></div>
@@ -659,7 +828,7 @@ print '<div class="fichecenter">';
                     <?php echo $stats['monthly_bookings']; ?> This Month
                 </div>
             </div>
-        </div>
+        </a>
         
         <!-- Revenue -->
         <div class="stat-card revenue">
@@ -688,66 +857,150 @@ print '<div class="fichecenter">';
             <h3 class="card-title">
                 <i class="fa fa-chart-pie"></i> Fleet Utilization
             </h3>
-            <canvas id="utilizationChart" class="chart-canvas"></canvas>
-        </div>
-        
-        <!-- Metrics -->
-        <div class="card">
-            <h3 class="card-title">
-                <i class="fa fa-tachometer-alt"></i> Key Metrics
-            </h3>
-            <div class="metrics">
-                <!-- Utilization -->
-                <div>
-                    <div class="metric">
-                        <div class="metric-info">
-                            <div class="metric-icon blue">
-                                <i class="fa fa-gauge-high"></i>
-                            </div>
-                            <div class="metric-label">Fleet Utilization</div>
-                        </div>
-                        <div class="metric-value"><?php echo $utilization_rate; ?>%</div>
-                    </div>
-                    <div class="metric-bar-wrap">
-                        <div class="metric-bar">
-                            <div class="metric-fill" style="width: <?php echo $utilization_rate; ?>%;"></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Customers -->
-                <div class="metric">
-                    <div class="metric-info">
-                        <div class="metric-icon green">
-                            <i class="fa fa-users"></i>
-                        </div>
-                        <div class="metric-label">Total Customers</div>
-                    </div>
-                    <div class="metric-value"><?php echo $stats['total_customers']; ?></div>
-                </div>
-                
-                <!-- Work Orders -->
-                <div class="metric">
-                    <div class="metric-info">
-                        <div class="metric-icon orange">
-                            <i class="fa fa-tools"></i>
-                        </div>
-                        <div class="metric-label">Work Orders</div>
-                    </div>
-                    <div class="metric-value"><?php echo $stats['total_workorders']; ?></div>
-                </div>
-                
-                <!-- Inspections -->
-                <div class="metric">
-                    <div class="metric-info">
-                        <div class="metric-icon purple">
-                            <i class="fa fa-clipboard-check"></i>
-                        </div>
-                        <div class="metric-label">Inspections</div>
-                    </div>
-                    <div class="metric-value"><?php echo $stats['total_inspections']; ?></div>
+            <div class="chart-wrapper">
+                <canvas id="utilizationChart" class="chart-canvas"></canvas>
+                <div class="chart-center-text" id="chartCenterText">
+                    <div class="chart-center-rate"><?php echo $utilization_rate; ?>%</div>
+                    <div class="chart-center-label">Utilization</div>
                 </div>
             </div>
+            <div class="chart-pills">
+                <div class="chart-pill pill-inuse">
+                    <span class="pill-dot"></span>
+                    <span class="pill-label">In Use Today</span>
+                    <strong><?php echo $vehicles_in_use; ?></strong>
+                </div>
+                <div class="chart-pill pill-available">
+                    <span class="pill-dot"></span>
+                    <span class="pill-label">Available</span>
+                    <strong><?php echo $stats['available_vehicles']; ?></strong>
+                </div>
+                <?php if ($stats['outofservice_vehicles'] > 0) { ?>
+                <div class="chart-pill pill-outofservice">
+                    <span class="pill-dot"></span>
+                    <span class="pill-label">Out of Service</span>
+                    <strong><?php echo $stats['outofservice_vehicles']; ?></strong>
+                </div>
+                <?php } ?>
+            </div>
+        </div>
+        
+        <!-- Alerts & Notifications -->
+        <div class="card">
+            <h3 class="card-title">
+                <i class="fa fa-bell"></i> Alerts &amp; Notifications
+            </h3>
+            <?php
+            // Build dynamic alerts based on fleet data
+            $alerts = array();
+
+            // High utilization alert
+            if ($utilization_rate >= 90) {
+                $alerts[] = array(
+                    'type'  => 'danger',
+                    'icon'  => 'exclamation-triangle',
+                    'title' => 'Fleet Critically Overloaded',
+                    'desc'  => 'Utilization is at ' . $utilization_rate . '%. Only ' . $stats['available_vehicles'] . ' vehicle(s) remain available.',
+                    'badge' => 'Critical',
+                );
+            } elseif ($utilization_rate >= 75) {
+                $alerts[] = array(
+                    'type'  => 'warning',
+                    'icon'  => 'exclamation-circle',
+                    'title' => 'High Fleet Utilization',
+                    'desc'  => 'Utilization is at ' . $utilization_rate . '%. Consider scheduling maintenance windows carefully.',
+                    'badge' => 'Warning',
+                );
+            }
+
+            // Low vehicle availability
+            if ($stats['available_vehicles'] == 0 && $stats['total_vehicles'] > 0) {
+                $alerts[] = array(
+                    'type'  => 'danger',
+                    'icon'  => 'car-crash',
+                    'title' => 'No Vehicles Available',
+                    'desc'  => 'All ' . $stats['total_vehicles'] . ' vehicles are currently in use. No fleet capacity remaining.',
+                    'badge' => 'Urgent',
+                );
+            }
+
+            // Pending work orders
+            if ($stats['pending_workorders'] > 0) {
+                $alerts[] = array(
+                    'type'  => 'warning',
+                    'icon'  => 'tools',
+                    'title' => 'Pending Work Orders',
+                    'desc'  => $stats['pending_workorders'] . ' work order(s) are awaiting action. Review and assign technicians.',
+                    'badge' => $stats['pending_workorders'],
+                );
+            }
+
+            // Active bookings info
+            if ($stats['active_bookings'] > 0) {
+                $alerts[] = array(
+                    'type'  => 'info',
+                    'icon'  => 'calendar-check',
+                    'title' => 'Active Bookings Today',
+                    'desc'  => $stats['active_bookings'] . ' booking(s) are active right now. Ensure vehicles and drivers are ready.',
+                    'badge' => 'Today',
+                );
+            }
+
+            // Good completion rate
+            if ($completion_rate >= 80 && $stats['total_workorders'] > 0) {
+                $alerts[] = array(
+                    'type'  => 'success',
+                    'icon'  => 'check-circle',
+                    'title' => 'Work Order Completion Rate',
+                    'desc'  => $completion_rate . '% of work orders completed. Maintenance team is performing well.',
+                    'badge' => 'Good',
+                );
+            }
+
+            // No inspections recorded
+            if ($stats['total_inspections'] == 0 && $stats['total_vehicles'] > 0) {
+                $alerts[] = array(
+                    'type'  => 'warning',
+                    'icon'  => 'clipboard-list',
+                    'title' => 'No Inspections Recorded',
+                    'desc'  => 'No vehicle inspections have been logged yet. Schedule routine checks for your fleet.',
+                    'badge' => 'Action',
+                );
+            }
+
+            // Monthly revenue info
+            if ($stats['monthly_revenue'] > 0) {
+                $alerts[] = array(
+                    'type'  => 'success',
+                    'icon'  => 'chart-line',
+                    'title' => 'Monthly Revenue On Track',
+                    'desc'  => 'This month\'s revenue stands at ' . price($stats['monthly_revenue'], 0, '', 1, -1, -1, $conf->currency) . ' from ' . $stats['monthly_bookings'] . ' booking(s).',
+                    'badge' => 'Info',
+                );
+            }
+            ?>
+
+            <?php if (!empty($alerts)) { ?>
+            <div class="alerts-list">
+                <?php foreach ($alerts as $alert) { ?>
+                <div class="alert-item alert-<?php echo $alert['type']; ?>">
+                    <div class="alert-icon">
+                        <i class="fa fa-<?php echo $alert['icon']; ?>"></i>
+                    </div>
+                    <div class="alert-body">
+                        <div class="alert-title"><?php echo dol_escape_htmltag($alert['title']); ?></div>
+                        <div class="alert-desc"><?php echo dol_escape_htmltag($alert['desc']); ?></div>
+                    </div>
+                    <span class="alert-badge"><?php echo dol_escape_htmltag($alert['badge']); ?></span>
+                </div>
+                <?php } ?>
+            </div>
+            <?php } else { ?>
+            <div class="no-alerts">
+                <i class="fa fa-check-circle" style="font-size:40px; color:#16a34a; display:block; margin-bottom:10px;"></i>
+                All systems are running smoothly. No alerts at this time.
+            </div>
+            <?php } ?>
         </div>
     </div>
 </div>
@@ -858,78 +1111,141 @@ print '<div class="fichecenter">';
 document.addEventListener("DOMContentLoaded", function() {
     var canvas = document.getElementById("utilizationChart");
     if (!canvas) return;
-    
+
     var ctx = canvas.getContext("2d");
-    var inUse = <?php echo $vehicles_in_use; ?>;
-    var available = <?php echo $stats['available_vehicles']; ?>;
-    var total = <?php echo $stats['total_vehicles']; ?>;
-    
-    // Only create chart if there is data
-    if (total > 0) {
-        new Chart(ctx, {
-            type: "doughnut",
-            data: {
-                labels: ["In Use", "Available"],
-                datasets: [{
-                    data: [inUse, available],
-                    backgroundColor: [
-                        "rgba(102,126,234,0.9)",
-                        "rgba(67,233,123,0.9)"
-                    ],
-                    borderWidth: 3,
-                    borderColor: "#fff",
-                    hoverOffset: 10
-                }]
+
+    // --- PHP-injected data ---
+    var total        = <?php echo (int) $stats['total_vehicles']; ?>;
+    var inUse        = <?php echo (int) $vehicles_in_use; ?>;
+    var available    = <?php echo (int) $stats['available_vehicles']; ?>;
+    var outOfService = <?php echo (int) $stats['outofservice_vehicles']; ?>;
+    var utilRate     = <?php echo $utilization_rate; ?>;
+
+    if (total === 0) {
+        // No data — hide canvas, show message
+        canvas.style.display = 'none';
+        var centerText = document.getElementById('chartCenterText');
+        if (centerText) centerText.style.display = 'none';
+        var wrapper = canvas.parentElement;
+        var msg = document.createElement('div');
+        msg.style.cssText = 'text-align:center;color:#95a5a6;padding:50px 20px;';
+        msg.innerHTML = '<i class="fa fa-info-circle" style="font-size:48px;display:block;margin-bottom:15px;opacity:0.4;"></i>'
+                      + '<p style="margin:0;font-size:14px;">No vehicle data available yet</p>';
+        wrapper.appendChild(msg);
+        return;
+    }
+
+    // Build segments dynamically (skip zeros)
+    var labels = [], data = [], colors = [], hoverColors = [];
+    var palette = {
+        'In Use Today':  { bg: 'rgba(102,126,234,0.92)', hover: 'rgba(102,126,234,1)' },
+        'Available':     { bg: 'rgba(67,233,123,0.92)',  hover: 'rgba(67,233,123,1)'  },
+        'Out of Service':{ bg: 'rgba(231,76,60,0.92)',   hover: 'rgba(231,76,60,1)'   }
+    };
+    var raw = [
+        { label: 'In Use Today',   value: inUse        },
+        { label: 'Available',      value: available     },
+        { label: 'Out of Service', value: outOfService  }
+    ];
+    raw.forEach(function(seg) {
+        if (seg.value > 0) {
+            labels.push(seg.label);
+            data.push(seg.value);
+            colors.push(palette[seg.label].bg);
+            hoverColors.push(palette[seg.label].hover);
+        }
+    });
+
+    // Center text plugin (updates on hover)
+    var centerTextPlugin = {
+        id: 'centerText',
+        beforeDraw: function(chart) {
+            var meta = chart._metasets && chart._metasets[0];
+            var el = document.getElementById('chartCenterText');
+            if (!el) return;
+            if (meta) {
+                // Position center text over the doughnut hole
+                var model = meta.data && meta.data[0];
+                if (model) {
+                    var cx = model.x;
+                    var cy = model.y;
+                    var rect = canvas.getBoundingClientRect();
+                    var canvasRect = canvas.parentElement.getBoundingClientRect();
+                    var chartRect = chart.canvas.getBoundingClientRect();
+                    // Use chart.js internal center coords
+                    el.style.left = cx + 'px';
+                    el.style.top  = cy + 'px';
+                    el.style.transform = 'translate(-50%, -50%)';
+                }
+            }
+        }
+    };
+
+    var utilizationChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors,
+                hoverBackgroundColor: hoverColors,
+                borderWidth: 4,
+                borderColor: '#ffffff',
+                hoverBorderWidth: 2,
+                hoverOffset: 14
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            cutout: '68%',
+            animation: {
+                animateRotate: true,
+                animateScale: false,
+                duration: 900,
+                easing: 'easeInOutQuart'
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        position: "bottom",
-                        labels: {
-                            padding: 20,
-                            font: {
-                                size: 13,
-                                weight: "600"
-                            },
-                            usePointStyle: true,
-                            pointStyle: "circle"
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: "rgba(0, 0, 0, 0.8)",
-                        padding: 12,
-                        titleFont: {
-                            size: 14,
-                            weight: "bold"
-                        },
-                        bodyFont: {
-                            size: 13
-                        },
-                        callbacks: {
-                            label: function(context) {
-                                var label = context.label || "";
-                                var value = context.parsed || 0;
-                                var percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                                return label + ": " + value + " (" + percentage + "%)";
-                            }
+            plugins: {
+                legend: {
+                    display: false  // We use custom pills below
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(30,30,40,0.88)',
+                    padding: 14,
+                    cornerRadius: 10,
+                    titleFont: { size: 14, weight: '700' },
+                    bodyFont:  { size: 13 },
+                    callbacks: {
+                        label: function(context) {
+                            var label   = context.label || '';
+                            var value   = context.parsed || 0;
+                            var pct     = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                            return '  ' + label + ': ' + value + ' vehicle' + (value !== 1 ? 's' : '') + '  (' + pct + '%)';
                         }
                     }
                 }
+            },
+            onHover: function(event, elements) {
+                var rateEl  = document.querySelector('.chart-center-rate');
+                var labelEl = document.querySelector('.chart-center-label');
+                if (!rateEl || !labelEl) return;
+                if (elements && elements.length > 0) {
+                    var idx    = elements[0].index;
+                    var val    = data[idx];
+                    var pct    = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                    rateEl.textContent  = val;
+                    labelEl.textContent = labels[idx];
+                } else {
+                    rateEl.textContent  = utilRate + '%';
+                    labelEl.textContent = 'Utilization';
+                }
             }
-        });
-    } else {
-        // Show message if no data
-        canvas.style.display = 'none';
-        var parent = canvas.parentElement;
-        var msg = document.createElement('p');
-        msg.style.textAlign = 'center';
-        msg.style.color = '#95a5a6';
-        msg.style.padding = '40px';
-        msg.innerHTML = '<i class="fa fa-info-circle" style="font-size:48px; display:block; margin-bottom:15px;"></i>No vehicle data available yet';
-        parent.appendChild(msg);
-    }
+        },
+        plugins: [centerTextPlugin]
+    });
+
+    // Position center label after first render
+    utilizationChart.update();
 });
 </script>
 
