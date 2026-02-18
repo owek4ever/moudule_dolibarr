@@ -168,18 +168,6 @@ CREATE TABLE `llx_flotte_part` (
   PRIMARY KEY (`rowid`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
--- dolibarr.llx_flotte_part_category definition
-
-CREATE TABLE `llx_flotte_part_category` (
-  `rowid` int NOT NULL AUTO_INCREMENT,
-  `ref` varchar(128) NOT NULL,
-  `entity` int DEFAULT '1',
-  `category_name` varchar(128) DEFAULT NULL,
-  `fk_user_author` int DEFAULT NULL,
-  `fk_user_modif` int DEFAULT NULL,
-  `tms` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (`rowid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- dolibarr.llx_flotte_vehicle definition
 
