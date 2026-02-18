@@ -412,26 +412,19 @@ if ($cancel) {
 
 llxHeader('', $langs->trans('Driver'), '');
 
-// Add JavaScript for auto-fill functionality
+// Auto-fill JS
 ?>
 <script type="text/javascript">
 jQuery(document).ready(function() {
-    // When Employee is selected, auto-fill the fields
     jQuery('#fk_user').change(function() {
         var userid = jQuery(this).val();
-        
         if (userid > 0) {
-            // Fetch Employee data via AJAX
             jQuery.ajax({
                 url: '<?php echo $_SERVER['PHP_SELF']; ?>',
                 type: 'GET',
-                data: {
-                    action: 'fetch_employee',
-                    fk_user: userid
-                },
+                data: { action: 'fetch_employee', fk_user: userid },
                 dataType: 'json',
                 success: function(data) {
-                    // Auto-fill the form fields
                     jQuery('input[name="firstname"]').val(data.firstname);
                     jQuery('input[name="lastname"]').val(data.lastname);
                     jQuery('input[name="email"]').val(data.email);
@@ -439,14 +432,219 @@ jQuery(document).ready(function() {
                     jQuery('textarea[name="address"]').val(data.address);
                     jQuery('input[name="employee_id"]').val(data.employee_id);
                 },
-                error: function() {
-                    console.log('Error fetching Employee data');
-                }
+                error: function() { console.log('Error fetching Employee data'); }
             });
         }
     });
 });
 </script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+.dc-page * { box-sizing: border-box; }
+.dc-page {
+    font-family: 'DM Sans', sans-serif;
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 0 2px 48px;
+    color: #1a1f2e;
+}
+
+/* ── Page header ── */
+.dc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 26px 0 22px;
+    border-bottom: 1px solid #e8eaf0;
+    margin-bottom: 28px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.dc-header-left { display: flex; align-items: center; gap: 14px; }
+.dc-header-icon {
+    width: 46px; height: 46px; border-radius: 12px;
+    background: rgba(60,71,88,0.1);
+    display: flex; align-items: center; justify-content: center;
+    color: #3c4758; font-size: 20px; flex-shrink: 0;
+}
+.dc-header-title { font-size: 21px; font-weight: 700; color: #1a1f2e; margin: 0 0 3px; letter-spacing: -0.3px; }
+.dc-header-sub { font-size: 12.5px; color: #8b92a9; font-weight: 400; }
+.dc-header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* ── Status badge ── */
+.dc-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 11px; border-radius: 20px;
+    font-size: 11.5px; font-weight: 600; white-space: nowrap;
+}
+.dc-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.dc-badge.active    { background: #edfaf3; color: #1a7d4a; }
+.dc-badge.active::before    { background: #22c55e; }
+.dc-badge.inactive  { background: #fef2f2; color: #b91c1c; }
+.dc-badge.inactive::before  { background: #ef4444; }
+.dc-badge.onleave   { background: #fff8ec; color: #b45309; }
+.dc-badge.onleave::before   { background: #f59e0b; }
+
+/* ── Buttons ── */
+.dc-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 16px; border-radius: 6px;
+    font-size: 13px; font-weight: 600;
+    text-decoration: none !important; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; white-space: nowrap;
+    transition: all 0.15s ease; border: none;
+}
+.dc-btn-primary  { background: #3c4758 !important; color: #fff !important; }
+.dc-btn-primary:hover  { background: #2a3346 !important; color: #fff !important; }
+.dc-btn-ghost {
+    background: #fff !important; color: #5a6482 !important;
+    border: 1.5px solid #d1d5e0 !important;
+}
+.dc-btn-ghost:hover { background: #f5f6fa !important; color: #2d3748 !important; }
+.dc-btn-danger {
+    background: #fef2f2 !important; color: #dc2626 !important;
+    border: 1.5px solid #fecaca !important;
+}
+.dc-btn-danger:hover { background: #fee2e2 !important; color: #b91c1c !important; }
+input.dc-btn-primary,
+button.dc-btn-primary {
+    background: #3c4758 !important; color: #fff !important; border: none !important;
+}
+input.dc-btn-primary:hover,
+button.dc-btn-primary:hover { background: #2a3346 !important; }
+
+/* ── Two-column grid ── */
+.dc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+.dc-grid-full { grid-template-columns: 1fr; }
+@media (max-width: 780px) { .dc-grid { grid-template-columns: 1fr; } }
+
+/* ── Section card ── */
+.dc-card {
+    background: #fff;
+    border: 1px solid #e8eaf0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+}
+.dc-card-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 20px;
+    border-bottom: 1px solid #f0f2f8;
+    background: #f7f8fc;
+}
+.dc-card-header-icon {
+    width: 28px; height: 28px; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; flex-shrink: 0;
+}
+.dc-card-header-icon.blue   { background: rgba(60,71,88,0.1);  color: #3c4758; }
+.dc-card-header-icon.green  { background: rgba(22,163,74,0.1);  color: #16a34a; }
+.dc-card-header-icon.amber  { background: rgba(217,119,6,0.1);  color: #d97706; }
+.dc-card-header-icon.purple { background: rgba(109,40,217,0.1); color: #6d28d9; }
+.dc-card-header-icon.red    { background: rgba(220,38,38,0.1);  color: #dc2626; }
+.dc-card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: #8b92a9; }
+.dc-card-body { padding: 0; }
+
+/* ── Field rows ── */
+.dc-field {
+    display: flex; align-items: flex-start;
+    padding: 12px 20px;
+    border-bottom: 1px solid #f5f6fb;
+    gap: 12px;
+}
+.dc-field:last-child { border-bottom: none; }
+.dc-field-label {
+    flex: 0 0 160px; font-size: 12px; font-weight: 600;
+    color: #8b92a9; text-transform: uppercase; letter-spacing: 0.5px;
+    padding-top: 2px; line-height: 1.4;
+}
+.dc-field-label.required::after { content: ' *'; color: #ef4444; }
+.dc-field-value { flex: 1; font-size: 13.5px; color: #2d3748; line-height: 1.5; min-width: 0; }
+.dc-field-value a { color: #3c4758; }
+
+/* ── Mono chip ── */
+.dc-mono {
+    font-family: 'DM Mono', monospace; font-size: 12px;
+    background: #f0f2fa; color: #4a5568;
+    padding: 3px 9px; border-radius: 5px; display: inline-block;
+}
+
+/* ── Vehicle chip ── */
+.dc-vehicle {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px; font-weight: 600; color: #3c4758;
+    background: rgba(60,71,88,0.07); padding: 4px 10px; border-radius: 6px;
+}
+
+/* ── Form inputs ── */
+.dc-page input[type="text"],
+.dc-page input[type="email"],
+.dc-page select,
+.dc-page textarea {
+    padding: 8px 12px !important;
+    border: 1.5px solid #e2e5f0 !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    color: #2d3748 !important;
+    background: #fafbfe !important;
+    outline: none !important;
+    transition: border-color 0.15s, box-shadow 0.15s !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+.dc-page input[type="text"]:focus,
+.dc-page input[type="email"]:focus,
+.dc-page select:focus,
+.dc-page textarea:focus {
+    border-color: #3c4758 !important;
+    box-shadow: 0 0 0 3px rgba(60,71,88,0.1) !important;
+    background: #fff !important;
+}
+.dc-page input[type="file"] {
+    font-size: 12.5px; color: #5a6482;
+    font-family: 'DM Sans', sans-serif;
+}
+.dc-page textarea { resize: vertical !important; }
+
+/* ── File upload zone ── */
+.dc-file-zone {
+    border: 1.5px dashed #d1d5e0;
+    border-radius: 8px; padding: 14px 16px;
+    background: #fafbfe; text-align: center;
+    cursor: pointer; transition: border-color 0.15s;
+}
+.dc-file-zone:hover { border-color: #3c4758; background: #f5f6fa; }
+.dc-file-zone i { font-size: 22px; color: #c4c9d8; margin-bottom: 6px; display: block; }
+.dc-file-zone small { font-size: 11.5px; color: #9aa0b4; display: block; }
+.dc-file-current {
+    margin-top: 8px; font-size: 12px; color: #6b7280;
+    background: #f0f2fa; padding: 4px 10px; border-radius: 5px;
+    display: inline-flex; align-items: center; gap: 5px;
+}
+
+/* ── Bottom action bar ── */
+.dc-action-bar {
+    display: flex; align-items: center; justify-content: flex-end;
+    gap: 8px; padding: 18px 0 4px;
+    flex-wrap: wrap;
+}
+.dc-action-bar-left { margin-right: auto; }
+
+/* ── Ref tag ── */
+.dc-ref-tag {
+    font-family: 'DM Mono', monospace; font-size: 13px;
+    background: rgba(60,71,88,0.08); color: #3c4758;
+    padding: 4px 10px; border-radius: 6px; font-weight: 500;
+}
+</style>
 <?php
 
 // Show delete confirmation dialog
@@ -455,483 +653,384 @@ if ($action == 'delete') {
     print $formconfirm;
 }
 
-// Build page header
-if ($id > 0 && $action != 'create') {
-    $head = array();
-    $head[0][0] = $_SERVER['PHP_SELF'].'?id='.$id;
-    $head[0][1] = $langs->trans('Card');
-    $head[0][2] = 'card';
-    
-    dol_fiche_head($head, 'card', $langs->trans('Driver').' : '.(isset($driver_data['ref']) ? $driver_data['ref'] : ''), -1, 'user');
-} else {
-    dol_fiche_head(array(), '', ($action == 'create' ? $langs->trans('NewDriver') : $langs->trans('Driver')), -1, 'user');
-}
+// Determine page title & subtitle
+$isEdit   = ($action == 'edit');
+$isCreate = ($action == 'create');
+$isView   = (!$isEdit && !$isCreate);
+
+$pageTitle = $isCreate ? $langs->trans('NewDriver') : ($isEdit ? $langs->trans('EditDriver') : $langs->trans('Driver'));
+$pageSub   = $isCreate ? $langs->trans('FillInDriverDetails') : (isset($driver_data['ref']) ? $driver_data['ref'] : '');
 
 // Form start
-if ($action == 'create' || $action == 'edit') {
+if ($isCreate || $isEdit) {
     print '<form method="POST" action="'.$_SERVER['PHP_SELF'].($id > 0 ? '?id='.$id : '').'" enctype="multipart/form-data">';
     print '<input type="hidden" name="token" value="'.newToken().'">';
-    print '<input type="hidden" name="action" value="'.($action == 'create' ? 'add' : 'update').'">';
-    if ($id > 0) {
-        print '<input type="hidden" name="id" value="'.$id.'">';
-    }
+    print '<input type="hidden" name="action" value="'.($isCreate ? 'add' : 'update').'">';
+    if ($id > 0) print '<input type="hidden" name="id" value="'.$id.'">';
 }
 
-print '<div class="fichecenter">';
-print '<div class="fichehalfleft">';
+print '<div class="dc-page">';
 
-// Basic Information
-print load_fiche_titre($langs->trans('Basic Information'), '', '');
-print '<table class="border tableforfield" width="100%">';
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   PAGE HEADER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+print '<div class="dc-header">';
+print '  <div class="dc-header-left">';
+print '    <div class="dc-header-icon"><i class="fa fa-user"></i></div>';
+print '    <div>';
+print '      <div class="dc-header-title">'.dol_escape_htmltag($pageTitle).'</div>';
+if ($pageSub) print '      <div class="dc-header-sub">'.dol_escape_htmltag($pageSub).'</div>';
+print '    </div>';
+print '  </div>';
+print '  <div class="dc-header-actions">';
+if ($isView && $id > 0) {
+    if (!empty($driver_data['status'])) {
+        $st = $driver_data['status'];
+        $stClass = ($st == 'Active') ? 'active' : (($st == 'Inactive') ? 'inactive' : 'onleave');
+        print '<span class="dc-badge '.$stClass.'">'.dol_escape_htmltag($st).'</span>';
+    }
+    print '<a class="dc-btn dc-btn-ghost" href="'.dol_buildpath('/flotte/driver_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('BackToList').'</a>';
+    print '<a class="dc-btn dc-btn-ghost" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=edit"><i class="fa fa-pen"></i> '.$langs->trans('Modify').'</a>';
+    print '<a class="dc-btn dc-btn-danger" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=delete"><i class="fa fa-trash"></i> '.$langs->trans('Delete').'</a>';
+}
+
+print '  </div>';
+print '</div>';
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ROW 1 — Basic Info + Employment
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+print '<div class="dc-grid">';
+
+/* ── Card: Basic Information ── */
+print '<div class="dc-card">';
+print '  <div class="dc-card-header">';
+print '    <div class="dc-card-header-icon blue"><i class="fa fa-id-card"></i></div>';
+print '    <span class="dc-card-title">'.$langs->trans('BasicInformation').'</span>';
+print '  </div>';
+print '  <div class="dc-card-body">';
 
 // Reference
-print '<tr><td class="titlefield">' . $langs->trans('Reference') . '</td><td>';
-if ($action == 'create') {
-    print '<em>' . $langs->trans('AutoGenerated') . '</em>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('Reference').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate) {
+    print '<em style="color:#9aa0b4;font-size:12.5px;">'.$langs->trans('AutoGenerated').'</em>';
 } else {
-    print dol_escape_htmltag($driver_data['ref']);
+    print '<span class="dc-ref-tag">'.dol_escape_htmltag($driver_data['ref']).'</span>';
 }
-print '</td></tr>';
+print '    </div></div>';
 
-// Employee Selection (HRM)
-print '<tr><td class="fieldrequired">' . $langs->trans('Employee') . '</td><td>';
-if ($action == 'create') {
-    // Build employee selection
-    $sql_users = "SELECT u.rowid, u.lastname, u.firstname, u.employee";
-    $sql_users .= " FROM ".MAIN_DB_PREFIX."user as u";
-    $sql_users .= " WHERE u.employee = 1";
-    $sql_users .= " AND u.entity IN (".getEntity('user').")";
-    $sql_users .= " AND u.statut = 1";
-    $sql_users .= " ORDER BY u.lastname, u.firstname";
-    
-    print '<select class="flat minwidth300" name="fk_user" id="fk_user">';
-    print '<option value="">-- '.$langs->trans('Select Employee').' --</option>';
-    
+// Employee
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label required">'.$langs->trans('Employee').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate) {
+    $sql_users = "SELECT u.rowid, u.lastname, u.firstname, u.employee FROM ".MAIN_DB_PREFIX."user as u WHERE u.employee = 1 AND u.entity IN (".getEntity('user').") AND u.statut = 1 ORDER BY u.lastname, u.firstname";
+    print '<div style="display:flex;gap:8px;align-items:center;">';
+    print '<select name="fk_user" id="fk_user"><option value="">-- '.$langs->trans('Select Employee').' --</option>';
     $resql_users = $db->query($sql_users);
     if ($resql_users) {
         while ($obj_user = $db->fetch_object($resql_users)) {
-            $selected = '';
-            print '<option value="'.$obj_user->rowid.'"'.$selected.'>';
+            print '<option value="'.$obj_user->rowid.'">';
             print dol_escape_htmltag($obj_user->lastname.' '.$obj_user->firstname);
-            if ($obj_user->employee) {
-                print ' ('.$obj_user->employee.')';
-            }
+            if ($obj_user->employee) print ' ('.$obj_user->employee.')';
             print '</option>';
         }
     }
     print '</select>';
-    
-    print ' <a href="'.DOL_URL_ROOT.'/user/card.php?action=create&employee=1&backtopage='.urlencode($_SERVER['PHP_SELF'].'?action=create').'" target="_blank">';
-    print img_picto($langs->trans("Create Employee"), 'add', 'class="paddingleft"');
-    print '</a>';
+    print '<a href="'.DOL_URL_ROOT.'/user/card.php?action=create&employee=1&backtopage='.urlencode($_SERVER['PHP_SELF'].'?action=create').'" target="_blank" style="flex-shrink:0;">'.img_picto($langs->trans("Create Employee"), 'add').'</a>';
+    print '</div>';
 } else {
-    if ($employee->id > 0) {
-        print $employee->getNomUrl(1);
-        print ' ('.$employee->employee.')';
-    } else {
-        print '&nbsp;';
-    }
+    if ($employee->id > 0) { print $employee->getNomUrl(1); if ($employee->employee) print ' <span class="dc-mono">'.$employee->employee.'</span>'; }
+    else print '&nbsp;';
 }
-print '</td></tr>';
+print '    </div></div>';
 
 // First Name
-print '<tr><td class="fieldrequired">' . $langs->trans('First Name') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<input type="text" class="flat minwidth200" name="firstname" value="' . (isset($driver_data['firstname']) ? dol_escape_htmltag($driver_data['firstname']) : '') . '">';
-} else {
-    print dol_escape_htmltag($driver_data['firstname']);
-}
-print '</td></tr>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label required">'.$langs->trans('FirstName').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print '<input type="text" name="firstname" value="'.(isset($driver_data['firstname']) ? dol_escape_htmltag($driver_data['firstname']) : '').'">';
+else print dol_escape_htmltag($driver_data['firstname']);
+print '    </div></div>';
 
 // Middle Name
-print '<tr><td>' . $langs->trans('Middle Name') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<input type="text" class="flat minwidth200" name="middlename" value="' . (isset($driver_data['middlename']) ? dol_escape_htmltag($driver_data['middlename']) : '') . '">';
-} else {
-    print dol_escape_htmltag($driver_data['middlename']);
-}
-print '</td></tr>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('MiddleName').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print '<input type="text" name="middlename" value="'.(isset($driver_data['middlename']) ? dol_escape_htmltag($driver_data['middlename']) : '').'">';
+else print dol_escape_htmltag($driver_data['middlename']);
+print '    </div></div>';
 
 // Last Name
-print '<tr><td class="fieldrequired">' . $langs->trans('Last Name') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<input type="text" class="flat minwidth200" name="lastname" value="' . (isset($driver_data['lastname']) ? dol_escape_htmltag($driver_data['lastname']) : '') . '">';
-} else {
-    print dol_escape_htmltag($driver_data['lastname']);
-}
-print '</td></tr>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label required">'.$langs->trans('LastName').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print '<input type="text" name="lastname" value="'.(isset($driver_data['lastname']) ? dol_escape_htmltag($driver_data['lastname']) : '').'">';
+else print dol_escape_htmltag($driver_data['lastname']);
+print '    </div></div>';
 
 // Email
-print '<tr><td>' . $langs->trans('Email') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<input type="email" class="flat minwidth300" name="email" value="' . (isset($driver_data['email']) ? dol_escape_htmltag($driver_data['email']) : '') . '">';
-} else {
-    print dol_print_email($driver_data['email']);
-}
-print '</td></tr>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('Email').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print '<input type="email" name="email" value="'.(isset($driver_data['email']) ? dol_escape_htmltag($driver_data['email']) : '').'">';
+else print dol_print_email($driver_data['email']);
+print '    </div></div>';
 
 // Phone
-print '<tr><td>' . $langs->trans('Phone') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<input type="text" class="flat minwidth200" name="phone" value="' . (isset($driver_data['phone']) ? dol_escape_htmltag($driver_data['phone']) : '') . '">';
-} else {
-    print dol_print_phone($driver_data['phone']);
-}
-print '</td></tr>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('Phone').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print '<input type="text" name="phone" value="'.(isset($driver_data['phone']) ? dol_escape_htmltag($driver_data['phone']) : '').'">';
+else print dol_print_phone($driver_data['phone']);
+print '    </div></div>';
 
 // Gender
-print '<tr><td>' . $langs->trans('Gender') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<select class="flat minwidth100" name="gender">';
-    print '<option value="">--</option>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('Gender').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) {
+    print '<select name="gender"><option value="">--</option>';
     print '<option value="Male"'.(isset($driver_data['gender']) && $driver_data['gender'] == 'Male' ? ' selected' : '').'>'.$langs->trans('Male').'</option>';
     print '<option value="Female"'.(isset($driver_data['gender']) && $driver_data['gender'] == 'Female' ? ' selected' : '').'>'.$langs->trans('Female').'</option>';
     print '</select>';
-} else {
-    print dol_escape_htmltag($driver_data['gender']);
-}
-print '</td></tr>';
+} else print dol_escape_htmltag($driver_data['gender']);
+print '    </div></div>';
 
-print '</table>';
-print '</div>';
+print '  </div>';// card-body
+print '</div>';  // dc-card
 
-print '<div class="fichehalfright">';
-
-// Employment Information
-print load_fiche_titre($langs->trans('Employment Information'), '', '');
-print '<table class="border tableforfield" width="100%">';
+/* ── Card: Employment Information ── */
+print '<div class="dc-card">';
+print '  <div class="dc-card-header">';
+print '    <div class="dc-card-header-icon green"><i class="fa fa-briefcase"></i></div>';
+print '    <span class="dc-card-title">'.$langs->trans('EmploymentInformation').'</span>';
+print '  </div>';
+print '  <div class="dc-card-body">';
 
 // Employee ID
-print '<tr><td class="titlefield">' . $langs->trans('Employee ID') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<input type="text" class="flat minwidth150" name="employee_id" value="' . (isset($driver_data['employee_id']) ? dol_escape_htmltag($driver_data['employee_id']) : '') . '">';
-} else {
-    print dol_escape_htmltag($driver_data['employee_id']);
-}
-print '</td></tr>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('EmployeeID').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print '<input type="text" name="employee_id" value="'.(isset($driver_data['employee_id']) ? dol_escape_htmltag($driver_data['employee_id']) : '').'">';
+else print (!empty($driver_data['employee_id']) ? '<span class="dc-mono">'.dol_escape_htmltag($driver_data['employee_id']).'</span>' : '&mdash;');
+print '    </div></div>';
 
 // Contract Number
-print '<tr><td>' . $langs->trans('Contract Number') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<input type="text" class="flat minwidth150" name="contract_number" value="' . (isset($driver_data['contract_number']) ? dol_escape_htmltag($driver_data['contract_number']) : '') . '">';
-} else {
-    print dol_escape_htmltag($driver_data['contract_number']);
-}
-print '</td></tr>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('ContractNumber').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print '<input type="text" name="contract_number" value="'.(isset($driver_data['contract_number']) ? dol_escape_htmltag($driver_data['contract_number']) : '').'">';
+else print (!empty($driver_data['contract_number']) ? '<span class="dc-mono">'.dol_escape_htmltag($driver_data['contract_number']).'</span>' : '&mdash;');
+print '    </div></div>';
 
 // Department
-print '<tr><td>' . $langs->trans('Department') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<input type="text" class="flat minwidth150" name="department" value="' . (isset($driver_data['department']) ? dol_escape_htmltag($driver_data['department']) : '') . '">';
-} else {
-    print dol_escape_htmltag($driver_data['department']);
-}
-print '</td></tr>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('Department').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print '<input type="text" name="department" value="'.(isset($driver_data['department']) ? dol_escape_htmltag($driver_data['department']) : '').'">';
+else print dol_escape_htmltag($driver_data['department']);
+print '    </div></div>';
 
 // Join Date
-print '<tr><td>' . $langs->trans('Join Date') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print $form->selectDate(isset($driver_data['join_date']) ? $driver_data['join_date'] : -1, 'join_date', 0, 0, 1, '', 1, 0);
-} else {
-    print dol_print_date($driver_data['join_date'], 'day');
-}
-print '</td></tr>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('JoinDate').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print $form->selectDate(isset($driver_data['join_date']) ? $driver_data['join_date'] : -1, 'join_date', 0, 0, 1, '', 1, 0);
+else print dol_print_date($driver_data['join_date'], 'day');
+print '    </div></div>';
 
 // Leave Date
-print '<tr><td>' . $langs->trans('Leave Date') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print $form->selectDate(isset($driver_data['leave_date']) ? $driver_data['leave_date'] : -1, 'leave_date', 0, 0, 1, '', 1, 0);
-} else {
-    print dol_print_date($driver_data['leave_date'], 'day');
-}
-print '</td></tr>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('LeaveDate').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print $form->selectDate(isset($driver_data['leave_date']) ? $driver_data['leave_date'] : -1, 'leave_date', 0, 0, 1, '', 1, 0);
+else print dol_print_date($driver_data['leave_date'], 'day');
+print '    </div></div>';
 
 // Status
-print '<tr><td>' . $langs->trans('Status') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<select class="flat minwidth150" name="status">';
-    print '<option value="">--</option>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('Status').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) {
+    print '<select name="status"><option value="">--</option>';
     print '<option value="Active"'.(isset($driver_data['status']) && $driver_data['status'] == 'Active' ? ' selected' : '').'>'.$langs->trans('Active').'</option>';
     print '<option value="Inactive"'.(isset($driver_data['status']) && $driver_data['status'] == 'Inactive' ? ' selected' : '').'>'.$langs->trans('Inactive').'</option>';
     print '<option value="On Leave"'.(isset($driver_data['status']) && $driver_data['status'] == 'On Leave' ? ' selected' : '').'>'.$langs->trans('OnLeave').'</option>';
     print '</select>';
 } else {
     if (!empty($driver_data['status'])) {
-        if ($driver_data['status'] == 'Active') {
-            print dolGetStatus($langs->trans('Active'), '', '', 'status4', 1);
-        } elseif ($driver_data['status'] == 'Inactive') {
-            print dolGetStatus($langs->trans('Inactive'), '', '', 'status8', 1);
-        } else {
-            print dolGetStatus($driver_data['status'], '', '', 'status3', 1);
-        }
+        $st = $driver_data['status'];
+        $stClass = ($st == 'Active') ? 'active' : (($st == 'Inactive') ? 'inactive' : 'onleave');
+        print '<span class="dc-badge '.$stClass.'">'.dol_escape_htmltag($st).'</span>';
     }
 }
-print '</td></tr>';
+print '    </div></div>';
 
 // Assigned Vehicle
-print '<tr><td>' . $langs->trans('Assigned Vehicle') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<select class="flat minwidth200" name="fk_vehicle">';
-    print '<option value="">-- '.$langs->trans('SelectVehicle').' --</option>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('AssignedVehicle').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) {
+    print '<select name="fk_vehicle"><option value="">-- '.$langs->trans('SelectVehicle').' --</option>';
     foreach ($vehicles as $vid => $vlabel) {
         $selected = (isset($driver_data['fk_vehicle']) && $driver_data['fk_vehicle'] == $vid) ? ' selected' : '';
-        print '<option value="'.$vid.'"'.$selected.'>'.$vlabel.'</option>';
+        print '<option value="'.$vid.'"'.$selected.'>'.dol_escape_htmltag($vlabel).'</option>';
     }
     print '</select>';
 } else {
-    if (!empty($driver_data['fk_vehicle'])) {
-        print $vehicles[$driver_data['fk_vehicle']];
+    if (!empty($driver_data['fk_vehicle']) && isset($vehicles[$driver_data['fk_vehicle']])) {
+        print '<span class="dc-vehicle"><i class="fa fa-car" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($vehicles[$driver_data['fk_vehicle']]).'</span>';
     } else {
-        print $langs->trans('NoVehicleAssigned');
+        print '<span style="color:#c4c9d8;font-size:13px;">'.$langs->trans('NoVehicleAssigned').'</span>';
     }
 }
-print '</td></tr>';
+print '    </div></div>';
 
-print '</table>';
-print '</div>';
-print '</div>';
+print '  </div>';// card-body
+print '</div>';  // dc-card
 
-print '<div class="clearboth"></div><br>';
+print '</div>';// dc-grid row1
 
-// License Information
-print '<div class="fichecenter">';
-print '<div class="ficheaddleft">';
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ROW 2 — License Info + Address/Emergency
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+print '<div class="dc-grid">';
 
-print load_fiche_titre($langs->trans('License Information'), '', '');
-print '<table class="border tableforfield" width="100%">';
+/* ── Card: License Information ── */
+print '<div class="dc-card">';
+print '  <div class="dc-card-header">';
+print '    <div class="dc-card-header-icon amber"><i class="fa fa-id-badge"></i></div>';
+print '    <span class="dc-card-title">'.$langs->trans('LicenseInformation').'</span>';
+print '  </div>';
+print '  <div class="dc-card-body">';
 
 // License Number
-print '<tr><td class="titlefield">' . $langs->trans('License Number') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<input type="text" class="flat minwidth200" name="license_number" value="' . (isset($driver_data['license_number']) ? dol_escape_htmltag($driver_data['license_number']) : '') . '">';
-} else {
-    print dol_escape_htmltag($driver_data['license_number']);
-}
-print '</td></tr>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('LicenseNumber').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print '<input type="text" name="license_number" value="'.(isset($driver_data['license_number']) ? dol_escape_htmltag($driver_data['license_number']) : '').'">';
+else print (!empty($driver_data['license_number']) ? '<span class="dc-mono">'.dol_escape_htmltag($driver_data['license_number']).'</span>' : '&mdash;');
+print '    </div></div>';
 
 // License Issue Date
-print '<tr><td>' . $langs->trans('License Issue Date') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print $form->selectDate(isset($driver_data['license_issue_date']) ? $driver_data['license_issue_date'] : -1, 'license_issue_date', 0, 0, 1, '', 1, 0);
-} else {
-    print dol_print_date($driver_data['license_issue_date'], 'day');
-}
-print '</td></tr>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('LicenseIssueDate').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print $form->selectDate(isset($driver_data['license_issue_date']) ? $driver_data['license_issue_date'] : -1, 'license_issue_date', 0, 0, 1, '', 1, 0);
+else print dol_print_date($driver_data['license_issue_date'], 'day');
+print '    </div></div>';
 
 // License Expiry Date
-print '<tr><td>' . $langs->trans('License Expiry Date') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print $form->selectDate(isset($driver_data['license_expiry_date']) ? $driver_data['license_expiry_date'] : -1, 'license_expiry_date', 0, 0, 1, '', 1, 0);
-} else {
-    print dol_print_date($driver_data['license_expiry_date'], 'day');
-}
-print '</td></tr>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('LicenseExpiryDate').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print $form->selectDate(isset($driver_data['license_expiry_date']) ? $driver_data['license_expiry_date'] : -1, 'license_expiry_date', 0, 0, 1, '', 1, 0);
+else print dol_print_date($driver_data['license_expiry_date'], 'day');
+print '    </div></div>';
 
-print '</table>';
-print '</div>';
-print '</div>';
+print '  </div>';// card-body
+print '</div>';  // dc-card
 
-print '<div class="clearboth"></div><br>';
+/* ── Card: Address & Emergency ── */
+print '<div class="dc-card">';
+print '  <div class="dc-card-header">';
+print '    <div class="dc-card-header-icon purple"><i class="fa fa-map-marker-alt"></i></div>';
+print '    <span class="dc-card-title">'.$langs->trans('AddressAndContact').'</span>';
+print '  </div>';
+print '  <div class="dc-card-body">';
 
 // Address
-print '<div class="fichecenter">';
-print '<div class="ficheaddleft">';
-
-print load_fiche_titre($langs->trans('Address'), '', '');
-print '<table class="border tableforfield" width="100%">';
-
-print '<tr><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<textarea name="address" class="flat" rows="3" cols="80">' . (isset($driver_data['address']) ? dol_escape_htmltag($driver_data['address']) : '') . '</textarea>';
-} else {
-    print nl2br(dol_escape_htmltag($driver_data['address']));
-}
-print '</td></tr>';
-
-print '</table>';
-print '</div>';
-print '</div>';
-
-print '<div class="clearboth"></div><br>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('Address').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print '<textarea name="address" rows="3">'.(isset($driver_data['address']) ? dol_escape_htmltag($driver_data['address']) : '').'</textarea>';
+else print nl2br(dol_escape_htmltag($driver_data['address']));
+print '    </div></div>';
 
 // Emergency Contact
-print '<div class="fichecenter">';
-print '<div class="ficheaddleft">';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('EmergencyContact').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print '<textarea name="emergency_contact" rows="3">'.(isset($driver_data['emergency_contact']) ? dol_escape_htmltag($driver_data['emergency_contact']) : '').'</textarea>';
+else print nl2br(dol_escape_htmltag($driver_data['emergency_contact']));
+print '    </div></div>';
 
-print load_fiche_titre($langs->trans('Emergency Contact'), '', '');
-print '<table class="border tableforfield" width="100%">';
+print '  </div>';// card-body
+print '</div>';  // dc-card
 
-print '<tr><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<textarea name="emergency_contact" class="flat" rows="2" cols="80">' . (isset($driver_data['emergency_contact']) ? dol_escape_htmltag($driver_data['emergency_contact']) : '') . '</textarea>';
-} else {
-    print nl2br(dol_escape_htmltag($driver_data['emergency_contact']));
-}
-print '</td></tr>';
+print '</div>';// dc-grid row2
 
-print '</table>';
-print '</div>';
-print '</div>';
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ROW 3 — Files (full width)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+print '<div class="dc-card" style="margin-bottom:20px;">';
+print '  <div class="dc-card-header">';
+print '    <div class="dc-card-header-icon red"><i class="fa fa-paperclip"></i></div>';
+print '    <span class="dc-card-title">'.$langs->trans('Files').'</span>';
+print '  </div>';
+print '  <div class="dc-card-body">';
+print '  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0;">';
 
-print '<div class="clearboth"></div><br>';
-
-// File uploads
-print '<div class="fichecenter">';
-print '<div class="ficheaddleft">';
-
-print load_fiche_titre($langs->trans('Files'), '', '');
-print '<table class="border tableforfield" width="100%">';
-
-// Driver Image
-print '<tr><td class="titlefield">' . $langs->trans('Driver Image') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<input type="file" name="driver_image" accept="image/*">';
-    if (!empty($driver_data['driver_image'])) {
-        print '<br><small>' . $langs->trans('Current') . ': ' . $driver_data['driver_image'] . '</small>';
-    }
-} else {
-    if (!empty($driver_data['driver_image'])) {
-        $file_path = $upload_dir . '/' . $driver_data['driver_image'];
-        if (file_exists($file_path)) {
-            print '<a href="' . DOL_URL_ROOT . '/document.php?modulepart=flotte&file=driver/' . urlencode($driver_data['driver_image']) . '" target="_blank">' . $driver_data['driver_image'] . '</a>';
-        } else {
-            print $driver_data['driver_image'];
+// Helper for file fields
+$file_fields = array(
+    array('field' => 'driver_image',  'label' => $langs->trans('DriverImage'),  'accept' => 'image/*'),
+    array('field' => 'license_image', 'label' => $langs->trans('LicenseImage'), 'accept' => 'image/*'),
+    array('field' => 'documents',     'label' => $langs->trans('Documents'),    'accept' => '.pdf,.doc,.docx,.jpg,.jpeg,.png'),
+);
+foreach ($file_fields as $ff) {
+    print '<div class="dc-field" style="flex-direction:column;gap:8px;">';
+    print '  <div class="dc-field-label" style="flex:none;">'.$ff['label'].'</div>';
+    print '  <div class="dc-field-value" style="width:100%;">';
+    if ($isCreate || $isEdit) {
+        print '<div class="dc-file-zone">';
+        print '  <i class="fa fa-cloud-upload-alt"></i>';
+        print '  <input type="file" name="'.$ff['field'].'" accept="'.$ff['accept'].'" style="width:100%;cursor:pointer;">';
+        print '  <small>Accepted: '.str_replace('image/*','JPG, PNG',$ff['accept']).'</small>';
+        print '</div>';
+        if (!empty($driver_data[$ff['field']])) {
+            print '<div class="dc-file-current"><i class="fa fa-paperclip"></i> '.$langs->trans('Current').': '.dol_escape_htmltag($driver_data[$ff['field']]).'</div>';
         }
     } else {
-        print '&nbsp;';
-    }
-}
-print '</td></tr>';
-
-// License Image
-print '<tr><td>' . $langs->trans('License Image') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<input type="file" name="license_image" accept="image/*">';
-    if (!empty($driver_data['license_image'])) {
-        print '<br><small>' . $langs->trans('Current') . ': ' . $driver_data['license_image'] . '</small>';
-    }
-} else {
-    if (!empty($driver_data['license_image'])) {
-        $file_path = $upload_dir . '/' . $driver_data['license_image'];
-        if (file_exists($file_path)) {
-            print '<a href="' . DOL_URL_ROOT . '/document.php?modulepart=flotte&file=driver/' . urlencode($driver_data['license_image']) . '" target="_blank">' . $driver_data['license_image'] . '</a>';
+        if (!empty($driver_data[$ff['field']])) {
+            $file_path = $upload_dir.'/'.$driver_data[$ff['field']];
+            if (file_exists($file_path)) {
+                print '<a href="'.DOL_URL_ROOT.'/document.php?modulepart=flotte&file=driver/'.urlencode($driver_data[$ff['field']]).'" target="_blank" class="dc-file-current"><i class="fa fa-download"></i> '.dol_escape_htmltag($driver_data[$ff['field']]).'</a>';
+            } else {
+                print '<span class="dc-mono">'.dol_escape_htmltag($driver_data[$ff['field']]).'</span>';
+            }
         } else {
-            print $driver_data['license_image'];
+            print '<span style="color:#c4c9d8;font-size:13px;">&mdash;</span>';
         }
-    } else {
-        print '&nbsp;';
     }
+    print '  </div>';
+    print '</div>';
 }
-print '</td></tr>';
+print '  </div>';// inner grid
+print '  </div>';// card-body
+print '</div>';   // dc-card
 
-// Documents
-print '<tr><td>' . $langs->trans('Documents') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<input type="file" name="documents" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png">';
-    if (!empty($driver_data['documents'])) {
-        print '<br><small>' . $langs->trans('Current') . ': ' . $driver_data['documents'] . '</small>';
-    }
-} else {
-    if (!empty($driver_data['documents'])) {
-        $file_path = $upload_dir . '/' . $driver_data['documents'];
-        if (file_exists($file_path)) {
-            print '<a href="' . DOL_URL_ROOT . '/document.php?modulepart=flotte&file=driver/' . urlencode($driver_data['documents']) . '" target="_blank">' . $driver_data['documents'] . '</a>';
-        } else {
-            print $driver_data['documents'];
-        }
-    } else {
-        print '&nbsp;';
-    }
-}
-print '</td></tr>';
-
-print '</table>';
-print '</div>';
-print '</div>';
-
-print '<div class="clearboth"></div>';
-
-// Button styling
-print '<style>
-    .flotte-btn {
-        display: inline-block;
-        min-width: 120px;
-        height: 34px;
-        line-height: 34px;
-        padding: 0 20px;
-        text-align: center;
-        box-sizing: border-box;
-        font-size: 13px;
-        border-radius: 3px;
-        cursor: pointer;
-        text-decoration: none;
-        vertical-align: middle;
-        margin: 0 4px;
-    }
-    input.flotte-btn {
-        background: #3c6d9f;
-        border: 1px solid #2e5a85;
-        color: #fff;
-    }
-    input.flotte-btn:hover {
-        background: #2e5a85;
-    }
-    a.flotte-btn-primary {
-        background: #3c6d9f;
-        border: 1px solid #2e5a85;
-        color: #fff;
-    }
-    a.flotte-btn-primary:hover {
-        background: #2e5a85;
-        color: #fff;
-    }
-    a.flotte-btn-cancel {
-        background: #fff;
-        border: 1px solid #3c6d9f;
-        color: #3c6d9f;
-    }
-    a.flotte-btn-cancel:hover {
-        background: #eef3f8;
-        color: #2e5a85;
-    }
-    a.flotte-btn-back {
-        background: #fff;
-        border: 1px solid #3c6d9f;
-        color: #3c6d9f;
-    }
-    a.flotte-btn-back:hover {
-        background: #eef3f8;
-        color: #2e5a85;
-    }
-    a.flotte-btn-delete {
-        background: #c9302c;
-        border: 1px solid #ac2925;
-        color: #fff;
-    }
-    a.flotte-btn-delete:hover {
-        background: #ac2925;
-        color: #fff;
-    }
-</style>'."\n";
-
-// Form buttons
-if ($action == 'create' || $action == 'edit') {
-    print '<div class="center" style="margin-top: 20px; margin-bottom: 10px;">';
-    print '<input type="submit" class="flotte-btn" value="' . ($action == 'create' ? $langs->trans('Create') : $langs->trans('Save')) . '">';
-    print '<a class="flotte-btn flotte-btn-cancel" href="' . ($id > 0 ? $_SERVER['PHP_SELF'] . '?id=' . $id : 'driver_list.php') . '">' . $langs->trans('Cancel') . '</a>';
-    print '<a class="flotte-btn flotte-btn-back" href="' . dol_buildpath('/flotte/driver_list.php', 1) . '">' . $langs->trans('BackToList') . '</a>';
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   BOTTOM ACTION BAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+if ($isCreate || $isEdit) {
+    print '<div class="dc-action-bar">';
+    print '<a class="dc-btn dc-btn-ghost dc-action-bar-left" href="'.dol_buildpath('/flotte/driver_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('BackToList').'</a>';
+    print '<a class="dc-btn dc-btn-ghost" href="'.($id > 0 ? $_SERVER['PHP_SELF'].'?id='.$id : dol_buildpath('/flotte/driver_list.php', 1)).'"><i class="fa fa-times"></i> '.$langs->trans('Cancel').'</a>';
+    print '<button type="submit" class="dc-btn dc-btn-primary"><i class="fa fa-check"></i> '.($isCreate ? $langs->trans('Create') : $langs->trans('Save')).'</button>';
     print '</div>';
     print '</form>';
 } elseif ($id > 0) {
-    // Action buttons
-    print '<div class="center" style="margin-top: 20px; margin-bottom: 10px;">';
-    print '<a class="flotte-btn flotte-btn-primary" href="' . $_SERVER['PHP_SELF'] . '?id=' . $id . '&action=edit">' . $langs->trans('Modify') . '</a>';
-    print '<a class="flotte-btn flotte-btn-delete" href="' . $_SERVER['PHP_SELF'] . '?id=' . $id . '&action=delete">' . $langs->trans('Delete') . '</a>';
-    print '<a class="flotte-btn flotte-btn-back" href="' . dol_buildpath('/flotte/driver_list.php', 1) . '">' . $langs->trans('BackToList') . '</a>';
+    print '<div class="dc-action-bar">';
+    print '<a class="dc-btn dc-btn-ghost dc-action-bar-left" href="'.dol_buildpath('/flotte/driver_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('BackToList').'</a>';
+    print '<a class="dc-btn dc-btn-ghost" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=edit"><i class="fa fa-pen"></i> '.$langs->trans('Modify').'</a>';
+    print '<a class="dc-btn dc-btn-danger" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=delete"><i class="fa fa-trash"></i> '.$langs->trans('Delete').'</a>';
     print '</div>';
 }
 
-dol_fiche_end();
+print '</div>';// dc-page
 
 // End of page
 llxFooter();
