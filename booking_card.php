@@ -346,7 +346,7 @@ $hookmanager->initHooks(array('bookingcard'));
 
 $title = $langs->trans('Booking');
 if ($action == 'create') {
-    $title = $langs->trans('New Booking');
+    $title = $langs->trans('NewBooking');
 } elseif ($action == 'edit') {
     $title = $langs->trans('EditBooking');
 } elseif ($id > 0) {
@@ -355,28 +355,203 @@ if ($action == 'create') {
 
 llxHeader('', $title);
 
-// Subheader
-$linkback = '<a href="' . DOL_URL_ROOT . '/flotte/booking_list.php">' . $langs->trans('BackToList') . '</a>';
+?>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
-$h = 0;
-$head = array();
-$head[$h][0] = 'javascript:void(0);'; // Non-clickable link
-$head[$h][1] = $langs->trans('Card');
-$head[$h][2] = 'card';
-$h++;
+.dc-page * { box-sizing: border-box; }
+.dc-page {
+    font-family: 'DM Sans', sans-serif;
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 0 2px 48px;
+    color: #1a1f2e;
+}
 
-dol_fiche_head($head, 'card', $langs->trans('Booking'), -1, '');
+/* ── Page header ── */
+.dc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 26px 0 22px;
+    border-bottom: 1px solid #e8eaf0;
+    margin-bottom: 28px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.dc-header-left { display: flex; align-items: center; gap: 14px; }
+.dc-header-icon {
+    width: 46px; height: 46px; border-radius: 12px;
+    background: rgba(60,71,88,0.1);
+    display: flex; align-items: center; justify-content: center;
+    color: #3c4758; font-size: 20px; flex-shrink: 0;
+}
+.dc-header-title { font-size: 21px; font-weight: 700; color: #1a1f2e; margin: 0 0 3px; letter-spacing: -0.3px; }
+.dc-header-sub { font-size: 12.5px; color: #8b92a9; font-weight: 400; }
+.dc-header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
-// Add CSS to make the Card tab non-clickable
-print '<style>
-    .tabsAction a[href*="javascript:void(0)"],
-    .tabs a[href*="javascript:void(0)"],
-    a.tabactive[href*="javascript:void(0)"] {
-        pointer-events: none !important;
-        cursor: default !important;
-        text-decoration: none !important;
-    }
-</style>';
+/* ── Status badges ── */
+.dc-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 11px; border-radius: 20px;
+    font-size: 11.5px; font-weight: 600; white-space: nowrap;
+}
+.dc-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.dc-badge.pending     { background: #fff8ec; color: #b45309; }
+.dc-badge.pending::before     { background: #f59e0b; }
+.dc-badge.confirmed   { background: #eff6ff; color: #1d4ed8; }
+.dc-badge.confirmed::before   { background: #3b82f6; }
+.dc-badge.in_progress { background: #f5f3ff; color: #6d28d9; }
+.dc-badge.in_progress::before { background: #8b5cf6; }
+.dc-badge.completed   { background: #edfaf3; color: #1a7d4a; }
+.dc-badge.completed::before   { background: #22c55e; }
+.dc-badge.cancelled   { background: #fef2f2; color: #b91c1c; }
+.dc-badge.cancelled::before   { background: #ef4444; }
+
+/* ── Buttons ── */
+.dc-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 16px; border-radius: 6px;
+    font-size: 13px; font-weight: 600;
+    text-decoration: none !important; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; white-space: nowrap;
+    transition: all 0.15s ease; border: none;
+}
+.dc-btn-primary  { background: #3c4758 !important; color: #fff !important; }
+.dc-btn-primary:hover  { background: #2a3346 !important; color: #fff !important; }
+.dc-btn-ghost {
+    background: #fff !important; color: #5a6482 !important;
+    border: 1.5px solid #d1d5e0 !important;
+}
+.dc-btn-ghost:hover { background: #f5f6fa !important; color: #2d3748 !important; }
+.dc-btn-danger {
+    background: #fef2f2 !important; color: #dc2626 !important;
+    border: 1.5px solid #fecaca !important;
+}
+.dc-btn-danger:hover { background: #fee2e2 !important; color: #b91c1c !important; }
+button.dc-btn-primary {
+    background: #3c4758 !important; color: #fff !important; border: none !important;
+}
+button.dc-btn-primary:hover { background: #2a3346 !important; }
+
+/* ── Two-column grid ── */
+.dc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+@media (max-width: 780px) { .dc-grid { grid-template-columns: 1fr; } }
+
+/* ── Section card ── */
+.dc-card {
+    background: #fff;
+    border: 1px solid #e8eaf0;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+}
+.dc-card-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 20px;
+    border-bottom: 1px solid #f0f2f8;
+    background: #f7f8fc;
+}
+.dc-card-header-icon {
+    width: 28px; height: 28px; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; flex-shrink: 0;
+}
+.dc-card-header-icon.blue   { background: rgba(60,71,88,0.1);  color: #3c4758; }
+.dc-card-header-icon.green  { background: rgba(22,163,74,0.1);  color: #16a34a; }
+.dc-card-header-icon.amber  { background: rgba(217,119,6,0.1);  color: #d97706; }
+.dc-card-header-icon.purple { background: rgba(109,40,217,0.1); color: #6d28d9; }
+.dc-card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: #8b92a9; }
+.dc-card-body { padding: 0; }
+
+/* ── Field rows ── */
+.dc-field {
+    display: flex; align-items: flex-start;
+    padding: 12px 20px;
+    border-bottom: 1px solid #f5f6fb;
+    gap: 12px;
+}
+.dc-field:last-child { border-bottom: none; }
+.dc-field-label {
+    flex: 0 0 160px; font-size: 12px; font-weight: 600;
+    color: #8b92a9; text-transform: uppercase; letter-spacing: 0.5px;
+    padding-top: 2px; line-height: 1.4;
+}
+.dc-field-label.required::after { content: ' *'; color: #ef4444; }
+.dc-field-value { flex: 1; font-size: 13.5px; color: #2d3748; line-height: 1.5; min-width: 0; }
+.dc-field-value a { color: #3c4758; }
+
+/* ── Mono / chip ── */
+.dc-mono {
+    font-family: 'DM Mono', monospace; font-size: 12px;
+    background: #f0f2fa; color: #4a5568;
+    padding: 3px 9px; border-radius: 5px; display: inline-block;
+}
+.dc-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12.5px; font-weight: 600; color: #3c4758;
+    background: rgba(60,71,88,0.07); padding: 4px 10px; border-radius: 6px;
+}
+
+/* ── Amount display ── */
+.dc-amount {
+    font-family: 'DM Mono', monospace; font-size: 13px;
+    font-weight: 500; color: #2d3748;
+}
+.dc-amount.selling { color: #16a34a; }
+.dc-amount.buying  { color: #dc2626; }
+
+/* ── Form inputs ── */
+.dc-page input[type="text"],
+.dc-page input[type="email"],
+.dc-page input[type="number"],
+.dc-page select,
+.dc-page textarea {
+    padding: 8px 12px !important;
+    border: 1.5px solid #e2e5f0 !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    color: #2d3748 !important;
+    background: #fafbfe !important;
+    outline: none !important;
+    transition: border-color 0.15s, box-shadow 0.15s !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+.dc-page input[type="text"]:focus,
+.dc-page input[type="email"]:focus,
+.dc-page input[type="number"]:focus,
+.dc-page select:focus,
+.dc-page textarea:focus {
+    border-color: #3c4758 !important;
+    box-shadow: 0 0 0 3px rgba(60,71,88,0.1) !important;
+    background: #fff !important;
+}
+.dc-page textarea { resize: vertical !important; }
+
+/* ── Bottom action bar ── */
+.dc-action-bar {
+    display: flex; align-items: center; justify-content: flex-end;
+    gap: 8px; padding: 18px 0 4px;
+    flex-wrap: wrap;
+}
+.dc-action-bar-left { margin-right: auto; }
+
+/* ── Ref tag ── */
+.dc-ref-tag {
+    font-family: 'DM Mono', monospace; font-size: 13px;
+    background: rgba(60,71,88,0.08); color: #3c4758;
+    padding: 4px 10px; border-radius: 6px; font-weight: 500;
+}
+</style>
+<?php
 
 // Confirmation to delete
 if ($action == 'delete') {
@@ -399,35 +574,87 @@ if (!empty($errors)) {
     }
 }
 
-if ($action == 'create' || $action == 'edit') {
-    print '<form method="POST" action="' . $_SERVER['PHP_SELF'] . ($id > 0 ? '?id=' . $id : '') . '">';
-    print '<input type="hidden" name="action" value="' . ($action == 'create' ? 'add' : 'update') . '">';
-    print '<input type="hidden" name="token" value="' . newToken() . '">';
-    if ($id > 0) {
-        print '<input type="hidden" name="id" value="' . $id . '">';
-    }
+$isEdit   = ($action == 'edit');
+$isCreate = ($action == 'create');
+$isView   = (!$isEdit && !$isCreate);
+
+$pageTitle = $isCreate ? $langs->trans('NewBooking') : ($isEdit ? $langs->trans('EditBooking') : $langs->trans('Booking'));
+$pageSub   = $isCreate ? $langs->trans('FillInBookingDetails') : (isset($object->ref) ? $object->ref : '');
+
+// Determine status class for badge
+$statusClass = '';
+if (!empty($object->status)) {
+    $statusClass = strtolower(str_replace(' ', '_', $object->status));
 }
 
-print '<div class="fichecenter">';
-print '<div class="fichehalfleft">';
+// Form start
+if ($isCreate || $isEdit) {
+    print '<form method="POST" action="'.$_SERVER['PHP_SELF'].($id > 0 ? '?id='.$id : '').'">';
+    print '<input type="hidden" name="action" value="'.($isCreate ? 'add' : 'update').'">';
+    print '<input type="hidden" name="token" value="'.newToken().'">';
+    if ($id > 0) print '<input type="hidden" name="id" value="'.$id.'">';
+}
 
-// Basic Information
-print load_fiche_titre($langs->trans('Booking Information'), '', '');
-print '<table class="border tableforfield" width="100%">';
+print '<div class="dc-page">';
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   PAGE HEADER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+print '<div class="dc-header">';
+print '  <div class="dc-header-left">';
+print '    <div class="dc-header-icon"><i class="fa fa-calendar-check"></i></div>';
+print '    <div>';
+print '      <div class="dc-header-title">'.dol_escape_htmltag($pageTitle).'</div>';
+if ($pageSub) print '      <div class="dc-header-sub">'.dol_escape_htmltag($pageSub).'</div>';
+print '    </div>';
+print '  </div>';
+print '  <div class="dc-header-actions">';
+if ($isView && $id > 0) {
+    if (!empty($object->status)) {
+        $statusLabel = $langs->trans(ucfirst(str_replace('_', '', ucwords($object->status, '_'))));
+        print '<span class="dc-badge '.$statusClass.'">'.dol_escape_htmltag($statusLabel).'</span>';
+    }
+    print '<a class="dc-btn dc-btn-ghost" href="'.dol_buildpath('/flotte/booking_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('BackToList').'</a>';
+    if (!empty($user->rights->flotte->write)) {
+        print '<a class="dc-btn dc-btn-ghost" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=edit"><i class="fa fa-pen"></i> '.$langs->trans('Modify').'</a>';
+    }
+    print '<a class="dc-btn dc-btn-danger" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=delete"><i class="fa fa-trash"></i> '.$langs->trans('Delete').'</a>';
+}
+print '  </div>';
+print '</div>';
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ROW 1 — Booking Info + Trip Details
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+print '<div class="dc-grid">';
+
+/* ── Card: Booking Information ── */
+print '<div class="dc-card">';
+print '  <div class="dc-card-header">';
+print '    <div class="dc-card-header-icon blue"><i class="fa fa-calendar-check"></i></div>';
+print '    <span class="dc-card-title">'.$langs->trans('BookingInformation').'</span>';
+print '  </div>';
+print '  <div class="dc-card-body">';
 
 // Reference
-print '<tr><td class="titlefield">' . $langs->trans('Reference') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print $form->textwithpicto('<input type="text" class="flat" name="ref" value="' . dol_escape_htmltag(isset($object->ref) ? $object->ref : '') . '" size="20" readonly>', $langs->trans('AutoGenerated'));
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('Reference').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate) {
+    print '<em style="color:#9aa0b4;font-size:12.5px;">'.$langs->trans('AutoGenerated').'</em>';
+    print '<input type="hidden" name="ref" value="'.(isset($object->ref) ? dol_escape_htmltag($object->ref) : '').'">';
+} elseif ($isEdit) {
+    print '<input type="text" name="ref" value="'.(isset($object->ref) ? dol_escape_htmltag($object->ref) : '').'" readonly style="background:#f5f6fa!important;color:#9aa0b4!important;">';
 } else {
-    print dol_escape_htmltag($object->ref);
+    print '<span class="dc-ref-tag">'.dol_escape_htmltag($object->ref).'</span>';
 }
-print '</td></tr>';
+print '    </div></div>';
 
 // Vehicle
-print '<tr><td>' . $langs->trans('Vehicle') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    // Get available vehicles
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label required">'.$langs->trans('Vehicle').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) {
     $vehicles = array();
     $sql = "SELECT rowid, ref, maker, model FROM ".MAIN_DB_PREFIX."flotte_vehicle WHERE entity IN (".getEntity('flotte').")";
     $resql = $db->query($sql);
@@ -436,28 +663,29 @@ if ($action == 'create' || $action == 'edit') {
             $vehicles[$obj->rowid] = dol_escape_htmltag($obj->ref . ' - ' . $obj->maker . ' ' . $obj->model);
         }
     }
-    print $form->selectarray('fk_vehicle', $vehicles, (isset($object->fk_vehicle) ? $object->fk_vehicle : ''), 1, 0, 0, '', 0, 0, 0, '', 'minwidth300');
+    print $form->selectarray('fk_vehicle', $vehicles, (isset($object->fk_vehicle) ? $object->fk_vehicle : ''), 1);
 } else {
     if (!empty($object->fk_vehicle)) {
-        $sql = "SELECT ref, maker, model FROM ".MAIN_DB_PREFIX."flotte_vehicle WHERE rowid = " . ((int) $object->fk_vehicle);
+        $sql = "SELECT ref, maker, model FROM ".MAIN_DB_PREFIX."flotte_vehicle WHERE rowid = ".((int) $object->fk_vehicle);
         $resql = $db->query($sql);
         if ($resql && $db->num_rows($resql) > 0) {
             $obj = $db->fetch_object($resql);
-            print dol_escape_htmltag($obj->ref . ' - ' . $obj->maker . ' ' . $obj->model);
+            print '<span class="dc-chip"><i class="fa fa-car" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($obj->ref.' - '.$obj->maker.' '.$obj->model).'</span>';
         } else {
-            print '<span class="opacitymedium">' . $langs->trans("VehicleNotFound") . '</span>';
+            print '<span style="color:#c4c9d8;">'.$langs->trans('VehicleNotFound').'</span>';
         }
     } else {
-        print '<span class="opacitymedium">' . $langs->trans("NotAssigned") . '</span>';
+        print '<span style="color:#c4c9d8;">'.$langs->trans('NotAssigned').'</span>';
     }
 }
-print '</td></tr>';
+print '    </div></div>';
 
 // Driver
-print '<tr><td>' . $langs->trans('Driver') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    // Get available drivers
-    $drivers = array('' => $langs->trans('SelectDriver'));
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('Driver').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) {
+    $drivers = array();
     $sql = "SELECT rowid, firstname, lastname FROM ".MAIN_DB_PREFIX."flotte_driver WHERE entity IN (".getEntity('flotte').")";
     $resql = $db->query($sql);
     if ($resql) {
@@ -465,238 +693,168 @@ if ($action == 'create' || $action == 'edit') {
             $drivers[$obj->rowid] = dol_escape_htmltag($obj->firstname . ' ' . $obj->lastname);
         }
     }
-    print $form->selectarray('fk_driver', $drivers, (isset($object->fk_driver) ? $object->fk_driver : ''), 0, 0, 0, '', 0, 0, 0, '', 'minwidth300');
+    print $form->selectarray('fk_driver', $drivers, (isset($object->fk_driver) ? $object->fk_driver : ''), 1);
 } else {
     if (!empty($object->fk_driver)) {
-        $sql = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."flotte_driver WHERE rowid = " . ((int) $object->fk_driver);
+        $sql = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."flotte_driver WHERE rowid = ".((int) $object->fk_driver);
         $resql = $db->query($sql);
         if ($resql && $db->num_rows($resql) > 0) {
             $obj = $db->fetch_object($resql);
-            print dol_escape_htmltag($obj->firstname . ' ' . $obj->lastname);
+            print '<span class="dc-chip"><i class="fa fa-user" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($obj->firstname.' '.$obj->lastname).'</span>';
         } else {
-            print '<span class="opacitymedium">' . $langs->trans("DriverNotFound") . '</span>';
+            print '<span style="color:#c4c9d8;">'.$langs->trans('DriverNotFound').'</span>';
         }
     } else {
-        print '<span class="opacitymedium">' . $langs->trans("NotAssigned") . '</span>';
+        print '<span style="color:#c4c9d8;">'.$langs->trans('NotAssigned').'</span>';
     }
 }
-print '</td></tr>';
+print '    </div></div>';
 
 // Customer
-print '<tr><td>' . $langs->trans('Customer') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    // Get available customers
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label required">'.$langs->trans('Customer').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) {
     $customers = array();
     $sql = "SELECT rowid, firstname, lastname, company_name FROM ".MAIN_DB_PREFIX."flotte_customer WHERE entity IN (".getEntity('flotte').")";
     $resql = $db->query($sql);
     if ($resql) {
         while ($obj = $db->fetch_object($resql)) {
             $name = $obj->firstname . ' ' . $obj->lastname;
-            if (!empty($obj->company_name)) {
-                $name .= ' (' . $obj->company_name . ')';
-            }
+            if (!empty($obj->company_name)) $name .= ' (' . $obj->company_name . ')';
             $customers[$obj->rowid] = dol_escape_htmltag($name);
         }
     }
-    print $form->selectarray('fk_customer', $customers, (isset($object->fk_customer) ? $object->fk_customer : ''), 1, 0, 0, '', 0, 0, 0, '', 'minwidth300');
+    print $form->selectarray('fk_customer', $customers, (isset($object->fk_customer) ? $object->fk_customer : ''), 1);
 } else {
     if (!empty($object->fk_customer)) {
-        $sql = "SELECT firstname, lastname, company_name FROM ".MAIN_DB_PREFIX."flotte_customer WHERE rowid = " . ((int) $object->fk_customer);
+        $sql = "SELECT firstname, lastname, company_name FROM ".MAIN_DB_PREFIX."flotte_customer WHERE rowid = ".((int) $object->fk_customer);
         $resql = $db->query($sql);
         if ($resql && $db->num_rows($resql) > 0) {
             $obj = $db->fetch_object($resql);
             $name = $obj->firstname . ' ' . $obj->lastname;
-            if (!empty($obj->company_name)) {
-                $name .= ' (' . $obj->company_name . ')';
-            }
-            print dol_escape_htmltag($name);
+            if (!empty($obj->company_name)) $name .= ' (' . $obj->company_name . ')';
+            print '<span class="dc-chip"><i class="fa fa-user-circle" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($name).'</span>';
         } else {
-            print '<span class="opacitymedium">' . $langs->trans("CustomerNotFound") . '</span>';
+            print '<span style="color:#c4c9d8;">'.$langs->trans('CustomerNotFound').'</span>';
         }
     } else {
-        print '<span class="opacitymedium">' . $langs->trans("NotAssigned") . '</span>';
+        print '<span style="color:#c4c9d8;">'.$langs->trans('NotAssigned').'</span>';
     }
 }
-print '</td></tr>';
+print '    </div></div>';
 
 // Booking Date
-print '<tr><td>' . $langs->trans('Booking Date') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    $selected_date = '';
-    if (isset($object->booking_date) && !empty($object->booking_date)) {
-        $selected_date = $object->booking_date;
-    }
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label required">'.$langs->trans('BookingDate').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) {
+    $selected_date = (!empty($object->booking_date)) ? $object->booking_date : '';
     print $form->selectDate($selected_date, 'booking_date', '', '', 1, '', 1, 1);
 } else {
     print dol_print_date($object->booking_date, 'day');
 }
-print '</td></tr>';
+print '    </div></div>';
 
 // Status
-print '<tr><td>' . $langs->trans('Status') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('Status').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) {
     $status_options = array(
-        'pending' => $langs->trans('Pending'),
-        'confirmed' => $langs->trans('Confirmed'),
+        'pending'     => $langs->trans('Pending'),
+        'confirmed'   => $langs->trans('Confirmed'),
         'in_progress' => $langs->trans('InProgress'),
-        'completed' => $langs->trans('Completed'),
-        'cancelled' => $langs->trans('Cancelled')
+        'completed'   => $langs->trans('Completed'),
+        'cancelled'   => $langs->trans('Cancelled'),
     );
     print $form->selectarray('status', $status_options, (isset($object->status) ? $object->status : 'pending'), 0);
 } else {
-    print $langs->trans(ucfirst($object->status));
+    if (!empty($object->status)) {
+        $stClass = strtolower(str_replace(' ', '_', $object->status));
+        $stLabel = $langs->trans(ucfirst(str_replace('_', '', ucwords($object->status, '_'))));
+        print '<span class="dc-badge '.$stClass.'">'.dol_escape_htmltag($stLabel).'</span>';
+    }
 }
-print '</td></tr>';
+print '    </div></div>';
 
-print '</table>';
+print '  </div>';// card-body
+print '</div>';  // dc-card
 
-print '</div>';
-print '<div class="fichehalfright">';
-
-// Additional Information
-print load_fiche_titre($langs->trans('Additional Information'), '', '');
-print '<table class="border tableforfield" width="100%">';
-
-// Distance
-print '<tr><td class="titlefield">' . $langs->trans('Distance') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<input type="number" class="flat" name="distance" value="' . dol_escape_htmltag(isset($object->distance) ? $object->distance : '') . '" min="0"> ' . $langs->trans('Km');
-} else {
-    print ($object->distance ? dol_escape_htmltag($object->distance) . ' ' . $langs->trans('Km') : '');
-}
-print '</td></tr>';
+/* ── Card: Trip Details ── */
+print '<div class="dc-card">';
+print '  <div class="dc-card-header">';
+print '    <div class="dc-card-header-icon green"><i class="fa fa-route"></i></div>';
+print '    <span class="dc-card-title">'.$langs->trans('TripDetails').'</span>';
+print '  </div>';
+print '  <div class="dc-card-body">';
 
 // Departure Address
-print '<tr><td>' . $langs->trans('Departure Address') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<input type="text" class="flat" name="departure_address" value="' . dol_escape_htmltag(isset($object->departure_address) ? $object->departure_address : '') . '" size="40">';
-} else {
-    print dol_escape_htmltag($object->departure_address);
-}
-print '</td></tr>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('DepartureAddress').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print '<input type="text" name="departure_address" value="'.dol_escape_htmltag(isset($object->departure_address) ? $object->departure_address : '').'">';
+else print (!empty($object->departure_address) ? dol_escape_htmltag($object->departure_address) : '&mdash;');
+print '    </div></div>';
 
 // Arriving Address
-print '<tr><td>' . $langs->trans('Arriving Address') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<input type="text" class="flat" name="arriving_address" value="' . dol_escape_htmltag(isset($object->arriving_address) ? $object->arriving_address : '') . '" size="40">';
-} else {
-    print dol_escape_htmltag($object->arriving_address);
-}
-print '</td></tr>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('ArrivingAddress').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print '<input type="text" name="arriving_address" value="'.dol_escape_htmltag(isset($object->arriving_address) ? $object->arriving_address : '').'">';
+else print (!empty($object->arriving_address) ? dol_escape_htmltag($object->arriving_address) : '&mdash;');
+print '    </div></div>';
+
+// Distance
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('Distance').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print '<input type="number" name="distance" value="'.dol_escape_htmltag(isset($object->distance) ? $object->distance : '').'" min="0">';
+else print (!empty($object->distance) ? dol_escape_htmltag($object->distance).' '.$langs->trans('Km') : '&mdash;');
+print '    </div></div>';
 
 // Buying Amount
-print '<tr><td>' . $langs->trans('Buying Amount') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<input type="number" class="flat" name="buying_amount" value="' . dol_escape_htmltag(isset($object->buying_amount) ? $object->buying_amount : '') . '" min="0" step="0.01">';
-} else {
-    print ($object->buying_amount ? price($object->buying_amount) : '');
-}
-print '</td></tr>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('BuyingAmount').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print '<input type="number" name="buying_amount" value="'.dol_escape_htmltag(isset($object->buying_amount) ? $object->buying_amount : '').'" min="0" step="0.01">';
+else print (!empty($object->buying_amount) ? '<span class="dc-amount buying">'.price($object->buying_amount).'</span>' : '&mdash;');
+print '    </div></div>';
 
 // Selling Amount
-print '<tr><td>' . $langs->trans('Selling Amount') . '</td><td>';
-if ($action == 'create' || $action == 'edit') {
-    print '<input type="number" class="flat" name="selling_amount" value="' . dol_escape_htmltag(isset($object->selling_amount) ? $object->selling_amount : '') . '" min="0" step="0.01">';
-} else {
-    print ($object->selling_amount ? price($object->selling_amount) : '');
-}
-print '</td></tr>';
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('SellingAmount').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print '<input type="number" name="selling_amount" value="'.dol_escape_htmltag(isset($object->selling_amount) ? $object->selling_amount : '').'" min="0" step="0.01">';
+else print (!empty($object->selling_amount) ? '<span class="dc-amount selling">'.price($object->selling_amount).'</span>' : '&mdash;');
+print '    </div></div>';
 
-print '</table>';
+print '  </div>';// card-body
+print '</div>';  // dc-card
 
-print '</div>';
-print '</div>';
+print '</div>';// dc-grid
 
-print '<div class="clearboth"></div>';
-
-// Add the same button styling as driver_card.php
-print '<style>
-    .flotte-btn {
-        display: inline-block;
-        min-width: 120px;
-        height: 34px;
-        line-height: 34px;
-        padding: 0 20px;
-        text-align: center;
-        box-sizing: border-box;
-        font-size: 13px;
-        border-radius: 3px;
-        cursor: pointer;
-        text-decoration: none;
-        vertical-align: middle;
-        margin: 0 4px;
-    }
-    /* Submit / Create / Save — solid blue fill */
-    input.flotte-btn {
-        background: #3c6d9f;
-        border: 1px solid #2e5a85;
-        color: #fff;
-    }
-    input.flotte-btn:hover {
-        background: #2e5a85;
-    }
-    /* Modify — solid blue fill (same weight as submit) */
-    a.flotte-btn-primary {
-        background: #3c6d9f;
-        border: 1px solid #2e5a85;
-        color: #fff;
-    }
-    a.flotte-btn-primary:hover {
-        background: #2e5a85;
-        color: #fff;
-    }
-    /* Cancel — blue outline, white fill */
-    a.flotte-btn-cancel {
-        background: #fff;
-        border: 1px solid #3c6d9f;
-        color: #3c6d9f;
-    }
-    a.flotte-btn-cancel:hover {
-        background: #eef3f8;
-        color: #2e5a85;
-    }
-    /* Back to List — blue outline, white fill */
-    a.flotte-btn-back {
-        background: #fff;
-        border: 1px solid #3c6d9f;
-        color: #3c6d9f;
-    }
-    a.flotte-btn-back:hover {
-        background: #eef3f8;
-        color: #2e5a85;
-    }
-    /* Delete — red fill */
-    a.flotte-btn-delete {
-        background: #c9302c;
-        border: 1px solid #ac2925;
-        color: #fff;
-    }
-    a.flotte-btn-delete:hover {
-        background: #ac2925;
-        color: #fff;
-    }
-</style>'."\n";
-
-// Form buttons - Updated to match driver_card.php style
-if ($action == 'create' || $action == 'edit') {
-    print '<div class="center" style="margin-top: 20px; margin-bottom: 10px;">';
-    print '<input type="submit" class="flotte-btn" value="' . ($action == 'create' ? $langs->trans('Create') : $langs->trans('Save')) . '">';
-    print '<a class="flotte-btn flotte-btn-cancel" href="' . ($id > 0 ? $_SERVER['PHP_SELF'] . '?id=' . $id : 'booking_list.php') . '">' . $langs->trans('Cancel') . '</a>';
-    print '<a class="flotte-btn flotte-btn-back" href="' . dol_buildpath('/flotte/booking_list.php', 1) . '">' . $langs->trans('BackToList') . '</a>';
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   BOTTOM ACTION BAR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+if ($isCreate || $isEdit) {
+    print '<div class="dc-action-bar">';
+    print '<a class="dc-btn dc-btn-ghost dc-action-bar-left" href="'.dol_buildpath('/flotte/booking_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('BackToList').'</a>';
+    print '<a class="dc-btn dc-btn-ghost" href="'.($id > 0 ? $_SERVER['PHP_SELF'].'?id='.$id : dol_buildpath('/flotte/booking_list.php', 1)).'"><i class="fa fa-times"></i> '.$langs->trans('Cancel').'</a>';
+    print '<button type="submit" class="dc-btn dc-btn-primary"><i class="fa fa-check"></i> '.($isCreate ? $langs->trans('Create') : $langs->trans('Save')).'</button>';
     print '</div>';
     print '</form>';
 } elseif ($id > 0) {
-    // Action buttons
-    print '<div class="center" style="margin-top: 20px; margin-bottom: 10px;">';
-    if ($user->rights->flotte->write) {
-        print '<a class="flotte-btn flotte-btn-primary" href="' . $_SERVER['PHP_SELF'] . '?id=' . $id . '&action=edit">' . $langs->trans('Modify') . '</a>';
+    print '<div class="dc-action-bar">';
+    print '<a class="dc-btn dc-btn-ghost dc-action-bar-left" href="'.dol_buildpath('/flotte/booking_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('BackToList').'</a>';
+    if (!empty($user->rights->flotte->write)) {
+        print '<a class="dc-btn dc-btn-ghost" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=edit"><i class="fa fa-pen"></i> '.$langs->trans('Modify').'</a>';
     }
-    print '<a class="flotte-btn flotte-btn-delete" href="' . $_SERVER['PHP_SELF'] . '?id=' . $id . '&action=delete">' . $langs->trans('Delete') . '</a>';
-    print '<a class="flotte-btn flotte-btn-back" href="' . dol_buildpath('/flotte/booking_list.php', 1) . '">' . $langs->trans('BackToList') . '</a>';
+    print '<a class="dc-btn dc-btn-danger" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=delete"><i class="fa fa-trash"></i> '.$langs->trans('Delete').'</a>';
     print '</div>';
 }
 
-dol_fiche_end();
+print '</div>';// dc-page
 
 // End of page
 llxFooter();
