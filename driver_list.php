@@ -219,6 +219,8 @@ foreach ($rows as $r) {
 }
 ?>
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
@@ -461,8 +463,117 @@ table.vl-table tbody td.center { text-align: center; }
 .vl-page-btn.active { background: #3c4758; color: #fff; border-color: transparent; }
 .vl-page-btn.disabled { opacity: 0.35; pointer-events: none; }
 
-@media (max-width: 900px) { .vl-filters { flex-direction: column; } .vl-filter-group { min-width: 100%; } }
-@media (max-width: 600px) { .vl-header { flex-direction: column; align-items: flex-start; } }
+/* ══════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+══════════════════════════════════════ */
+
+/* Tablet (≤ 1024px) */
+@media (max-width: 1024px) {
+    .vl-wrap { padding: 0 12px 40px; }
+    table.vl-table thead th,
+    table.vl-table tbody td { padding: 11px 12px; }
+}
+
+/* Small tablet (≤ 900px) */
+@media (max-width: 900px) {
+    .vl-filters { flex-direction: column; }
+    .vl-filter-group { min-width: 100% !important; max-width: 100% !important; }
+    .vl-filter-actions { width: 100%; justify-content: flex-end; }
+
+    /* Hide less critical columns: Employee ID, Department */
+    table.vl-table th:nth-child(4),
+    table.vl-table td:nth-child(4),
+    table.vl-table th:nth-child(6),
+    table.vl-table td:nth-child(6) { display: none; }
+}
+
+/* Mobile (≤ 600px) */
+@media (max-width: 600px) {
+    .vl-wrap { padding: 0 8px 32px; }
+
+    /* Header */
+    .vl-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 18px 0 16px;
+        gap: 12px;
+    }
+    .vl-header-left h1 { font-size: 18px; }
+    .vl-header-actions { width: 100%; justify-content: flex-start; }
+    .vl-btn { padding: 8px 12px; font-size: 12px; }
+
+    /* Stats */
+    .vl-stats { gap: 6px; }
+    .vl-stat-chip { padding: 5px 10px; font-size: 11px; }
+
+    /* Convert table to stacked card layout */
+    .vl-table-wrap { overflow-x: unset; }
+
+    table.vl-table,
+    table.vl-table thead,
+    table.vl-table tbody,
+    table.vl-table th,
+    table.vl-table td,
+    table.vl-table tr { display: block; }
+
+    table.vl-table thead { display: none; }
+
+    table.vl-table tbody tr {
+        border: 1px solid #e8eaf0;
+        border-radius: 10px;
+        margin-bottom: 12px;
+        padding: 8px 4px;
+        background: #fff;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+    }
+    table.vl-table tbody tr:hover { background: #fafbff; }
+
+    table.vl-table tbody td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 14px;
+        border-bottom: 1px solid #f4f5fb;
+        font-size: 13px;
+        text-align: right !important;
+    }
+    table.vl-table tbody td:last-child { border-bottom: none; }
+
+    /* data-label pseudo headers */
+    table.vl-table tbody td::before {
+        content: attr(data-label);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #9aa0b4;
+        text-align: left;
+        flex-shrink: 0;
+        margin-right: 10px;
+    }
+
+    /* Ref cell — no label, left-aligned */
+    table.vl-table tbody td:first-child {
+        justify-content: flex-start;
+        text-align: left !important;
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+    table.vl-table tbody td:first-child::before { display: none; }
+
+    .vl-actions { justify-content: flex-end; }
+
+    /* Pagination */
+    .vl-pagination {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 10px;
+        padding: 14px 12px;
+    }
+    .vl-page-btns { flex-wrap: wrap; justify-content: center; }
+    .vl-page-btn { min-width: 30px; height: 30px; font-size: 12px; }
+}
 </style>
 
 <div class="vl-wrap">
@@ -583,7 +694,7 @@ table.vl-table tbody td.center { text-align: center; }
         ?>
             <tr>
                 <!-- Ref -->
-                <td>
+                <td data-label="Ref">
                     <a href="<?php echo $cardUrl; ?>" class="vl-ref-link">
                         <span class="vl-ref-icon"><i class="fa fa-user"></i></span>
                         <?php echo dol_escape_htmltag($obj->ref); ?>
@@ -591,7 +702,7 @@ table.vl-table tbody td.center { text-align: center; }
                 </td>
 
                 <!-- Driver name -->
-                <td>
+                <td data-label="Driver">
                     <div class="vl-driver-name"><?php echo dol_escape_htmltag($fullName); ?></div>
                     <?php if (!empty($obj->email)) { ?>
                     <div class="vl-driver-sub"><?php echo dol_escape_htmltag($obj->email); ?></div>
@@ -599,27 +710,27 @@ table.vl-table tbody td.center { text-align: center; }
                 </td>
 
                 <!-- Phone -->
-                <td><?php echo dol_escape_htmltag($obj->phone ?: '—'); ?></td>
+                <td data-label="Phone"><?php echo dol_escape_htmltag($obj->phone ?: '—'); ?></td>
 
                 <!-- Employee ID -->
-                <td>
+                <td data-label="Employee ID">
                     <?php if (!empty($obj->employee_id)) { ?>
                     <span class="vl-mono"><?php echo dol_escape_htmltag($obj->employee_id); ?></span>
                     <?php } else { echo '—'; } ?>
                 </td>
 
                 <!-- License Number -->
-                <td>
+                <td data-label="License No.">
                     <?php if (!empty($obj->license_number)) { ?>
                     <span class="vl-mono"><?php echo dol_escape_htmltag($obj->license_number); ?></span>
                     <?php } else { echo '—'; } ?>
                 </td>
 
                 <!-- Department -->
-                <td><?php echo dol_escape_htmltag($obj->department ?: '—'); ?></td>
+                <td data-label="Department"><?php echo dol_escape_htmltag($obj->department ?: '—'); ?></td>
 
                 <!-- Assigned Vehicle -->
-                <td>
+                <td data-label="Vehicle">
                     <?php if ($obj->vehicle_ref) { ?>
                     <div class="vl-vehicle-chip">
                         <i class="fa fa-car" style="font-size:11px;opacity:0.6;"></i>
@@ -634,7 +745,7 @@ table.vl-table tbody td.center { text-align: center; }
                 </td>
 
                 <!-- Status -->
-                <td class="center">
+                <td class="center" data-label="Status">
                     <?php
                     $s = $obj->status;
                     if ($s == 'active') echo '<span class="vl-badge active">Active</span>';
@@ -644,7 +755,7 @@ table.vl-table tbody td.center { text-align: center; }
                 </td>
 
                 <!-- Actions -->
-                <td>
+                <td data-label="Actions">
                     <div class="vl-actions">
                         <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="View"><i class="fa fa-eye"></i></a>
                         <?php if ($user->rights->flotte->write) { ?>

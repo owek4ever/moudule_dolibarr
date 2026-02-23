@@ -438,6 +438,8 @@ jQuery(document).ready(function() {
     });
 });
 </script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
@@ -522,7 +524,108 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
     margin-bottom: 20px;
 }
 .dc-grid-full { grid-template-columns: 1fr; }
-@media (max-width: 780px) { .dc-grid { grid-template-columns: 1fr; } }
+
+/* ══════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+══════════════════════════════════════ */
+
+/* Tablet (≤ 1024px) — tighten spacing */
+@media (max-width: 1024px) {
+    .dc-page {
+        padding: 0 12px 40px;
+    }
+    .dc-field-label {
+        flex: 0 0 130px;
+    }
+}
+
+/* Small tablet (≤ 860px) — single column grid */
+@media (max-width: 860px) {
+    .dc-grid {
+        grid-template-columns: 1fr;
+    }
+    .dc-page {
+        padding: 0 10px 36px;
+    }
+}
+
+/* Mobile (≤ 600px) — full reflow */
+@media (max-width: 600px) {
+    .dc-page {
+        padding: 0 8px 28px;
+    }
+
+    /* Header stacks */
+    .dc-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 16px 0 14px;
+        gap: 10px;
+    }
+    .dc-header-left {
+        gap: 10px;
+    }
+    .dc-header-icon {
+        width: 38px;
+        height: 38px;
+        font-size: 16px;
+    }
+    .dc-header-title {
+        font-size: 17px;
+    }
+    .dc-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .dc-btn {
+        padding: 7px 12px;
+        font-size: 12px;
+    }
+
+    /* Field rows stack vertically */
+    .dc-field {
+        flex-direction: column;
+        gap: 5px;
+        padding: 11px 14px;
+    }
+    .dc-field-label {
+        flex: none;
+        width: 100%;
+        font-size: 11px;
+    }
+    .dc-field-value {
+        width: 100%;
+    }
+
+    /* Card header padding */
+    .dc-card-header {
+        padding: 12px 14px;
+    }
+
+    /* Employee select row wraps cleanly */
+    .dc-field-value > div[style*="display:flex"] {
+        flex-wrap: wrap;
+        gap: 6px !important;
+    }
+
+    /* Action bar stacks on mobile */
+    .dc-action-bar {
+        flex-direction: column-reverse;
+        align-items: stretch;
+        gap: 8px;
+        padding: 14px 0 4px;
+    }
+    .dc-action-bar .dc-btn {
+        justify-content: center;
+        width: 100%;
+    }
+    .dc-action-bar-left {
+        margin-right: 0;
+        order: 99;
+    }
+}
 
 /* ── Section card ── */
 .dc-card {
