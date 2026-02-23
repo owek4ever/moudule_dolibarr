@@ -434,51 +434,19 @@ class modFlotte extends DolibarrModules
 	{
 		global $conf, $langs;
 
-		// Create tables of module at module activation
+		// Automatically create all module tables from sql/ directory.
+		// Dolibarr reads every *.sql file in alphabetical order:
+		//   1. llx_flotte.sql      → CREATE TABLE IF NOT EXISTS (all tables)
+		//   2. llx_flotte.key.sql  → ALTER TABLE (indexes & foreign keys)
 		$result = $this->_load_tables('/flotte/sql/');
 		if ($result < 0) {
-			return -1;
+			return -1; // Table creation failed — check PHP/SQL error logs
 		}
 
-		// Create extrafields during init
-		//include_once DOL_DOCUMENT_ROOT.'/core/class/extrafields.class.php';
-		//$extrafields = new ExtraFields($this->db);
-
-		// Permissions
+		// Clean up old permissions/menus before re-registering
 		$this->remove($options);
 
 		$sql = array();
-
-		// Document templates
-		$moduledir = dol_sanitizeFileName('flotte');
-		$myTmpObjects = array();
-		$myTmpObjects['MyObject'] = array('includerefgeneration' => 0, 'includedocgeneration' => 0);
-
-		foreach ($myTmpObjects as $myTmpObjectKey => $myTmpObjectArray) {
-			if ($myTmpObjectArray['includerefgeneration']) {
-				$src = DOL_DOCUMENT_ROOT.'/install/doctemplates/'.$moduledir.'/template_myobjects.odt';
-				$dirodt = DOL_DATA_ROOT.($conf->entity > 1 ? '/'.$conf->entity : '').'/doctemplates/'.$moduledir;
-				$dest = $dirodt.'/template_myobjects.odt';
-
-				if (file_exists($src) && !file_exists($dest)) {
-					require_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
-					dol_mkdir($dirodt);
-					$result = dol_copy($src, $dest, '0', 0);
-					if ($result < 0) {
-						$langs->load("errors");
-						$this->error = $langs->trans('ErrorFailToCopyFile', $src, $dest);
-						return 0;
-					}
-				}
-
-				$sql = array_merge($sql, array(
-					"DELETE FROM ".MAIN_DB_PREFIX."document_model WHERE nom = 'standard_".strtolower($myTmpObjectKey)."' AND type = '".$this->db->escape(strtolower($myTmpObjectKey))."' AND entity = ".((int) $conf->entity),
-					"INSERT INTO ".MAIN_DB_PREFIX."document_model (nom, type, entity) VALUES('standard_".strtolower($myTmpObjectKey)."', '".$this->db->escape(strtolower($myTmpObjectKey))."', ".((int) $conf->entity).")",
-					"DELETE FROM ".MAIN_DB_PREFIX."document_model WHERE nom = 'generic_".strtolower($myTmpObjectKey)."_odt' AND type = '".$this->db->escape(strtolower($myTmpObjectKey))."' AND entity = ".((int) $conf->entity),
-					"INSERT INTO ".MAIN_DB_PREFIX."document_model (nom, type, entity) VALUES('generic_".strtolower($myTmpObjectKey)."_odt', '".$this->db->escape(strtolower($myTmpObjectKey))."', ".((int) $conf->entity).")"
-				));
-			}
-		}
 
 		return $this->_init($sql, $options);
 	}
@@ -486,7 +454,8 @@ class modFlotte extends DolibarrModules
 	/**
 	 *	Function called when module is disabled.
 	 *	Remove from database constants, boxes and permissions from Dolibarr database.
-	 *	Data directories are not deleted
+	 *	Data directories are not deleted. Tables are intentionally kept to preserve data.
+	 *	If you want to DROP tables on deactivation, add DROP TABLE statements to $sql below.
 	 *
 	 *	@param	string		$options	Options when enabling module ('', 'noboxes')
 	 *	@return	int<-1,1>				1 if OK, <=0 if KO
@@ -494,6 +463,21 @@ class modFlotte extends DolibarrModules
 	public function remove($options = '')
 	{
 		$sql = array();
+
+		// Uncomment the lines below ONLY if you want tables dropped when the module is disabled.
+		// WARNING: this will permanently delete all fleet data.
+		/*
+		$sql[] = "DROP TABLE IF EXISTS llx_flotte_workorder";
+		$sql[] = "DROP TABLE IF EXISTS llx_flotte_inspection";
+		$sql[] = "DROP TABLE IF EXISTS llx_flotte_part";
+		$sql[] = "DROP TABLE IF EXISTS llx_flotte_fuel";
+		$sql[] = "DROP TABLE IF EXISTS llx_flotte_booking";
+		$sql[] = "DROP TABLE IF EXISTS llx_flotte_driver";
+		$sql[] = "DROP TABLE IF EXISTS llx_flotte_vendor";
+		$sql[] = "DROP TABLE IF EXISTS llx_flotte_customer";
+		$sql[] = "DROP TABLE IF EXISTS llx_flotte_vehicle";
+		*/
+
 		return $this->_remove($sql, $options);
 	}
 }
