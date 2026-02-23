@@ -196,6 +196,8 @@ function sortHref($field, $sortfield, $sortorder, $self, $param) {
 $self = $_SERVER["PHP_SELF"];
 ?>
 
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 /* ── Google Font ── */
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
@@ -659,12 +661,172 @@ table.vl-table tbody td.right  { text-align: right; }
 .vl-page-btn.disabled { opacity: 0.35; pointer-events: none; }
 
 /* ── Responsive ── */
-@media (max-width: 900px) {
-    .vl-filters { flex-direction: column; }
-    .vl-filter-group { min-width: 100%; }
+
+/* Tablet (max 1024px) */
+@media (max-width: 1024px) {
+    .vl-wrap {
+        padding: 0 12px 40px;
+    }
+    table.vl-table thead th,
+    table.vl-table tbody td {
+        padding: 11px 12px;
+    }
+    .vl-vin {
+        max-width: 100px;
+    }
 }
+
+/* Small tablet / large phone (max 900px) */
+@media (max-width: 900px) {
+    .vl-filters {
+        flex-direction: column;
+    }
+    .vl-filter-group {
+        min-width: 100% !important;
+        max-width: 100% !important;
+    }
+    .vl-filter-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    /* Hide less critical columns on tablet */
+    table.vl-table th:nth-child(6),  /* Color */
+    table.vl-table td:nth-child(6),
+    table.vl-table th:nth-child(7),  /* VIN */
+    table.vl-table td:nth-child(7) {
+        display: none;
+    }
+}
+
+/* Mobile (max 600px) */
 @media (max-width: 600px) {
-    .vl-header { flex-direction: column; align-items: flex-start; }
+    .vl-wrap {
+        padding: 0 8px 32px;
+    }
+    .vl-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 18px 0 16px;
+        gap: 12px;
+    }
+    .vl-header-left h1 {
+        font-size: 18px;
+    }
+    .vl-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    .vl-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+
+    /* Stats wrap tightly */
+    .vl-stats {
+        gap: 6px;
+    }
+    .vl-stat-chip {
+        padding: 5px 10px;
+        font-size: 11px;
+    }
+
+    /* Convert table to card-stack layout on mobile */
+    .vl-table-wrap {
+        overflow-x: unset;
+    }
+
+    table.vl-table,
+    table.vl-table thead,
+    table.vl-table tbody,
+    table.vl-table th,
+    table.vl-table td,
+    table.vl-table tr {
+        display: block;
+    }
+
+    table.vl-table thead {
+        display: none; /* hide column headers */
+    }
+
+    table.vl-table tbody tr {
+        border: 1px solid #e8eaf0;
+        border-radius: 10px;
+        margin-bottom: 12px;
+        padding: 8px 4px;
+        background: #fff;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.05);
+    }
+    table.vl-table tbody tr:hover {
+        background: #fafbff;
+    }
+
+    table.vl-table tbody td {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 14px;
+        border-bottom: 1px solid #f4f5fb;
+        font-size: 13px;
+        text-align: right !important;
+    }
+    table.vl-table tbody td:last-child {
+        border-bottom: none;
+    }
+
+    /* Add data-label pseudo headers */
+    table.vl-table tbody td::before {
+        content: attr(data-label);
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #9aa0b4;
+        text-align: left;
+        flex-shrink: 0;
+        margin-right: 10px;
+    }
+
+    /* Ref cell stays left-aligned */
+    table.vl-table tbody td:first-child {
+        justify-content: flex-start;
+        text-align: left !important;
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+    table.vl-table tbody td:first-child::before {
+        display: none;
+    }
+
+    /* Actions cell */
+    table.vl-table tbody td.center {
+        justify-content: space-between;
+    }
+    .vl-actions {
+        justify-content: flex-end;
+    }
+
+    /* Pagination stacks */
+    .vl-pagination {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 10px;
+        padding: 14px 12px;
+    }
+    .vl-page-btns {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .vl-page-btn {
+        min-width: 30px;
+        height: 30px;
+        font-size: 12px;
+    }
+
+    .vl-vin {
+        max-width: 160px;
+    }
 }
 </style>
 
@@ -778,7 +940,7 @@ foreach ($rows as $r) { if ($r->in_service) $total_in++; else $total_out++; }
         ?>
             <tr>
                 <!-- Ref -->
-                <td>
+                <td data-label="Ref">
                     <a href="<?php echo $cardUrl; ?>" class="vl-ref-link">
                         <span class="vl-ref-icon"><i class="fa fa-car"></i></span>
                         <?php echo dol_escape_htmltag($obj->ref); ?>
@@ -786,26 +948,26 @@ foreach ($rows as $r) { if ($r->in_service) $total_in++; else $total_out++; }
                 </td>
 
                 <!-- Vehicle (Maker + Model) -->
-                <td>
+                <td data-label="Vehicle">
                     <div class="vl-vehicle-name"><?php echo dol_escape_htmltag($obj->maker); ?></div>
                     <div class="vl-vehicle-sub"><?php echo dol_escape_htmltag($obj->model); ?></div>
                 </td>
 
                 <!-- Type -->
-                <td><?php echo dol_escape_htmltag($obj->type); ?></td>
+                <td data-label="Type"><?php echo dol_escape_htmltag($obj->type); ?></td>
 
                 <!-- Year -->
-                <td><?php echo dol_escape_htmltag($obj->year); ?></td>
+                <td data-label="Year"><?php echo dol_escape_htmltag($obj->year); ?></td>
 
                 <!-- License Plate -->
-                <td>
+                <td data-label="Plate">
                     <?php if (!empty($obj->license_plate)) { ?>
                     <span class="vl-plate"><?php echo dol_escape_htmltag($obj->license_plate); ?></span>
                     <?php } ?>
                 </td>
 
                 <!-- Color -->
-                <td>
+                <td data-label="Color">
                     <?php if (!empty($obj->color)) { ?>
                     <div class="vl-color-swatch">
                         <span class="vl-color-dot" style="background:<?php echo $colorCss; ?>;"></span>
@@ -815,17 +977,17 @@ foreach ($rows as $r) { if ($r->in_service) $total_in++; else $total_out++; }
                 </td>
 
                 <!-- VIN -->
-                <td><span class="vl-vin" title="<?php echo dol_escape_htmltag($obj->vin); ?>"><?php echo dol_escape_htmltag($obj->vin); ?></span></td>
+                <td data-label="VIN"><span class="vl-vin" title="<?php echo dol_escape_htmltag($obj->vin); ?>"><?php echo dol_escape_htmltag($obj->vin); ?></span></td>
 
                 <!-- Mileage -->
-                <td class="right">
+                <td class="right" data-label="Mileage">
                     <?php if (!empty($obj->initial_mileage)) { ?>
                     <span class="vl-mileage"><?php echo number_format((int)$obj->initial_mileage, 0, '.', ' '); ?><span class="vl-mileage-unit">km</span></span>
                     <?php } ?>
                 </td>
 
                 <!-- Status -->
-                <td class="center">
+                <td class="center" data-label="Status">
                     <?php if ($obj->in_service == 1) { ?>
                     <span class="vl-badge in-service">In Service</span>
                     <?php } else { ?>
@@ -834,7 +996,7 @@ foreach ($rows as $r) { if ($r->in_service) $total_in++; else $total_out++; }
                 </td>
 
                 <!-- Actions -->
-                <td>
+                <td data-label="Actions">
                     <div class="vl-actions">
                         <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="View"><i class="fa fa-eye"></i></a>
                         <?php if ($user->rights->flotte->write) { ?>
