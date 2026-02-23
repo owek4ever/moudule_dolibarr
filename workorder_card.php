@@ -30,322 +30,264 @@ if (!$res) { die("Include of main fails"); }
 
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
+require_once DOL_DOCUMENT_ROOT.'/core/class/html.form.class.php';
 
-// Load translation files
 $langs->loadLangs(array("flotte@flotte", "other"));
 
-// Function to generate next work order reference
+// ─── Helper: auto-generate WO reference ──────────────────────────
 function getNextWorkOrderRef($db, $entity) {
     $prefix = "WO-";
-    
-    // Get the last reference from database
-    $sql = "SELECT ref FROM ".MAIN_DB_PREFIX."flotte_workorder";
-    $sql .= " WHERE entity = ".$entity;
-    $sql .= " AND ref LIKE '".$prefix."%'";
-    $sql .= " ORDER BY ref DESC LIMIT 1";
-    
+    $sql = "SELECT ref FROM ".MAIN_DB_PREFIX."flotte_workorder"
+         . " WHERE entity = ".(int)$entity
+         . " AND ref LIKE '".$prefix."%'"
+         . " ORDER BY ref DESC LIMIT 1";
     $resql = $db->query($sql);
     if ($resql && $db->num_rows($resql) > 0) {
-        $obj = $db->fetch_object($resql);
-        $last_ref = $obj->ref;
-        
-        // Extract the numeric part and increment
-        $numeric_part = (int)str_replace($prefix, '', $last_ref);
-        $next_number = $numeric_part + 1;
+        $obj  = $db->fetch_object($resql);
+        $next = (int)str_replace($prefix, '', $obj->ref) + 1;
     } else {
-        // No existing references, start from 1
-        $next_number = 1;
+        $next = 1;
     }
-    
-    // Format with leading zeros (e.g., WO-0001)
-    return $prefix.str_pad($next_number, 4, '0', STR_PAD_LEFT);
+    return $prefix.str_pad($next, 4, '0', STR_PAD_LEFT);
 }
 
-// Function to convert date to MySQL format
-function convertDateToMysql($datestring) {
-    if (empty($datestring)) {
-        return '';
+// ─── Helper: parse Dolibarr date widget fields ────────────────────
+function getDateFromPost($field) {
+    $day   = GETPOST($field.'day',   'int');
+    $month = GETPOST($field.'month', 'int');
+    $year  = GETPOST($field.'year',  'int');
+    if ($day > 0 && $month > 0 && $year > 0) {
+        return sprintf('%04d-%02d-%02d', $year, $month, $day);
     }
-    
-    // Handle different date formats
-    $timestamp = dol_stringtotime($datestring);
-    if ($timestamp === false) {
-        // Try parsing common formats
-        $formats = ['m/d/Y', 'd/m/Y', 'Y-m-d', 'Y/m/d'];
-        foreach ($formats as $format) {
-            $date = DateTime::createFromFormat($format, $datestring);
-            if ($date !== false) {
-                return $date->format('Y-m-d');
-            }
-        }
-        return '';
+    $raw = GETPOST($field, 'alpha');
+    if (empty($raw)) return '';
+    $ts = dol_stringtotime($raw);
+    if ($ts) return dol_print_date($ts, '%Y-%m-%d', 'tzserver');
+    foreach (['Y-m-d', 'd/m/Y', 'm/d/Y'] as $fmt) {
+        $d = DateTime::createFromFormat($fmt, $raw);
+        if ($d) return $d->format('Y-m-d');
     }
-    
-    return dol_print_date($timestamp, '%Y-%m-%d', 'tzserver');
+    return '';
 }
 
-// Get parameters
-$id = GETPOST('id', 'int');
-$action = GETPOST('action', 'aZ09') ? GETPOST('action', 'aZ09') : 'view';
+// ─── Parameters ──────────────────────────────────────────────────
+$id      = GETPOST('id',      'int');
+$action  = GETPOST('action',  'aZ09') ?: 'view';
 $confirm = GETPOST('confirm', 'alpha');
-$cancel = GETPOST('cancel', 'alpha');
-$contextpage = GETPOST('contextpage','aZ')?GETPOST('contextpage','aZ'):'workordercard';
+$cancel  = GETPOST('cancel',  'alpha');
 
-// Security check
 restrictedArea($user, 'flotte');
 
-// Initialize variables
-$object = new stdClass();
-$object->id = 0;
-$object->ref = '';
-$object->fk_vehicle = 0;
-$object->fk_vendor = 0;
-$object->required_by = '';
-$object->reading = 0;
-$object->note = '';
-$object->status = '';
-$object->price = 0;
-$object->description = '';
+// ─── Object defaults ─────────────────────────────────────────────
+$object                      = new stdClass();
+$object->id                  = 0;
+$object->ref                 = '';
+$object->tms                 = null;
+$object->status              = 'Pending';
+$object->priority            = 'Medium';
+$object->requested_by        = '';
+$object->task_to_perform     = '';
+$object->problem_description = '';
+$object->fk_driver           = 0;
+$object->responsible_person  = '';
+$object->start_date          = '';
+$object->due_date            = '';
+$object->technician_notes    = '';
+$object->driver_fullname     = '';
+// legacy columns kept in sync
+$object->description         = '';
+$object->note                = '';
+$object->required_by         = '';
 
-$error = 0;
+$error  = 0;
 $errors = array();
 
-// Generate reference for new work order
-if ($action == 'create' && empty($object->ref)) {
+if ($action == 'create') {
     $object->ref = getNextWorkOrderRef($db, $conf->entity);
 }
 
-/*
- * Actions
- */
+// ─── Cancel ──────────────────────────────────────────────────────
+if ($cancel) $action = ($id > 0) ? 'view' : 'list';
 
-if ($cancel) {
-    $action = 'view';
-    if (!empty($backtopage)) {
-        header("Location: ".$backtopage);
-        exit;
-    }
-}
-
+// ─── Delete ──────────────────────────────────────────────────────
 if ($action == 'confirm_delete' && $confirm == 'yes' && $user->rights->flotte->delete) {
     $db->begin();
-    
-    $sql = "DELETE FROM ".MAIN_DB_PREFIX."flotte_workorder WHERE rowid = ".((int) $id);
-    $result = $db->query($sql);
-    
+    $result = $db->query("DELETE FROM ".MAIN_DB_PREFIX."flotte_workorder WHERE rowid = ".((int)$id));
     if ($result) {
         $db->commit();
-        header("Location: " . dol_buildpath('/flotte/workorder_list.php', 1));
+        header("Location: ".dol_buildpath('/flotte/workorder_list.php', 1));
         exit;
     } else {
         $db->rollback();
-        $error++;
-        setEventMessages($langs->trans("ErrorDeletingWorkOrder"), null, 'errors');
+        $errors[] = 'Error deleting work order: '.$db->lasterror();
     }
 }
 
-if ($action == 'add') {
+// ─── Insert ──────────────────────────────────────────────────────
+if ($action == 'add' && $user->rights->flotte->write) {
     $db->begin();
-    
-    // Get form data
-    $ref = GETPOST('ref', 'alpha');
-    $fk_vehicle = GETPOST('fk_vehicle', 'int');
-    $fk_vendor = GETPOST('fk_vendor', 'int');
-    
-    // Fix: Convert date to MySQL format
-    $required_by_raw = GETPOST('required_by', 'alpha');
-    $required_by = '';
-    if (!empty($required_by_raw)) {
-        // Handle Dolibarr date format
-        $day = GETPOST('required_byday', 'int');
-        $month = GETPOST('required_bymonth', 'int');
-        $year = GETPOST('required_byyear', 'int');
-        
-        if ($day > 0 && $month > 0 && $year > 0) {
-            $required_by = sprintf('%04d-%02d-%02d', $year, $month, $day);
-        } else {
-            $required_by = convertDateToMysql($required_by_raw);
-        }
-    }
-    
-    $reading = GETPOST('reading', 'int');
-    $note = GETPOST('note', 'alpha');
-    $status = GETPOST('status', 'alpha');
-    $price = GETPOST('price', 'alpha');
-    $description = GETPOST('description', 'alpha');
-    
-    // Auto-generate reference if empty
-    if (empty($ref)) {
-        $ref = getNextWorkOrderRef($db, $conf->entity);
-    }
-    
-    if (empty($ref)) {
-        $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("Reference"));
-    }
-    if (empty($fk_vehicle)) {
-        $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("Vehicle"));
-    }
-    
+
+    $ref                 = GETPOST('ref',                 'alpha');
+    $requested_by        = GETPOST('requested_by',        'alpha');
+    $task_to_perform     = GETPOST('task_to_perform',     'alpha');
+    $problem_description = GETPOST('problem_description', 'alpha');
+    $priority            = GETPOST('priority',            'alpha');
+    $fk_driver           = GETPOST('fk_driver',           'int');
+    $responsible_person  = GETPOST('responsible_person',  'alpha');
+    $start_date          = getDateFromPost('start_date');
+    $due_date            = getDateFromPost('due_date');
+    $status              = GETPOST('status',              'alpha');
+    $technician_notes    = GETPOST('technician_notes',    'alpha');
+
+    if (empty($ref)) $ref = getNextWorkOrderRef($db, $conf->entity);
+    if (empty($ref)) { $error++; $errors[] = 'Reference is required.'; }
+
     if (!$error) {
-        $sql = "INSERT INTO ".MAIN_DB_PREFIX."flotte_workorder (";
-        $sql .= "ref, entity, fk_vehicle, fk_vendor, required_by, reading, note, status, price, description, fk_user_author";
+        $sql  = "INSERT INTO ".MAIN_DB_PREFIX."flotte_workorder (";
+        $sql .= " ref, entity,";
+        $sql .= " requested_by, task_to_perform, problem_description, priority,";
+        $sql .= " fk_driver, responsible_person, start_date, due_date,";
+        $sql .= " status, technician_notes,";
+        $sql .= " description, note, required_by,";
+        $sql .= " fk_user_author";
         $sql .= ") VALUES (";
-        $sql .= "'".$db->escape($ref)."', ".$conf->entity.", ";
-        $sql .= $fk_vehicle.", ";
-        $sql .= ($fk_vendor > 0 ? $fk_vendor : "NULL").", ";
-        $sql .= "'".$db->escape($required_by)."', ";
-        $sql .= $reading.", ";
-        $sql .= "'".$db->escape($note)."', ";
-        $sql .= "'".$db->escape($status)."', ";
-        $sql .= ($price ? $price : "0").", ";
-        $sql .= "'".$db->escape($description)."', ";
-        $sql .= $user->id;
+        $sql .= " '".$db->escape($ref)."', ".(int)$conf->entity.",";
+        $sql .= " '".$db->escape($requested_by)."',";
+        $sql .= " '".$db->escape($task_to_perform)."',";
+        $sql .= " '".$db->escape($problem_description)."',";
+        $sql .= " '".$db->escape($priority)."',";
+        $sql .= " ".($fk_driver > 0 ? (int)$fk_driver : "NULL").",";
+        $sql .= " '".$db->escape($responsible_person)."',";
+        $sql .= " ".($start_date ? "'".$db->escape($start_date)."'" : "NULL").",";
+        $sql .= " ".($due_date   ? "'".$db->escape($due_date)."'"   : "NULL").",";
+        $sql .= " '".$db->escape($status)."',";
+        $sql .= " '".$db->escape($technician_notes)."',";
+        $sql .= " '".$db->escape($task_to_perform)."',";
+        $sql .= " '".$db->escape($technician_notes)."',";
+        $sql .= " ".($due_date ? "'".$db->escape($due_date)."'" : "NULL").",";
+        $sql .= " ".(int)$user->id;
         $sql .= ")";
-        
+
         $result = $db->query($sql);
         if ($result) {
             $id = $db->last_insert_id(MAIN_DB_PREFIX."flotte_workorder");
             $db->commit();
             $action = 'view';
-            setEventMessages($langs->trans("WorkOrderCreatedSuccessfully"), null, 'mesgs');
+            setEventMessages($langs->trans('WorkOrderCreatedSuccessfully'), null, 'mesgs');
         } else {
             $db->rollback();
             $error++;
-            $errors[] = $langs->trans("ErrorCreatingWorkOrder") . ": " . $db->lasterror();
+            $errors[] = 'ErrorCreatingWorkOrder: '.$db->lasterror();
         }
     } else {
         $db->rollback();
     }
 }
 
-if ($action == 'update') {
+// ─── Update ──────────────────────────────────────────────────────
+if ($action == 'update' && $user->rights->flotte->write) {
     $db->begin();
-    
-    // Get form data
-    $ref = GETPOST('ref', 'alpha');
-    $fk_vehicle = GETPOST('fk_vehicle', 'int');
-    $fk_vendor = GETPOST('fk_vendor', 'int');
-    
-    // Fix: Convert date to MySQL format
-    $required_by_raw = GETPOST('required_by', 'alpha');
-    $required_by = '';
-    if (!empty($required_by_raw)) {
-        // Handle Dolibarr date format
-        $day = GETPOST('required_byday', 'int');
-        $month = GETPOST('required_bymonth', 'int');
-        $year = GETPOST('required_byyear', 'int');
-        
-        if ($day > 0 && $month > 0 && $year > 0) {
-            $required_by = sprintf('%04d-%02d-%02d', $year, $month, $day);
-        } else {
-            $required_by = convertDateToMysql($required_by_raw);
-        }
-    }
-    
-    $reading = GETPOST('reading', 'int');
-    $note = GETPOST('note', 'alpha');
-    $status = GETPOST('status', 'alpha');
-    $price = GETPOST('price', 'alpha');
-    $description = GETPOST('description', 'alpha');
-    
-    if (empty($ref)) {
-        $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("Reference"));
-    }
-    if (empty($fk_vehicle)) {
-        $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("Vehicle"));
-    }
-    
+
+    $ref                 = GETPOST('ref',                 'alpha');
+    $requested_by        = GETPOST('requested_by',        'alpha');
+    $task_to_perform     = GETPOST('task_to_perform',     'alpha');
+    $problem_description = GETPOST('problem_description', 'alpha');
+    $priority            = GETPOST('priority',            'alpha');
+    $fk_driver           = GETPOST('fk_driver',           'int');
+    $responsible_person  = GETPOST('responsible_person',  'alpha');
+    $start_date          = getDateFromPost('start_date');
+    $due_date            = getDateFromPost('due_date');
+    $status              = GETPOST('status',              'alpha');
+    $technician_notes    = GETPOST('technician_notes',    'alpha');
+
+    if (empty($ref)) { $error++; $errors[] = 'Reference is required.'; }
+
     if (!$error) {
-        $sql = "UPDATE ".MAIN_DB_PREFIX."flotte_workorder SET ";
-        $sql .= "ref = '".$db->escape($ref)."', ";
-        $sql .= "fk_vehicle = ".$fk_vehicle.", ";
-        $sql .= "fk_vendor = ".($fk_vendor > 0 ? $fk_vendor : "NULL").", ";
-        $sql .= "required_by = '".$db->escape($required_by)."', ";
-        $sql .= "reading = ".$reading.", ";
-        $sql .= "note = '".$db->escape($note)."', ";
-        $sql .= "status = '".$db->escape($status)."', ";
-        $sql .= "price = ".($price ? $price : "0").", ";
-        $sql .= "description = '".$db->escape($description)."', ";
-        $sql .= "fk_user_modif = ".$user->id." ";
-        $sql .= "WHERE rowid = ".((int) $id);
-        
+        $sql  = "UPDATE ".MAIN_DB_PREFIX."flotte_workorder SET";
+        $sql .= "  ref                 = '".$db->escape($ref)."',";
+        $sql .= "  requested_by        = '".$db->escape($requested_by)."',";
+        $sql .= "  task_to_perform     = '".$db->escape($task_to_perform)."',";
+        $sql .= "  problem_description = '".$db->escape($problem_description)."',";
+        $sql .= "  priority            = '".$db->escape($priority)."',";
+        $sql .= "  fk_driver           = ".($fk_driver > 0 ? (int)$fk_driver : "NULL").",";
+        $sql .= "  responsible_person  = '".$db->escape($responsible_person)."',";
+        $sql .= "  start_date          = ".($start_date ? "'".$db->escape($start_date)."'" : "NULL").",";
+        $sql .= "  due_date            = ".($due_date   ? "'".$db->escape($due_date)."'"   : "NULL").",";
+        $sql .= "  status              = '".$db->escape($status)."',";
+        $sql .= "  technician_notes    = '".$db->escape($technician_notes)."',";
+        $sql .= "  description         = '".$db->escape($task_to_perform)."',";
+        $sql .= "  note                = '".$db->escape($technician_notes)."',";
+        $sql .= "  required_by         = ".($due_date ? "'".$db->escape($due_date)."'" : "NULL").",";
+        $sql .= "  fk_user_modif       = ".(int)$user->id;
+        $sql .= " WHERE rowid = ".((int)$id);
+
         $result = $db->query($sql);
         if ($result) {
             $db->commit();
             $action = 'view';
-            setEventMessages($langs->trans("WorkOrderUpdatedSuccessfully"), null, 'mesgs');
+            setEventMessages($langs->trans('WorkOrderUpdatedSuccessfully'), null, 'mesgs');
         } else {
             $db->rollback();
             $error++;
-            $errors[] = $langs->trans("ErrorUpdatingWorkOrder") . ": " . $db->lasterror();
+            $errors[] = 'ErrorUpdatingWorkOrder: '.$db->lasterror();
         }
     } else {
         $db->rollback();
     }
 }
 
-// Load object data
+// ─── Load record ─────────────────────────────────────────────────
 if ($id > 0) {
-    $sql = "SELECT w.*, v.ref as vehicle_ref, v.maker, v.model, ven.name as vendor_name 
-            FROM ".MAIN_DB_PREFIX."flotte_workorder as w 
-            LEFT JOIN ".MAIN_DB_PREFIX."flotte_vehicle as v ON w.fk_vehicle = v.rowid 
-            LEFT JOIN ".MAIN_DB_PREFIX."flotte_vendor as ven ON w.fk_vendor = ven.rowid 
-            WHERE w.rowid = ".((int) $id);
+    $sql = "SELECT w.*,
+                TRIM(CONCAT(COALESCE(d.firstname,''), ' ', COALESCE(d.lastname,''))) AS driver_fullname
+            FROM ".MAIN_DB_PREFIX."flotte_workorder AS w
+            LEFT JOIN ".MAIN_DB_PREFIX."flotte_driver AS d ON w.fk_driver = d.rowid
+            WHERE w.rowid = ".((int)$id);
     $resql = $db->query($sql);
     if ($resql) {
         $object = $db->fetch_object($resql);
-        if (!$object) {
-            header("HTTP/1.0 404 Not Found");
-            print $langs->trans("WorkOrderNotFound");
-            exit;
-        }
+        if (!$object) { header("HTTP/1.0 404 Not Found"); print 'Work order not found.'; exit; }
+        if (empty($object->task_to_perform))  $object->task_to_perform  = $object->description ?? '';
+        if (empty($object->technician_notes)) $object->technician_notes = $object->note        ?? '';
+        if (empty($object->due_date))         $object->due_date         = $object->required_by ?? '';
+        if (empty($object->priority))         $object->priority         = 'Medium';
+        if (empty($object->status))           $object->status           = 'Pending';
     } else {
         header("HTTP/1.0 500 Internal Server Error");
-        print $langs->trans("ErrorLoadingWorkOrder") . ": " . $db->lasterror();
+        print 'Error loading work order: '.$db->lasterror();
         exit;
     }
 }
 
-// Get vehicles and vendors for dropdowns
-$vehicles = array();
-$sql_vehicles = "SELECT rowid, ref, maker, model FROM ".MAIN_DB_PREFIX."flotte_vehicle WHERE entity = ".$conf->entity." ORDER BY ref";
-$resql_vehicles = $db->query($sql_vehicles);
-if ($resql_vehicles) {
-    while ($obj = $db->fetch_object($resql_vehicles)) {
-        $vehicles[$obj->rowid] = $obj->ref . ' - ' . $obj->maker . ' ' . $obj->model;
-    }
-}
-
-$vendors = array();
-$sql_vendors = "SELECT rowid, name FROM ".MAIN_DB_PREFIX."flotte_vendor WHERE entity = ".$conf->entity." ORDER BY name";
-$resql_vendors = $db->query($sql_vendors);
-if ($resql_vendors) {
-    while ($obj = $db->fetch_object($resql_vendors)) {
-        $vendors[$obj->rowid] = $obj->name;
+// ─── Drivers dropdown ────────────────────────────────────────────
+$drivers = array();
+$resql_d = $db->query(
+    "SELECT rowid, TRIM(CONCAT(COALESCE(firstname,''), ' ', COALESCE(lastname,''))) AS fullname, employee_id"
+    . " FROM ".MAIN_DB_PREFIX."flotte_driver"
+    . " WHERE entity = ".(int)$conf->entity
+    . " AND (status IS NULL OR status != 'Inactive')"
+    . " ORDER BY lastname, firstname"
+);
+if ($resql_d) {
+    while ($obj = $db->fetch_object($resql_d)) {
+        $label = trim($obj->fullname);
+        if (!empty($obj->employee_id)) $label .= ' ['.$obj->employee_id.']';
+        if (empty($label)) $label = 'Driver #'.$obj->rowid;
+        $drivers[$obj->rowid] = $label;
     }
 }
 
 $form = new Form($db);
-
-// Initialize technical object to manage hooks
 $hookmanager->initHooks(array('workordercard'));
 
 /*
  * View
  */
 
-$title = $langs->trans('WorkOrder');
-if ($action == 'create') {
-    $title = $langs->trans('NewWorkOrder');
-} elseif ($action == 'edit') {
-    $title = $langs->trans('EditWorkOrder');
-} elseif ($id > 0) {
-    $title = $langs->trans('WorkOrder') . " " . $object->ref;
-}
+if ($action == 'create')   $title = $langs->trans('NewWorkOrder');
+elseif ($action == 'edit') $title = $langs->trans('EditWorkOrder');
+elseif ($id > 0)           $title = $langs->trans('WorkOrder').' '.$object->ref;
+else                       $title = $langs->trans('WorkOrder');
 
 llxHeader('', $title);
 
@@ -384,21 +326,29 @@ llxHeader('', $title);
 .dc-header-sub { font-size: 12.5px; color: #8b92a9; font-weight: 400; }
 .dc-header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
-/* ── Status badges ── */
+/* ── Status / priority badges ── */
 .dc-badge {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 4px 11px; border-radius: 20px;
     font-size: 11.5px; font-weight: 600; white-space: nowrap;
 }
 .dc-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.dc-badge.pending     { background: #fff8ec; color: #b45309; }
-.dc-badge.pending::before     { background: #f59e0b; }
-.dc-badge.in-progress { background: #eff6ff; color: #1d4ed8; }
-.dc-badge.in-progress::before { background: #3b82f6; }
-.dc-badge.completed   { background: #edfaf3; color: #1a7d4a; }
-.dc-badge.completed::before   { background: #22c55e; }
-.dc-badge.cancelled   { background: #fef2f2; color: #b91c1c; }
-.dc-badge.cancelled::before   { background: #ef4444; }
+.dc-badge.status-pending    { background: #fffbeb; color: #b45309; }
+.dc-badge.status-pending::before    { background: #f59e0b; }
+.dc-badge.status-inprogress { background: #eff6ff; color: #1d4ed8; }
+.dc-badge.status-inprogress::before { background: #3b82f6; }
+.dc-badge.status-completed  { background: #edfaf3; color: #1a7d4a; }
+.dc-badge.status-completed::before  { background: #22c55e; }
+.dc-badge.status-cancelled  { background: #fef2f2; color: #b91c1c; }
+.dc-badge.status-cancelled::before  { background: #ef4444; }
+.dc-badge.priority-low      { background: #edfaf3; color: #1a7d4a; }
+.dc-badge.priority-low::before      { background: #22c55e; }
+.dc-badge.priority-medium   { background: #fffbeb; color: #b45309; }
+.dc-badge.priority-medium::before   { background: #f59e0b; }
+.dc-badge.priority-high     { background: #fef2f2; color: #b91c1c; }
+.dc-badge.priority-high::before     { background: #ef4444; }
+.dc-badge.priority-urgent   { background: #4c0519; color: #fecdd3; }
+.dc-badge.priority-urgent::before   { background: #f43f5e; }
 
 /* ── Buttons ── */
 .dc-btn {
@@ -409,8 +359,8 @@ llxHeader('', $title);
     font-family: 'DM Sans', sans-serif; white-space: nowrap;
     transition: all 0.15s ease; border: none;
 }
-.dc-btn-primary { background: #3c4758 !important; color: #fff !important; }
-.dc-btn-primary:hover { background: #2a3346 !important; color: #fff !important; }
+.dc-btn-primary  { background: #3c4758 !important; color: #fff !important; }
+.dc-btn-primary:hover  { background: #2a3346 !important; color: #fff !important; }
 .dc-btn-ghost {
     background: #fff !important; color: #5a6482 !important;
     border: 1.5px solid #d1d5e0 !important;
@@ -421,7 +371,11 @@ llxHeader('', $title);
     border: 1.5px solid #fecaca !important;
 }
 .dc-btn-danger:hover { background: #fee2e2 !important; color: #b91c1c !important; }
-button.dc-btn-primary { background: #3c4758 !important; color: #fff !important; border: none !important; }
+input.dc-btn-primary,
+button.dc-btn-primary {
+    background: #3c4758 !important; color: #fff !important; border: none !important;
+}
+input.dc-btn-primary:hover,
 button.dc-btn-primary:hover { background: #2a3346 !important; }
 
 /* ── Two-column grid ── */
@@ -457,6 +411,7 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
 .dc-card-header-icon.amber  { background: rgba(217,119,6,0.1);  color: #d97706; }
 .dc-card-header-icon.purple { background: rgba(109,40,217,0.1); color: #6d28d9; }
 .dc-card-header-icon.red    { background: rgba(220,38,38,0.1);  color: #dc2626; }
+.dc-card-header-icon.teal   { background: rgba(13,148,136,0.1); color: #0d9488; }
 .dc-card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: #8b92a9; }
 .dc-card-body { padding: 0; }
 
@@ -477,20 +432,16 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
 .dc-field-value { flex: 1; font-size: 13.5px; color: #2d3748; line-height: 1.5; min-width: 0; }
 .dc-field-value a { color: #3c4758; }
 
-/* ── Mono / chip ── */
+/* ── Mono chip ── */
 .dc-mono {
     font-family: 'DM Mono', monospace; font-size: 12px;
     background: #f0f2fa; color: #4a5568;
     padding: 3px 9px; border-radius: 5px; display: inline-block;
 }
-.dc-chip {
-    display: inline-flex; align-items: center; gap: 6px;
-    font-size: 12.5px; font-weight: 600; color: #3c4758;
-    background: rgba(60,71,88,0.07); padding: 4px 10px; border-radius: 6px;
-}
 
 /* ── Form inputs ── */
 .dc-page input[type="text"],
+.dc-page input[type="email"],
 .dc-page input[type="number"],
 .dc-page select,
 .dc-page textarea {
@@ -508,6 +459,7 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
     box-sizing: border-box !important;
 }
 .dc-page input[type="text"]:focus,
+.dc-page input[type="email"]:focus,
 .dc-page input[type="number"]:focus,
 .dc-page select:focus,
 .dc-page textarea:focus {
@@ -515,8 +467,21 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
     box-shadow: 0 0 0 3px rgba(60,71,88,0.1) !important;
     background: #fff !important;
 }
-.dc-page input[type="checkbox"] { width: auto !important; cursor: pointer; }
 .dc-page textarea { resize: vertical !important; }
+
+/* ── Radio group ── */
+.dc-radio-group { display: flex; flex-wrap: wrap; gap: 6px; }
+.dc-radio-group label {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 20px; cursor: pointer;
+    font-size: 13px; font-weight: 500; border: 1.5px solid #e2e5f0;
+    background: #fafbfe; color: #5a6482; transition: all 0.15s;
+    white-space: nowrap;
+}
+.dc-radio-group label:hover { border-color: #3c4758; background: #f5f6fa; color: #1a1f2e; }
+.dc-radio-group input[type="radio"] { display: none; }
+.dc-radio-group input[type="radio"]:checked + span { font-weight: 700; }
+.dc-radio-group label:has(input:checked) { border-color: #3c4758; background: rgba(60,71,88,0.08); color: #3c4758; }
 
 /* ── Bottom action bar ── */
 .dc-action-bar {
@@ -538,7 +503,7 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
 // Confirmation to delete
 if ($action == 'delete') {
     $formconfirm = $form->formconfirm(
-        $_SERVER["PHP_SELF"] . '?id=' . $id,
+        $_SERVER["PHP_SELF"].'?id='.$id,
         $langs->trans('DeleteWorkOrder'),
         $langs->trans('ConfirmDeleteWorkOrder'),
         'confirm_delete',
@@ -551,9 +516,7 @@ if ($action == 'delete') {
 
 // Show error messages
 if (!empty($errors)) {
-    foreach ($errors as $error_msg) {
-        setEventMessage($error_msg, 'errors');
-    }
+    foreach ($errors as $err) setEventMessage($err, 'errors');
 }
 
 $isEdit   = ($action == 'edit');
@@ -563,14 +526,27 @@ $isView   = (!$isEdit && !$isCreate);
 $pageTitle = $isCreate ? $langs->trans('NewWorkOrder') : ($isEdit ? $langs->trans('EditWorkOrder') : $langs->trans('WorkOrder'));
 $pageSub   = $isCreate ? $langs->trans('FillInWorkOrderDetails') : (isset($object->ref) ? $object->ref : '');
 
-// Form start
+// Helper: status => badge css class
+$statusBadgeClass = array(
+    'Pending'     => 'status-pending',
+    'In Progress' => 'status-inprogress',
+    'Completed'   => 'status-completed',
+    'Cancelled'   => 'status-cancelled',
+);
+// Helper: priority => badge css class
+$priorityBadgeClass = array(
+    'Low'    => 'priority-low',
+    'Medium' => 'priority-medium',
+    'High'   => 'priority-high',
+    'Urgent' => 'priority-urgent',
+);
+
+// Open form
 if ($isCreate || $isEdit) {
-    print '<form method="POST" action="'.$_SERVER['PHP_SELF'].($id > 0 ? '?id='.$id : '').'">';
+    print '<form method="POST" action="'.$_SERVER['PHP_SELF'].($id > 0 ? '?id='.$id : '').'" enctype="multipart/form-data">';
     print '<input type="hidden" name="action" value="'.($isCreate ? 'add' : 'update').'">';
-    print '<input type="hidden" name="token" value="'.newToken().'">';
-    if ($id > 0) {
-        print '<input type="hidden" name="id" value="'.$id.'">';
-    }
+    print '<input type="hidden" name="token"  value="'.newToken().'">';
+    if ($id > 0) print '<input type="hidden" name="id" value="'.$id.'">';
 }
 
 print '<div class="dc-page">';
@@ -588,27 +564,28 @@ print '    </div>';
 print '  </div>';
 print '  <div class="dc-header-actions">';
 if ($isView && $id > 0) {
-    if (!empty($object->status)) {
-        $stClass = strtolower(str_replace(' ', '-', $object->status));
-        $stLabel = ($object->status == 'In Progress') ? $langs->trans('InProgress') : $langs->trans(ucfirst(strtolower($object->status)));
-        print '<span class="dc-badge '.$stClass.'">'.dol_escape_htmltag($stLabel).'</span>';
-    }
+    $curStatus   = !empty($object->status)   ? $object->status   : 'Pending';
+    $curPriority = !empty($object->priority) ? $object->priority : 'Medium';
+    $statusCss   = isset($statusBadgeClass[$curStatus])     ? $statusBadgeClass[$curStatus]     : 'status-pending';
+    $priorityCss = isset($priorityBadgeClass[$curPriority]) ? $priorityBadgeClass[$curPriority] : 'priority-medium';
+    print '<span class="dc-badge '.$statusCss.'">'.dol_escape_htmltag($curStatus).'</span>';
+    print '<span class="dc-badge '.$priorityCss.'">'.dol_escape_htmltag($curPriority).'</span>';
     print '<a class="dc-btn dc-btn-ghost" href="'.dol_buildpath('/flotte/workorder_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('BackToList').'</a>';
-    print '<a class="dc-btn dc-btn-ghost" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=edit"><i class="fa fa-pen"></i> '.$langs->trans('Modify').'</a>';
-    print '<a class="dc-btn dc-btn-danger" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=delete"><i class="fa fa-trash"></i> '.$langs->trans('Delete').'</a>';
+    if ($user->rights->flotte->write)  print '<a class="dc-btn dc-btn-ghost" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=edit"><i class="fa fa-pen"></i> '.$langs->trans('Modify').'</a>';
+    if ($user->rights->flotte->delete) print '<a class="dc-btn dc-btn-danger" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=delete"><i class="fa fa-trash"></i> '.$langs->trans('Delete').'</a>';
 }
 print '  </div>';
 print '</div>';
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   ROW 1 — Work Order Info + Additional Details
+   ROW 1 — Work Order Info + Assignment
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 print '<div class="dc-grid">';
 
 /* ── Card: Work Order Information ── */
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
-print '    <div class="dc-card-header-icon blue"><i class="fa fa-wrench"></i></div>';
+print '    <div class="dc-card-header-icon blue"><i class="fa fa-clipboard-list"></i></div>';
 print '    <span class="dc-card-title">'.$langs->trans('WorkOrderInformation').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
@@ -619,165 +596,195 @@ print '    <div class="dc-field-label">'.$langs->trans('Reference').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate) {
     print '<em style="color:#9aa0b4;font-size:12.5px;">'.$langs->trans('AutoGenerated').'</em>';
-    print '<input type="hidden" name="ref" value="'.(isset($object->ref) ? dol_escape_htmltag($object->ref) : '').'">';
+    print '<input type="hidden" name="ref" value="'.dol_escape_htmltag($object->ref).'">';
 } elseif ($isEdit) {
-    print '<input type="text" name="ref" value="'.(isset($object->ref) ? dol_escape_htmltag($object->ref) : '').'" readonly style="background:#f5f6fa!important;color:#9aa0b4!important;">';
+    print '<input type="text" name="ref" value="'.dol_escape_htmltag($object->ref).'" readonly style="background:#f5f6fa!important;color:#9aa0b4!important;">';
 } else {
     print '<span class="dc-ref-tag">'.dol_escape_htmltag($object->ref).'</span>';
 }
 print '    </div></div>';
 
-// Vehicle
+// Date Created
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label required">'.$langs->trans('Vehicle').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('DateCreation').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate) {
+    print '<em style="color:#9aa0b4;font-size:12.5px;">'.dol_print_date(dol_now(), 'dayhour').'</em>';
+} else {
+    print dol_print_date($db->jdate($object->tms), 'dayhour');
+}
+print '    </div></div>';
+
+// Requested By
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('RequestedBy').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print '<input type="text" name="requested_by" value="'.dol_escape_htmltag($object->requested_by).'" placeholder="'.$langs->trans('NameOrDepartment').'">';
+else print dol_escape_htmltag($object->requested_by ?: '&mdash;');
+print '    </div></div>';
+
+// Priority
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('Priority').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print $form->selectarray('fk_vehicle', $vehicles, (isset($object->fk_vehicle) ? $object->fk_vehicle : ''), 1);
-} else {
-    if (!empty($object->vehicle_ref)) {
-        $vehicle_info = $object->vehicle_ref;
-        if (!empty($object->maker) && !empty($object->model)) {
-            $vehicle_info .= ' - ' . $object->maker . ' ' . $object->model;
-        }
-        print '<span class="dc-chip"><i class="fa fa-car" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($vehicle_info).'</span>';
-    } else {
-        print '<span style="color:#c4c9d8;">&mdash;</span>';
+    print '<div class="dc-radio-group">';
+    foreach (['Low', 'Medium', 'High', 'Urgent'] as $p) {
+        $chk = ($object->priority == $p) ? ' checked' : '';
+        print '<label><input type="radio" name="priority" value="'.$p.'"'.$chk.'><span>'.dol_escape_htmltag($langs->trans($p)).'</span></label>';
     }
-}
-print '    </div></div>';
-
-// Vendor
-print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Vendor').'</div>';
-print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) {
-    print $form->selectarray('fk_vendor', $vendors, (isset($object->fk_vendor) ? $object->fk_vendor : ''), 1);
+    print '</div>';
 } else {
-    if (!empty($object->vendor_name)) {
-        print '<span class="dc-chip"><i class="fa fa-building" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($object->vendor_name).'</span>';
-    } else {
-        print '<span style="color:#c4c9d8;">&mdash;</span>';
-    }
+    $p = !empty($object->priority) ? $object->priority : 'Medium';
+    $pCss = isset($priorityBadgeClass[$p]) ? $priorityBadgeClass[$p] : 'priority-medium';
+    print '<span class="dc-badge '.$pCss.'">'.dol_escape_htmltag($langs->trans($p)).'</span>';
 }
 print '    </div></div>';
 
-// Required By
-print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('RequiredBy').'</div>';
-print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) {
-    print $form->selectDate((isset($object->required_by) && $object->required_by ? $db->jdate($object->required_by) : ''), 'required_by', 0, 0, 1, '', 1, 1);
-} else {
-    print (!empty($object->required_by) ? dol_print_date($db->jdate($object->required_by), 'day') : '<span style="color:#c4c9d8;">&mdash;</span>');
-}
-print '    </div></div>';
+print '  </div>';
+print '</div>';
 
-// Reading (Meter)
-print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Reading').'</div>';
-print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) {
-    print '<input type="number" name="reading" value="'.(isset($object->reading) ? (int)$object->reading : 0).'" min="0" step="1">';
-} else {
-    print (!empty($object->reading) ? '<span class="dc-mono">'.number_format((int)$object->reading).' km</span>' : '&mdash;');
-}
-print '    </div></div>';
-
-print '  </div>';// card-body
-print '</div>';  // dc-card
-
-/* ── Card: Additional Details ── */
+/* ── Card: Assignment & Status ── */
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
-print '    <div class="dc-card-header-icon amber"><i class="fa fa-info-circle"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('AdditionalInformation').'</span>';
+print '    <div class="dc-card-header-icon green"><i class="fa fa-user-cog"></i></div>';
+print '    <span class="dc-card-title">'.$langs->trans('AssignmentAndStatus').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
+
+// Assigned Driver
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('AssignedTo').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) {
+    if (!empty($drivers)) {
+        print $form->selectarray('fk_driver', $drivers, (int)$object->fk_driver, 1, 0, 0, '', 0, 0, 0, '', '');
+    } else {
+        print '<em style="color:#9aa0b4;font-size:12.5px;">'.$langs->trans('NoActiveDriversFound').'</em>';
+        print '<input type="hidden" name="fk_driver" value="0">';
+    }
+} else {
+    print dol_escape_htmltag(trim($object->driver_fullname) ?: '&mdash;');
+}
+print '    </div></div>';
+
+// Responsible Person
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('ResponsiblePerson').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print '<input type="text" name="responsible_person" value="'.dol_escape_htmltag($object->responsible_person).'" placeholder="'.$langs->trans('SupervisorOrApprover').'">';
+else print dol_escape_htmltag($object->responsible_person ?: '&mdash;');
+print '    </div></div>';
 
 // Status
 print '  <div class="dc-field">';
 print '    <div class="dc-field-label">'.$langs->trans('Status').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    $status_options = array(
-        'Pending'     => $langs->trans('Pending'),
-        'In Progress' => $langs->trans('InProgress'),
-        'Completed'   => $langs->trans('Completed'),
-        'Cancelled'   => $langs->trans('Cancelled'),
-    );
-    print $form->selectarray('status', $status_options, (isset($object->status) ? $object->status : 'Pending'), 1);
-} else {
-    if (!empty($object->status)) {
-        $stClass = strtolower(str_replace(' ', '-', $object->status));
-        $stLabel = ($object->status == 'In Progress') ? $langs->trans('InProgress') : $langs->trans(ucfirst(strtolower($object->status)));
-        print '<span class="dc-badge '.$stClass.'">'.dol_escape_htmltag($stLabel).'</span>';
-    } else {
-        print '<span style="color:#c4c9d8;">&mdash;</span>';
+    print '<div class="dc-radio-group">';
+    foreach (['Pending', 'In Progress', 'Completed', 'Cancelled'] as $s) {
+        $chk = ($object->status == $s) ? ' checked' : '';
+        print '<label><input type="radio" name="status" value="'.dol_escape_htmltag($s).'"'.$chk.'><span>'.dol_escape_htmltag($s).'</span></label>';
     }
-}
-print '    </div></div>';
-
-// Price
-print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Price').'</div>';
-print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) {
-    print '<input type="number" name="price" value="'.(isset($object->price) ? (float)$object->price : 0).'" step="0.01" min="0">';
+    print '</div>';
 } else {
-    print '<span class="dc-mono">'.(isset($object->price) && $object->price ? price($object->price) : price(0)).'</span>';
+    $curStatus = !empty($object->status) ? $object->status : 'Pending';
+    $sCss = isset($statusBadgeClass[$curStatus]) ? $statusBadgeClass[$curStatus] : 'status-pending';
+    print '<span class="dc-badge '.$sCss.'">'.dol_escape_htmltag($curStatus).'</span>';
 }
 print '    </div></div>';
 
-print '  </div>';// card-body
-print '</div>';  // dc-card
+print '  </div>';
+print '</div>';
 
 print '</div>';// dc-grid row1
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   ROW 2 — Description
+   ROW 2 — Schedule (+ spacer)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-if ($isCreate || $isEdit || !empty($object->description)) {
-    print '<div class="dc-card" style="margin-bottom:20px;">';
-    print '  <div class="dc-card-header">';
-    print '    <div class="dc-card-header-icon blue"><i class="fa fa-align-left"></i></div>';
-    print '    <span class="dc-card-title">'.$langs->trans('Description').'</span>';
-    print '  </div>';
-    print '  <div class="dc-card-body">';
-    print '  <div class="dc-field" style="flex-direction:column;gap:8px;">';
-    print '    <div class="dc-field-value" style="width:100%;">';
-    if ($isCreate || $isEdit) {
-        print '<textarea name="description" rows="3" style="min-height:70px;">'.dol_escape_htmltag(isset($object->description) ? $object->description : '').'</textarea>';
-    } else {
-        print '<div style="font-size:13.5px;color:#2d3748;line-height:1.7;">'.nl2br(dol_escape_htmltag($object->description)).'</div>';
-    }
-    print '    </div>';
-    print '  </div>';
-    print '  </div>';
-    print '</div>';
-}
+print '<div class="dc-grid">';
+
+/* ── Card: Schedule ── */
+print '<div class="dc-card">';
+print '  <div class="dc-card-header">';
+print '    <div class="dc-card-header-icon amber"><i class="fa fa-calendar-alt"></i></div>';
+print '    <span class="dc-card-title">'.$langs->trans('Schedule').'</span>';
+print '  </div>';
+print '  <div class="dc-card-body">';
+
+// Start Date
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('StartDate').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print $form->selectDate($object->start_date ?: -1, 'start_date', '', '', 1, '', 1, 1);
+else print $object->start_date ? dol_print_date($db->jdate($object->start_date), 'day') : '&mdash;';
+print '    </div></div>';
+
+// Due Date
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('DueDate').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) print $form->selectDate($object->due_date ?: -1, 'due_date', '', '', 1, '', 1, 1);
+else print $object->due_date ? dol_print_date($db->jdate($object->due_date), 'day') : '&mdash;';
+print '    </div></div>';
+
+print '  </div>';
+print '</div>';
+
+/* ── Spacer (empty cell keeps 2-col grid balanced) ── */
+print '<div></div>';
+
+print '</div>';// dc-grid row2
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   ROW 3 — Notes
+   ROW 3 — Task Details (full width)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-if ($isCreate || $isEdit || !empty($object->note)) {
-    print '<div class="dc-card" style="margin-bottom:20px;">';
-    print '  <div class="dc-card-header">';
-    print '    <div class="dc-card-header-icon purple"><i class="fa fa-sticky-note"></i></div>';
-    print '    <span class="dc-card-title">'.$langs->trans('Notes').'</span>';
-    print '  </div>';
-    print '  <div class="dc-card-body">';
-    print '  <div class="dc-field" style="flex-direction:column;gap:8px;">';
-    print '    <div class="dc-field-value" style="width:100%;">';
-    if ($isCreate || $isEdit) {
-        print '<textarea name="note" rows="4" style="min-height:90px;">'.dol_escape_htmltag(isset($object->note) ? $object->note : '').'</textarea>';
-    } else {
-        print '<div style="font-size:13.5px;color:#2d3748;line-height:1.7;">'.nl2br(dol_escape_htmltag($object->note)).'</div>';
-    }
-    print '    </div>';
-    print '  </div>';
-    print '  </div>';
-    print '</div>';
-}
+print '<div class="dc-card" style="margin-bottom:20px;">';
+print '  <div class="dc-card-header">';
+print '    <div class="dc-card-header-icon teal"><i class="fa fa-tasks"></i></div>';
+print '    <span class="dc-card-title">'.$langs->trans('TaskDetails').'</span>';
+print '  </div>';
+print '  <div class="dc-card-body">';
+
+// Task to Perform
+print '  <div class="dc-field" style="flex-direction:column;gap:8px;">';
+print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('TaskToPerform').'</div>';
+print '    <div class="dc-field-value" style="width:100%;">';
+if ($isCreate || $isEdit) print '<textarea name="task_to_perform" rows="3" placeholder="'.dol_escape_htmltag($langs->trans('DescribeTasksToBePerformed')).'">'.dol_escape_htmltag($object->task_to_perform).'</textarea>';
+else print '<div style="white-space:pre-wrap;">'.nl2br(dol_escape_htmltag($object->task_to_perform ?: '&mdash;')).'</div>';
+print '    </div></div>';
+
+// Problem Description
+print '  <div class="dc-field" style="flex-direction:column;gap:8px;">';
+print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('ProblemDescription').'</div>';
+print '    <div class="dc-field-value" style="width:100%;">';
+if ($isCreate || $isEdit) print '<textarea name="problem_description" rows="3" placeholder="'.dol_escape_htmltag($langs->trans('DescribeProblemOrSymptoms')).'">'.dol_escape_htmltag($object->problem_description).'</textarea>';
+else print '<div style="white-space:pre-wrap;">'.nl2br(dol_escape_htmltag($object->problem_description ?: '&mdash;')).'</div>';
+print '    </div></div>';
+
+print '  </div>';
+print '</div>';
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ROW 4 — Technician Notes (full width)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+print '<div class="dc-card" style="margin-bottom:20px;">';
+print '  <div class="dc-card-header">';
+print '    <div class="dc-card-header-icon purple"><i class="fa fa-sticky-note"></i></div>';
+print '    <span class="dc-card-title">'.$langs->trans('NotesAndApproval').'</span>';
+print '  </div>';
+print '  <div class="dc-card-body">';
+
+// Technician Notes
+print '  <div class="dc-field" style="flex-direction:column;gap:8px;">';
+print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('TechnicianNotes').'</div>';
+print '    <div class="dc-field-value" style="width:100%;">';
+if ($isCreate || $isEdit) print '<textarea name="technician_notes" rows="5" placeholder="'.dol_escape_htmltag($langs->trans('FindingsObservationsRecommendations')).'">'.dol_escape_htmltag($object->technician_notes).'</textarea>';
+else print '<div style="white-space:pre-wrap;">'.nl2br(dol_escape_htmltag($object->technician_notes ?: '&mdash;')).'</div>';
+print '    </div></div>';
+
+print '  </div>';
+print '</div>';
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    BOTTOM ACTION BAR
@@ -792,13 +799,12 @@ if ($isCreate || $isEdit) {
 } elseif ($id > 0) {
     print '<div class="dc-action-bar">';
     print '<a class="dc-btn dc-btn-ghost dc-action-bar-left" href="'.dol_buildpath('/flotte/workorder_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('BackToList').'</a>';
-    print '<a class="dc-btn dc-btn-ghost" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=edit"><i class="fa fa-pen"></i> '.$langs->trans('Modify').'</a>';
-    print '<a class="dc-btn dc-btn-danger" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=delete"><i class="fa fa-trash"></i> '.$langs->trans('Delete').'</a>';
+    if ($user->rights->flotte->write)  print '<a class="dc-btn dc-btn-ghost" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=edit"><i class="fa fa-pen"></i> '.$langs->trans('Modify').'</a>';
+    if ($user->rights->flotte->delete) print '<a class="dc-btn dc-btn-danger" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=delete"><i class="fa fa-trash"></i> '.$langs->trans('Delete').'</a>';
     print '</div>';
 }
 
 print '</div>';// dc-page
 
-// End of page
 llxFooter();
 $db->close();

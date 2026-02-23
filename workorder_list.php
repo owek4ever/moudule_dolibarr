@@ -31,140 +31,92 @@ if (!$res) { die("Include of main fails"); }
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 
-// Load translation files
 $langs->loadLangs(array("flotte@flotte", "other"));
 
-// Get parameters
-$action = GETPOST('action', 'aZ09') ? GETPOST('action', 'aZ09') : 'view';
-$massaction = GETPOST('massaction', 'alpha');
+// ─── Parameters ───────────────────────────────────────────────────
+$action  = GETPOST('action',  'aZ09') ?: 'view';
 $confirm = GETPOST('confirm', 'alpha');
-$toselect = GETPOST('toselect', 'array');
 
-$search_ref = GETPOST('search_ref', 'alpha');
-$search_vehicle = GETPOST('search_vehicle', 'alpha');
-$search_vendor = GETPOST('search_vendor', 'alpha');
-$search_status = GETPOST('search_status', 'alpha');
-$search_required_by = GETPOST('search_required_by', 'alpha');
+$search_ref          = GETPOST('search_ref',          'alpha');
+$search_requested_by = GETPOST('search_requested_by', 'alpha');
+$search_assigned_to  = GETPOST('search_assigned_to',  'alpha');
+$search_priority     = GETPOST('search_priority',     'alpha');
+$search_status       = GETPOST('search_status',       'alpha');
+$search_due_date     = GETPOST('search_due_date',     'alpha');
 
-$limit = GETPOST('limit', 'int') ? GETPOST('limit', 'int') : $conf->liste_limit;
+$limit     = GETPOST('limit', 'int') ?: $conf->liste_limit;
 $sortfield = GETPOST('sortfield', 'aZ09comma');
 $sortorder = GETPOST('sortorder', 'aZ09comma');
-$page = GETPOSTISSET('pageplusone') ? (GETPOST('pageplusone') - 1) : GETPOST("page", 'int');
-
-if (empty($page) || $page == -1) {
-    $page = 0;
-}
-
+$page      = GETPOSTISSET('pageplusone') ? (GETPOST('pageplusone') - 1) : GETPOST("page", 'int');
+if (empty($page) || $page == -1) $page = 0;
 $offset = $limit * $page;
 
-if (!$sortfield) {
-    $sortfield = "t.required_by";
-}
-if (!$sortorder) {
-    $sortorder = "DESC";
-}
+if (!$sortfield) $sortfield = "t.tms";
+if (!$sortorder) $sortorder = "DESC";
 
-// Security check
 restrictedArea($user, 'flotte');
 
-/*
- * Actions
- */
-if (GETPOST('cancel', 'alpha')) {
-    $action = 'list';
-    $massaction = '';
+// ─── Actions ──────────────────────────────────────────────────────
+if (GETPOST('cancel', 'alpha')) $action = 'list';
+
+if (GETPOST('button_removefilter_x','alpha') || GETPOST('button_removefilter.x','alpha') || GETPOST('button_removefilter','alpha')) {
+    $search_ref = $search_requested_by = $search_assigned_to = $search_priority = $search_status = $search_due_date = '';
 }
 
-if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter.x', 'alpha') || GETPOST('button_removefilter', 'alpha')) {
-    $search_ref = '';
-    $search_vehicle = '';
-    $search_vendor = '';
-    $search_status = '';
-    $search_required_by = '';
-}
-
-// Delete action
+// Delete
 if ($action == 'confirm_delete' && $confirm == 'yes' && $user->rights->flotte->write) {
     $id = GETPOST('id', 'int');
     if ($id > 0) {
-        $sql = "DELETE FROM ".MAIN_DB_PREFIX."flotte_workorder WHERE rowid = ".(int)$id;
-        $result = $db->query($sql);
+        $result = $db->query("DELETE FROM ".MAIN_DB_PREFIX."flotte_workorder WHERE rowid = ".(int)$id);
         if ($result) {
-            setEventMessages($langs->trans("RecordDeleted"), null, 'mesgs');
-            header("Location: ".$_SERVER['PHP_SELF']);
-            exit;
+            setEventMessages('Work order deleted.', null, 'mesgs');
+            header("Location: ".$_SERVER['PHP_SELF']); exit;
         } else {
-            setEventMessages($langs->trans("Error"), null, 'errors');
+            setEventMessages('Error: '.$db->lasterror(), null, 'errors');
         }
     }
 }
 
-// Build and execute select
-$sql = 'SELECT t.rowid, t.ref, t.required_by, t.reading, t.note, t.status, t.price, t.description,';
-$sql .= ' v.ref as vehicle_ref, v.maker, v.model,';
-$sql .= ' ven.name as vendor_name';
-$sql .= ' FROM '.MAIN_DB_PREFIX.'flotte_workorder as t';
-$sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'flotte_vehicle as v ON t.fk_vehicle = v.rowid';
-$sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'flotte_vendor as ven ON t.fk_vendor = ven.rowid';
-$sql .= ' WHERE 1 = 1';
-$sql .= ' AND t.entity IN ('.getEntity('flotte').')';
+// ─── Main query ───────────────────────────────────────────────────
+$sql  = "SELECT t.rowid, t.ref, t.status, t.tms, t.priority,";
+$sql .= " COALESCE(t.requested_by, '')                       AS requested_by,";
+$sql .= " COALESCE(t.task_to_perform, t.description, '')     AS task_display,";
+$sql .= " COALESCE(t.due_date, t.required_by)               AS due_display,";
+$sql .= " TRIM(CONCAT(COALESCE(d.firstname,''), ' ', COALESCE(d.lastname,''))) AS driver_fullname";
+$sql .= " FROM ".MAIN_DB_PREFIX."flotte_workorder AS t";
+$sql .= " LEFT JOIN ".MAIN_DB_PREFIX."flotte_driver AS d ON t.fk_driver = d.rowid";
+$sql .= " WHERE 1=1 AND t.entity IN (".getEntity('flotte').")";
 
-// Add search filters
-if ($search_ref) {
-    $sql .= " AND t.ref LIKE '%".$db->escape($search_ref)."%'";
-}
-if ($search_vehicle) {
-    $sql .= " AND (v.ref LIKE '%".$db->escape($search_vehicle)."%' OR v.maker LIKE '%".$db->escape($search_vehicle)."%' OR v.model LIKE '%".$db->escape($search_vehicle)."%')";
-}
-if ($search_vendor) {
-    $sql .= " AND ven.name LIKE '%".$db->escape($search_vendor)."%'";
-}
-if ($search_status) {
-    $sql .= " AND t.status = '".$db->escape($search_status)."'";
-}
-if ($search_required_by) {
-    $sql .= " AND t.required_by = '".$db->escape($search_required_by)."'";
-}
+if ($search_ref)          $sql .= " AND t.ref LIKE '%".$db->escape($search_ref)."%'";
+if ($search_requested_by) $sql .= " AND t.requested_by LIKE '%".$db->escape($search_requested_by)."%'";
+if ($search_assigned_to)  $sql .= " AND (d.firstname LIKE '%".$db->escape($search_assigned_to)."%' OR d.lastname LIKE '%".$db->escape($search_assigned_to)."%')";
+if ($search_priority)     $sql .= " AND t.priority = '".$db->escape($search_priority)."'";
+if ($search_status)       $sql .= " AND t.status = '".$db->escape($search_status)."'";
+if ($search_due_date)     $sql .= " AND COALESCE(t.due_date, t.required_by) = '".$db->escape($search_due_date)."'";
+
+// Count
+$sqlcount = "SELECT COUNT(*) as nb FROM ".MAIN_DB_PREFIX."flotte_workorder AS t"
+          . " LEFT JOIN ".MAIN_DB_PREFIX."flotte_driver AS d ON t.fk_driver = d.rowid"
+          . " WHERE 1=1 AND t.entity IN (".getEntity('flotte').")";
+if ($search_ref)          $sqlcount .= " AND t.ref LIKE '%".$db->escape($search_ref)."%'";
+if ($search_requested_by) $sqlcount .= " AND t.requested_by LIKE '%".$db->escape($search_requested_by)."%'";
+if ($search_assigned_to)  $sqlcount .= " AND (d.firstname LIKE '%".$db->escape($search_assigned_to)."%' OR d.lastname LIKE '%".$db->escape($search_assigned_to)."%')";
+if ($search_priority)     $sqlcount .= " AND t.priority = '".$db->escape($search_priority)."'";
+if ($search_status)       $sqlcount .= " AND t.status = '".$db->escape($search_status)."'";
+if ($search_due_date)     $sqlcount .= " AND COALESCE(t.due_date, t.required_by) = '".$db->escape($search_due_date)."'";
+
+$nbtotalofrecords = 0;
+$resql_count = $db->query($sqlcount);
+if ($resql_count) { $obj = $db->fetch_object($resql_count); $nbtotalofrecords = $obj->nb; }
 
 $sql .= $db->order($sortfield, $sortorder);
-
-// Count total nb of records
-$sqlcount = preg_replace('/SELECT.*FROM/', 'SELECT COUNT(*) as nb FROM', $sql);
-$resql = $db->query($sqlcount);
-$nbtotalofrecords = 0;
-if ($resql) {
-    $obj = $db->fetch_object($resql);
-    $nbtotalofrecords = $obj->nb;
-}
-
 $sql .= $db->plimit($limit + 1, $offset);
 $resql = $db->query($sql);
+$num   = $resql ? $db->num_rows($resql) : 0;
 
 $form = new Form($db);
-$num = 0;
-if ($resql) {
-    $num = $db->num_rows($resql);
-}
 
-// Page header
-llxHeader('', $langs->trans("Work Orders List"), '');
-
-// Build param string for URL
-$param = '';
-if (!empty($search_ref))           $param .= '&search_ref='.urlencode($search_ref);
-if (!empty($search_vehicle))       $param .= '&search_vehicle='.urlencode($search_vehicle);
-if (!empty($search_vendor))        $param .= '&search_vendor='.urlencode($search_vendor);
-if (!empty($search_status))        $param .= '&search_status='.urlencode($search_status);
-if (!empty($search_required_by))   $param .= '&search_required_by='.urlencode($search_required_by);
-
-// Confirmation to delete
-if ($action == 'delete') {
-    $id = GETPOST('id', 'int');
-    $formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$id.$param, $langs->trans('DeleteWorkOrder'), $langs->trans('ConfirmDeleteWorkOrder'), 'confirm_delete', '', 0, 1);
-    print $formconfirm;
-}
-
-// Collect rows
+// ─── Collect rows ─────────────────────────────────────────────────
 $rows = array();
 if ($resql && $num > 0) {
     $i = 0;
@@ -176,7 +128,7 @@ if ($resql && $num > 0) {
     }
 }
 
-// Sort helpers
+// ─── Sort helpers ─────────────────────────────────────────────────
 function wo_sortArrow($field, $sortfield, $sortorder) {
     if ($sortfield == $field) return $sortorder == 'ASC' ? ' <span class="vl-sort-arrow">↑</span>' : ' <span class="vl-sort-arrow">↓</span>';
     return ' <span class="vl-sort-arrow muted">↕</span>';
@@ -191,10 +143,32 @@ $self = $_SERVER["PHP_SELF"];
 // Count by status
 $cnt_pending = 0; $cnt_inprogress = 0; $cnt_completed = 0; $cnt_cancelled = 0;
 foreach ($rows as $r) {
-    if ($r->status == 'Pending')      $cnt_pending++;
+    if ($r->status == 'Pending')        $cnt_pending++;
     elseif ($r->status == 'In Progress') $cnt_inprogress++;
     elseif ($r->status == 'Completed')   $cnt_completed++;
     elseif ($r->status == 'Cancelled')   $cnt_cancelled++;
+}
+
+// ─── URL param string ─────────────────────────────────────────────
+$param = '';
+if (!empty($search_ref))          $param .= '&search_ref='.urlencode($search_ref);
+if (!empty($search_requested_by)) $param .= '&search_requested_by='.urlencode($search_requested_by);
+if (!empty($search_assigned_to))  $param .= '&search_assigned_to='.urlencode($search_assigned_to);
+if (!empty($search_priority))     $param .= '&search_priority='.urlencode($search_priority);
+if (!empty($search_status))       $param .= '&search_status='.urlencode($search_status);
+if (!empty($search_due_date))     $param .= '&search_due_date='.urlencode($search_due_date);
+
+llxHeader('', 'Work Orders', '');
+
+// Delete confirmation
+if ($action == 'delete') {
+    $id = GETPOST('id', 'int');
+    print $form->formconfirm(
+        $_SERVER["PHP_SELF"].'?id='.$id.$param,
+        'Delete Work Order',
+        'Are you sure you want to delete this work order?',
+        'confirm_delete', '', 0, 1
+    );
 }
 ?>
 
@@ -202,13 +176,10 @@ foreach ($rows as $r) {
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
 .vl-wrap * { box-sizing: border-box; }
-
 .vl-wrap {
     font-family: 'DM Sans', sans-serif;
-    max-width: 1480px;
-    margin: 0 auto;
-    padding: 0 4px 40px;
-    color: #1a1f2e;
+    max-width: 1480px; margin: 0 auto;
+    padding: 0 4px 40px; color: #1a1f2e;
 }
 
 /* Header */
@@ -217,10 +188,7 @@ foreach ($rows as $r) {
     padding: 28px 0 24px; border-bottom: 1px solid #e8eaf0;
     margin-bottom: 24px; gap: 16px; flex-wrap: wrap;
 }
-.vl-header-left h1 {
-    font-size: 22px; font-weight: 700; color: #1a1f2e;
-    margin: 0 0 4px; letter-spacing: -0.3px;
-}
+.vl-header-left h1 { font-size: 22px; font-weight: 700; color: #1a1f2e; margin: 0 0 4px; letter-spacing: -0.3px; }
 .vl-header-left .vl-subtitle { font-size: 13px; color: #7c859c; font-weight: 400; }
 .vl-header-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 
@@ -263,8 +231,8 @@ foreach ($rows as $r) {
 }
 .vl-btn-filter.apply { background: #3c4758 !important; color: #fff !important; }
 .vl-btn-filter.apply:hover { background: #2a3346 !important; }
-.vl-btn-filter.reset  { background: #3c4758 !important; color: #fff !important; }
-.vl-btn-filter.reset:hover  { background: #2a3346 !important; }
+.vl-btn-filter.reset { background: #3c4758 !important; color: #fff !important; }
+.vl-btn-filter.reset:hover { background: #2a3346 !important; }
 
 /* Stats chips */
 .vl-stats { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
@@ -281,7 +249,6 @@ foreach ($rows as $r) {
     overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.05);
 }
 .vl-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-
 table.vl-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 table.vl-table thead tr { background: #f7f8fc; border-bottom: 2px solid #e8eaf0; }
 table.vl-table thead th {
@@ -291,17 +258,13 @@ table.vl-table thead th {
 table.vl-table thead th a { color: #8b92a9; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: color 0.15s; }
 table.vl-table thead th a:hover { color: #3c4758; }
 table.vl-table thead th.center { text-align: center; }
-table.vl-table thead th.right  { text-align: right; }
-
 .vl-sort-arrow { font-size: 10px; opacity: 0.6; }
 .vl-sort-arrow.muted { opacity: 0.25; }
-
 table.vl-table tbody tr { border-bottom: 1px solid #f0f2f8; transition: background 0.12s; }
 table.vl-table tbody tr:last-child { border-bottom: none; }
 table.vl-table tbody tr:hover { background: #fafbff; }
 table.vl-table tbody td { padding: 14px 16px; color: #2d3748; vertical-align: middle; }
 table.vl-table tbody td.center { text-align: center; }
-table.vl-table tbody td.right  { text-align: right; }
 
 /* Ref link */
 .vl-ref-link {
@@ -316,15 +279,26 @@ table.vl-table tbody td.right  { text-align: right; }
     justify-content: center; color: #3c4758; font-size: 14px; flex-shrink: 0;
 }
 
-/* Vehicle name */
-.vl-vehicle-name { font-weight: 600; color: #1a1f2e; font-size: 13.5px; }
-.vl-vehicle-sub  { font-size: 11.5px; color: #9aa0b4; margin-top: 2px; }
+/* Task preview */
+.vl-task-main { font-weight: 600; color: #1a1f2e; font-size: 13.5px; }
+.vl-task-sub  { font-size: 11.5px; color: #9aa0b4; margin-top: 2px; }
 
 /* Mono */
 .vl-mono {
     font-family: 'DM Mono', monospace; font-size: 12px; color: #4a5568;
     background: #f0f2fa; padding: 3px 8px; border-radius: 5px; display: inline-block;
 }
+
+/* Priority badge */
+.vl-priority {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 11.5px; font-weight: 600; white-space: nowrap;
+}
+.vl-priority.low      { background: #f0fdf4; color: #166534; }
+.vl-priority.medium   { background: #fefce8; color: #854d0e; }
+.vl-priority.high     { background: #fef2f2; color: #991b1b; }
+.vl-priority.urgent   { background: #7f1d1d; color: #fff; }
 
 /* Status badge */
 .vl-badge {
@@ -385,15 +359,10 @@ table.vl-table tbody td.right  { text-align: right; }
 <!-- Header -->
 <div class="vl-header">
     <div class="vl-header-left">
-        <h1><i class="fa fa-tools" style="color:#3c4758;margin-right:10px;"></i><?php echo $langs->trans("Work Orders List"); ?></h1>
+        <h1><i class="fa fa-tools" style="color:#3c4758;margin-right:10px;"></i>Work Orders</h1>
         <div class="vl-subtitle"><?php echo $nbtotalofrecords; ?> work order<?php echo $nbtotalofrecords != 1 ? 's' : ''; ?> found</div>
     </div>
     <div class="vl-header-actions">
-        <?php if ($user->rights->flotte->read) { ?>
-        <a class="vl-btn vl-btn-secondary" href="<?php echo dol_buildpath('/flotte/workorder_list.php', 1); ?>?action=export">
-            <i class="fa fa-download"></i> Export
-        </a>
-        <?php } ?>
         <?php if ($user->rights->flotte->write) { ?>
         <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/workorder_card.php', 1); ?>?action=create">
             <i class="fa fa-plus"></i> New Work Order
@@ -404,12 +373,12 @@ table.vl-table tbody td.right  { text-align: right; }
 
 <!-- Filter Form -->
 <form method="POST" action="<?php echo $self; ?>">
-<input type="hidden" name="token" value="<?php echo newToken(); ?>">
+<input type="hidden" name="token"            value="<?php echo newToken(); ?>">
 <input type="hidden" name="formfilteraction" value="list">
-<input type="hidden" name="action" value="list">
-<input type="hidden" name="sortfield" value="<?php echo $sortfield; ?>">
-<input type="hidden" name="sortorder" value="<?php echo $sortorder; ?>">
-<input type="hidden" name="page" value="<?php echo $page; ?>">
+<input type="hidden" name="action"           value="list">
+<input type="hidden" name="sortfield"        value="<?php echo $sortfield; ?>">
+<input type="hidden" name="sortorder"        value="<?php echo $sortorder; ?>">
+<input type="hidden" name="page"             value="<?php echo $page; ?>">
 
 <div class="vl-filters">
     <div class="vl-filter-group">
@@ -417,18 +386,28 @@ table.vl-table tbody td.right  { text-align: right; }
         <input type="text" name="search_ref" placeholder="Search ref…" value="<?php echo dol_escape_htmltag($search_ref); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Vehicle</label>
-        <input type="text" name="search_vehicle" placeholder="Ref, maker, model…" value="<?php echo dol_escape_htmltag($search_vehicle); ?>">
+        <label>Requested By</label>
+        <input type="text" name="search_requested_by" placeholder="Name or department…" value="<?php echo dol_escape_htmltag($search_requested_by); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Vendor</label>
-        <input type="text" name="search_vendor" placeholder="Vendor name…" value="<?php echo dol_escape_htmltag($search_vendor); ?>">
+        <label>Assigned To</label>
+        <input type="text" name="search_assigned_to" placeholder="Driver name…" value="<?php echo dol_escape_htmltag($search_assigned_to); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Required By</label>
-        <input type="date" name="search_required_by" value="<?php echo dol_escape_htmltag($search_required_by); ?>">
+        <label>Due Date</label>
+        <input type="date" name="search_due_date" value="<?php echo dol_escape_htmltag($search_due_date); ?>">
     </div>
-    <div class="vl-filter-group" style="max-width:160px;">
+    <div class="vl-filter-group" style="max-width:150px;">
+        <label>Priority</label>
+        <select name="search_priority">
+            <option value="">All</option>
+            <option value="Low"    <?php echo $search_priority === 'Low'    ? 'selected' : ''; ?>>Low</option>
+            <option value="Medium" <?php echo $search_priority === 'Medium' ? 'selected' : ''; ?>>Medium</option>
+            <option value="High"   <?php echo $search_priority === 'High'   ? 'selected' : ''; ?>>High</option>
+            <option value="Urgent" <?php echo $search_priority === 'Urgent' ? 'selected' : ''; ?>>Urgent</option>
+        </select>
+    </div>
+    <div class="vl-filter-group" style="max-width:150px;">
         <label>Status</label>
         <select name="search_status">
             <option value="">All</option>
@@ -478,11 +457,11 @@ table.vl-table tbody td.right  { text-align: right; }
         <thead>
             <tr>
                 <th><a href="<?php echo wo_sortHref('t.ref', $sortfield, $sortorder, $self, $param); ?>">Ref <?php echo wo_sortArrow('t.ref', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo wo_sortHref('v.ref', $sortfield, $sortorder, $self, $param); ?>">Vehicle <?php echo wo_sortArrow('v.ref', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo wo_sortHref('ven.name', $sortfield, $sortorder, $self, $param); ?>">Vendor <?php echo wo_sortArrow('ven.name', $sortfield, $sortorder); ?></a></th>
-                <th class="center"><a href="<?php echo wo_sortHref('t.required_by', $sortfield, $sortorder, $self, $param); ?>">Required By <?php echo wo_sortArrow('t.required_by', $sortfield, $sortorder); ?></a></th>
-                <th class="right"><a href="<?php echo wo_sortHref('t.reading', $sortfield, $sortorder, $self, $param); ?>">Reading <?php echo wo_sortArrow('t.reading', $sortfield, $sortorder); ?></a></th>
-                <th class="right"><a href="<?php echo wo_sortHref('t.price', $sortfield, $sortorder, $self, $param); ?>">Price <?php echo wo_sortArrow('t.price', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo wo_sortHref('t.requested_by', $sortfield, $sortorder, $self, $param); ?>">Requested By <?php echo wo_sortArrow('t.requested_by', $sortfield, $sortorder); ?></a></th>
+                <th>Task</th>
+                <th><a href="<?php echo wo_sortHref('d.lastname', $sortfield, $sortorder, $self, $param); ?>">Assigned To <?php echo wo_sortArrow('d.lastname', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><a href="<?php echo wo_sortHref('t.due_date', $sortfield, $sortorder, $self, $param); ?>">Due Date <?php echo wo_sortArrow('t.due_date', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><a href="<?php echo wo_sortHref('t.priority', $sortfield, $sortorder, $self, $param); ?>">Priority <?php echo wo_sortArrow('t.priority', $sortfield, $sortorder); ?></a></th>
                 <th class="center"><a href="<?php echo wo_sortHref('t.status', $sortfield, $sortorder, $self, $param); ?>">Status <?php echo wo_sortArrow('t.status', $sortfield, $sortorder); ?></a></th>
                 <th class="center">Actions</th>
             </tr>
@@ -490,7 +469,9 @@ table.vl-table tbody td.right  { text-align: right; }
         <tbody>
         <?php if (!empty($rows)) {
             foreach ($rows as $obj) {
-                $cardUrl = dol_buildpath('/flotte/workorder_card.php', 1).'?id='.$obj->rowid;
+                $cardUrl  = dol_buildpath('/flotte/workorder_card.php', 1).'?id='.$obj->rowid;
+                $priority = $obj->priority ?: 'Medium';
+                $dname    = trim($obj->driver_fullname ?? '');
         ?>
             <tr>
                 <!-- Ref -->
@@ -501,35 +482,35 @@ table.vl-table tbody td.right  { text-align: right; }
                     </a>
                 </td>
 
-                <!-- Vehicle -->
+                <!-- Requested By -->
+                <td><?php echo dol_escape_htmltag($obj->requested_by ?: '—'); ?></td>
+
+                <!-- Task preview -->
                 <td>
-                    <?php if (!empty($obj->vehicle_ref)) { ?>
-                    <div class="vl-vehicle-name"><?php echo dol_escape_htmltag(trim(($obj->maker ?? '').' '.($obj->model ?? ''))); ?></div>
-                    <div class="vl-vehicle-sub"><?php echo dol_escape_htmltag($obj->vehicle_ref); ?></div>
-                    <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
+                    <?php if (!empty($obj->task_display)) {
+                        echo '<div class="vl-task-main">'.dol_escape_htmltag(dol_trunc($obj->task_display, 45)).'</div>';
+                    } else {
+                        echo '<span style="color:#c4c9d8;">—</span>';
+                    } ?>
                 </td>
 
-                <!-- Vendor -->
-                <td><?php echo dol_escape_htmltag($obj->vendor_name ?: '—'); ?></td>
+                <!-- Assigned To -->
+                <td><?php echo $dname ? dol_escape_htmltag($dname) : '<span style="color:#c4c9d8;">—</span>'; ?></td>
 
-                <!-- Required By -->
+                <!-- Due Date -->
                 <td class="center">
                     <?php
-                    $date_val = dol_print_date($db->jdate($obj->required_by), 'day');
-                    echo $date_val ?: '<span style="color:#c4c9d8;">—</span>';
+                    $due = $obj->due_display ? dol_print_date($db->jdate($obj->due_display), 'day') : '';
+                    echo $due ?: '<span style="color:#c4c9d8;">—</span>';
                     ?>
                 </td>
 
-                <!-- Reading -->
-                <td class="right">
-                    <?php if (!empty($obj->reading)) { ?>
-                    <span class="vl-mono"><?php echo number_format($obj->reading, 0); ?> km</span>
-                    <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
-                </td>
-
-                <!-- Price -->
-                <td class="right">
-                    <?php echo !empty($obj->price) ? '<strong>'.price($obj->price).'</strong>' : '<span style="color:#c4c9d8;">—</span>'; ?>
+                <!-- Priority -->
+                <td class="center">
+                    <?php
+                    $pcss = strtolower($priority);
+                    echo '<span class="vl-priority '.$pcss.'">'.dol_escape_htmltag($priority).'</span>';
+                    ?>
                 </td>
 
                 <!-- Status -->
@@ -550,8 +531,6 @@ table.vl-table tbody td.right  { text-align: right; }
                         <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="View"><i class="fa fa-eye"></i></a>
                         <?php if ($user->rights->flotte->write) { ?>
                         <a href="<?php echo $cardUrl; ?>&action=edit" class="vl-action-btn edit" title="Edit"><i class="fa fa-pen"></i></a>
-                        <?php } ?>
-                        <?php if ($user->rights->flotte->write) { ?>
                         <a href="<?php echo $self; ?>?id=<?php echo $obj->rowid; ?>&action=delete&token=<?php echo newToken(); ?>" class="vl-action-btn del" title="Delete"><i class="fa fa-trash"></i></a>
                         <?php } ?>
                     </div>
@@ -613,4 +592,3 @@ table.vl-table tbody td.right  { text-align: right; }
 if ($resql) { $db->free($resql); }
 llxFooter();
 $db->close();
-?>
