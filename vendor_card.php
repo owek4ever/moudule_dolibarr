@@ -461,9 +461,25 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
 @media (max-width: 860px) {
     .dc-grid {
         grid-template-columns: 1fr;
+        gap: 14px;
+        margin-bottom: 14px;
     }
     .dc-page {
         padding: 0 10px 36px;
+    }
+    /* Header stacks at this size too */
+    .dc-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 16px 0 14px;
+        margin-bottom: 18px;
+        gap: 10px;
+    }
+    .dc-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 8px;
     }
 }
 
@@ -473,34 +489,11 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
         padding: 0 8px 28px;
     }
 
-    /* Header stacks */
-    .dc-header {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 16px 0 14px;
-        gap: 10px;
-    }
-    .dc-header-left {
-        gap: 10px;
-    }
-    .dc-header-icon {
-        width: 38px;
-        height: 38px;
-        font-size: 16px;
-    }
-    .dc-header-title {
-        font-size: 17px;
-    }
-    .dc-header-actions {
-        width: 100%;
-        justify-content: flex-start;
-        flex-wrap: wrap;
-        gap: 6px;
-    }
-    .dc-btn {
-        padding: 7px 12px;
-        font-size: 12px;
-    }
+    .dc-header-left { gap: 10px; }
+    .dc-header-icon { width: 38px; height: 38px; font-size: 16px; }
+    .dc-header-title { font-size: 17px; }
+    .dc-header-sub { font-size: 12px; }
+    .dc-btn { padding: 7px 12px; font-size: 12px; }
 
     /* Field rows stack vertically */
     .dc-field {
@@ -513,14 +506,11 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
         width: 100%;
         font-size: 11px;
     }
-    .dc-field-value {
-        width: 100%;
-    }
+    .dc-field-value { width: 100%; }
 
     /* Card header padding */
-    .dc-card-header {
-        padding: 12px 14px;
-    }
+    .dc-card { border-radius: 10px; }
+    .dc-card-header { padding: 12px 14px; }
 
     /* Action bar stacks on mobile */
     .dc-action-bar {
@@ -537,6 +527,33 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
         margin-right: 0;
         order: 99;
     }
+
+    /* Documents grid: single column on mobile */
+    .dc-card-body > div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+    }
+
+    /* File upload zone: compact */
+    .dc-file-zone { padding: 10px 12px; }
+    .dc-file-zone i { font-size: 18px; }
+}
+
+/* Small phones (≤ 480px) */
+@media (max-width: 480px) {
+    .dc-page { padding: 0 6px 24px; }
+    .dc-header-title { font-size: 16px; }
+    .dc-header-icon { width: 34px; height: 34px; font-size: 14px; border-radius: 9px; }
+
+    .dc-field { padding: 9px 12px; }
+
+    /* Inputs: slightly larger font for touch */
+    .dc-page input[type="text"],
+    .dc-page input[type="email"],
+    .dc-page input[type="number"],
+    .dc-page select { font-size: 14px !important; }
+
+    /* Header action buttons: tighter */
+    .dc-header-actions .dc-btn { font-size: 11.5px; padding: 6px 9px; }
 }
 
 /* ── Section card ── */
