@@ -550,6 +550,105 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
     background: rgba(60,71,88,0.08); color: #3c4758;
     padding: 4px 10px; border-radius: 6px; font-weight: 500;
 }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   RESPONSIVE STYLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* Tablet: 960px and below */
+@media (max-width: 960px) {
+    .dc-page {
+        padding: 0 12px 40px;
+    }
+    .dc-header {
+        padding: 18px 0 16px;
+        margin-bottom: 20px;
+    }
+    .dc-header-title { font-size: 18px; }
+    .dc-field-label { flex: 0 0 130px; }
+}
+
+/* Tablet portrait / large phone: 780px and below */
+@media (max-width: 780px) {
+    /* dc-grid already stacks to 1 column here */
+    .dc-page { padding: 0 10px 32px; }
+
+    .dc-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 16px 0 14px;
+        margin-bottom: 16px;
+    }
+    .dc-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .dc-field {
+        flex-direction: column;
+        gap: 4px;
+        padding: 10px 16px;
+    }
+    .dc-field-label {
+        flex: none;
+        width: 100%;
+        padding-top: 0;
+    }
+    .dc-field-value { width: 100%; }
+
+    .dc-action-bar {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 14px 0 4px;
+    }
+    .dc-action-bar-left {
+        width: 100%;
+        margin-right: 0;
+    }
+    .dc-action-bar .dc-btn {
+        flex: 1 1 auto;
+        justify-content: center;
+        min-width: 120px;
+    }
+}
+
+/* Small phones: 480px and below */
+@media (max-width: 480px) {
+    .dc-page { padding: 0 6px 24px; }
+
+    .dc-header-title { font-size: 16px; }
+    .dc-header-sub { font-size: 11.5px; }
+    .dc-header-icon { width: 38px; height: 38px; font-size: 16px; border-radius: 10px; }
+
+    .dc-card { border-radius: 10px; }
+    .dc-card-header { padding: 12px 14px; }
+
+    .dc-field { padding: 9px 14px; }
+
+    .dc-btn {
+        font-size: 12.5px;
+        padding: 7px 12px;
+    }
+
+    .dc-action-bar .dc-btn {
+        flex: 1 1 100%;
+    }
+
+    .dc-header-actions .dc-btn {
+        font-size: 12px;
+        padding: 6px 10px;
+    }
+
+    .dc-grid { gap: 14px; margin-bottom: 14px; }
+
+    /* Make select/input full width and readable on small screens */
+    .dc-page select,
+    .dc-page input[type="text"],
+    .dc-page input[type="number"] {
+        font-size: 14px !important; /* slightly larger for touch */
+    }
+}
 </style>
 <?php
 
