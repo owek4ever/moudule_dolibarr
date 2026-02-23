@@ -440,8 +440,129 @@ table.vl-table tbody td.right  { text-align: right; }
 .vl-page-btn.active { background: #3c4758; color: #fff; border-color: transparent; }
 .vl-page-btn.disabled { opacity: 0.35; pointer-events: none; }
 
-@media (max-width: 900px) { .vl-filters { flex-direction: column; } .vl-filter-group { min-width: 100%; } }
-@media (max-width: 600px) { .vl-header { flex-direction: column; align-items: flex-start; } }
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   RESPONSIVE STYLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* ── 1100px: tighten table cell padding ── */
+@media (max-width: 1100px) {
+    .vl-wrap { padding: 0 10px 40px; }
+    table.vl-table thead th,
+    table.vl-table tbody td { padding: 11px 10px; }
+}
+
+/* ── 900px: stack filters ── */
+@media (max-width: 900px) {
+    .vl-filters { flex-direction: column; gap: 10px; }
+    .vl-filter-group { min-width: 100%; max-width: 100% !important; }
+    .vl-filter-actions { width: 100%; }
+    .vl-btn-filter { flex: 1; justify-content: center; }
+    .vl-stats { gap: 8px; }
+}
+
+/* ── 760px: hide lower-priority columns, stack header ── */
+@media (max-width: 760px) {
+    .vl-wrap { padding: 0 8px 32px; }
+
+    .vl-header { flex-direction: column; align-items: flex-start; gap: 12px; padding: 18px 0 16px; }
+    .vl-header-actions { width: 100%; }
+    .vl-btn { flex: 1; justify-content: center; }
+
+    /* Hide: Barcode (4), Manufacturer (5), Available (10) */
+    table.vl-table thead th:nth-child(4),
+    table.vl-table tbody td:nth-child(4),
+    table.vl-table thead th:nth-child(5),
+    table.vl-table tbody td:nth-child(5),
+    table.vl-table thead th:nth-child(10),
+    table.vl-table tbody td:nth-child(10) { display: none; }
+
+    table.vl-table thead th,
+    table.vl-table tbody td { padding: 10px 8px; font-size: 12.5px; }
+
+    .vl-pagination { flex-direction: column; align-items: center; gap: 10px; padding: 14px 12px; }
+    .vl-page-btn { min-width: 30px; height: 30px; font-size: 12px; }
+}
+
+/* ── 540px: card-style rows for mobile ── */
+@media (max-width: 540px) {
+    .vl-wrap { padding: 0 6px 24px; }
+    .vl-header-left h1 { font-size: 18px; }
+    .vl-header-left .vl-subtitle { font-size: 12px; }
+
+    /* Switch table to card layout */
+    .vl-table-wrap { overflow-x: unset; }
+    table.vl-table { display: block; }
+    table.vl-table thead { display: none; }
+    table.vl-table tbody { display: flex; flex-direction: column; gap: 10px; padding: 10px; }
+    table.vl-table tbody tr {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 12px;
+        border: 1px solid #e8eaf0;
+        border-radius: 10px;
+        padding: 12px 14px;
+        background: #fff;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    table.vl-table tbody tr:hover { background: #fafbff; }
+    table.vl-table tbody td {
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+        border: none;
+        font-size: 13px;
+        text-align: left !important;
+    }
+
+    /* Restore hidden columns */
+    table.vl-table tbody td:nth-child(4),
+    table.vl-table tbody td:nth-child(5),
+    table.vl-table tbody td:nth-child(10) { display: flex; }
+
+    /* Column labels via pseudo-elements */
+    table.vl-table tbody td::before {
+        content: attr(data-label);
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #9aa0b4;
+        margin-bottom: 2px;
+    }
+
+    /* Ref spans full width at top */
+    table.vl-table tbody td:nth-child(1) {
+        grid-column: 1 / -1;
+        border-bottom: 1px solid #f0f2f8;
+        padding-bottom: 8px;
+        margin-bottom: 2px;
+    }
+    /* Actions span full width at bottom */
+    table.vl-table tbody td:last-child {
+        grid-column: 1 / -1;
+        border-top: 1px solid #f0f2f8;
+        padding-top: 8px;
+        margin-top: 2px;
+    }
+    .vl-actions { justify-content: flex-start; }
+
+    /* Empty state row: undo grid */
+    table.vl-table tbody tr:has(.vl-empty) {
+        display: block;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+    }
+
+    /* Filters & stats */
+    .vl-filters { padding: 14px 12px; border-radius: 10px; }
+    .vl-filter-actions { flex-direction: row; }
+    .vl-stats { gap: 6px; }
+    .vl-stat-chip { font-size: 11.5px; padding: 5px 10px; }
+
+    /* Pagination */
+    .vl-page-btns { flex-wrap: wrap; justify-content: center; }
+}
 </style>
 
 <div class="vl-wrap">
@@ -587,7 +708,7 @@ table.vl-table tbody td.right  { text-align: right; }
         ?>
             <tr>
                 <!-- Ref -->
-                <td>
+                <td data-label="Ref">
                     <a href="<?php echo $cardUrl; ?>" class="vl-ref-link">
                         <span class="vl-ref-icon"><i class="fa fa-cog"></i></span>
                         <?php echo dol_escape_htmltag($obj->ref); ?>
@@ -595,7 +716,7 @@ table.vl-table tbody td.right  { text-align: right; }
                 </td>
 
                 <!-- Title -->
-                <td>
+                <td data-label="Title">
                     <div class="vl-part-name"><?php echo dol_escape_htmltag($obj->title ?: '—'); ?></div>
                     <?php if (!empty($obj->model) || !empty($obj->year)) { ?>
                     <div class="vl-part-sub"><?php echo dol_escape_htmltag(trim(($obj->model ?? '').' '.($obj->year ?? ''))); ?></div>
@@ -603,27 +724,27 @@ table.vl-table tbody td.right  { text-align: right; }
                 </td>
 
                 <!-- Part Number -->
-                <td>
+                <td data-label="Part No.">
                     <?php if (!empty($obj->number)) { ?>
                     <span class="vl-mono"><?php echo dol_escape_htmltag($obj->number); ?></span>
                     <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
                 </td>
 
                 <!-- Barcode -->
-                <td>
+                <td data-label="Barcode">
                     <?php if (!empty($obj->barcode)) { ?>
                     <span class="vl-mono"><?php echo dol_escape_htmltag($obj->barcode); ?></span>
                     <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
                 </td>
 
                 <!-- Manufacturer -->
-                <td><?php echo dol_escape_htmltag($obj->manufacturer ?: '—'); ?></td>
+                <td data-label="Manufacturer"><?php echo dol_escape_htmltag($obj->manufacturer ?: '—'); ?></td>
 
                 <!-- Vendor -->
-                <td><?php echo dol_escape_htmltag($obj->vendor_name ?: '—'); ?></td>
+                <td data-label="Vendor"><?php echo dol_escape_htmltag($obj->vendor_name ?: '—'); ?></td>
 
                 <!-- Stock -->
-                <td class="right">
+                <td class="right" data-label="Stock">
                     <?php
                     $qty = (int)$obj->qty_on_hand;
                     if ($qty <= 0)     $stock_cls = 'empty';
@@ -634,12 +755,12 @@ table.vl-table tbody td.right  { text-align: right; }
                 </td>
 
                 <!-- Unit Cost -->
-                <td class="right">
+                <td class="right" data-label="Unit Cost">
                     <?php echo !empty($obj->unit_cost) ? price($obj->unit_cost) : '<span style="color:#c4c9d8;">—</span>'; ?>
                 </td>
 
                 <!-- Status -->
-                <td class="center">
+                <td class="center" data-label="Status">
                     <?php
                     $st = $obj->status;
                     if ($st == 'Active')        echo '<span class="vl-badge active">Active</span>';
@@ -651,7 +772,7 @@ table.vl-table tbody td.right  { text-align: right; }
                 </td>
 
                 <!-- Availability -->
-                <td class="center">
+                <td class="center" data-label="Available">
                     <?php
                     if ($obj->availability == 1) echo '<span class="vl-badge available">Available</span>';
                     else                         echo '<span class="vl-badge unavailable">Not Available</span>';
@@ -659,7 +780,7 @@ table.vl-table tbody td.right  { text-align: right; }
                 </td>
 
                 <!-- Actions -->
-                <td>
+                <td data-label="Actions">
                     <div class="vl-actions">
                         <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="View"><i class="fa fa-eye"></i></a>
                         <?php if ($user->rights->flotte->write) { ?>
