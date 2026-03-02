@@ -30,6 +30,7 @@ if (!$res) { die("Include of main fails"); }
 
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
+require_once DOL_DOCUMENT_ROOT.'/societe/class/societe.class.php';
 
 // Load translation files
 $langs->loadLangs(array("flotte@flotte", "other"));
@@ -135,15 +136,6 @@ if ($action == 'add') {
         $ref = getNextCustomerRef($db, $conf->entity);
     }
     
-    if (empty($firstname)) {
-        $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("FirstName"));
-    }
-    if (empty($lastname)) {
-        $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("LastName"));
-    }
-    
     if (!$error) {
         $sql = "INSERT INTO ".MAIN_DB_PREFIX."flotte_customer (";
         $sql .= "ref, entity, firstname, lastname, phone, email, company_name, tax_no, payment_delay, gender, fk_user_author";
@@ -186,15 +178,6 @@ if ($action == 'update') {
     $payment_delay = GETPOST('payment_delay', 'int');
     $gender = GETPOST('gender', 'alpha');
     
-    if (empty($firstname)) {
-        $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("FirstName"));
-    }
-    if (empty($lastname)) {
-        $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("LastName"));
-    }
-    
     if (!$error) {
         $sql = "UPDATE ".MAIN_DB_PREFIX."flotte_customer SET ";
         $sql .= "ref = '".$db->escape($ref)."', ";
@@ -224,6 +207,40 @@ if ($action == 'update') {
     }
 }
 
+// Handle AJAX request to get Third Party data
+if ($action == 'fetch_thirdparty' && GETPOST('fk_soc', 'int') > 0) {
+    $socid = GETPOST('fk_soc', 'int');
+    $soc = new Societe($db);
+    if ($soc->fetch($socid) > 0) {
+        // Try to get the first contact of this company for firstname/lastname
+        $firstname = '';
+        $lastname   = '';
+        $sql_contact = "SELECT firstname, lastname FROM ".MAIN_DB_PREFIX."socpeople";
+        $sql_contact .= " WHERE fk_soc = ".((int) $socid)." AND entity IN (".getEntity('contact').")";
+        $sql_contact .= " ORDER BY rowid ASC LIMIT 1";
+        $res_contact = $db->query($sql_contact);
+        if ($res_contact && $db->num_rows($res_contact) > 0) {
+            $obj_contact = $db->fetch_object($res_contact);
+            $firstname = $obj_contact->firstname;
+            $lastname  = $obj_contact->lastname;
+        }
+        header('Content-Type: application/json');
+        echo json_encode(array(
+            'company_name' => $soc->name,
+            'phone'        => $soc->phone,
+            'email'        => $soc->email,
+            'tax_no'       => $soc->tva_intra,
+            'firstname'    => $firstname,
+            'lastname'     => $lastname,
+        ));
+    } else {
+        header('Content-Type: application/json');
+        echo json_encode(array());
+    }
+    $db->close();
+    exit;
+}
+
 // Load object data
 if ($id > 0) {
     $sql = "SELECT * FROM ".MAIN_DB_PREFIX."flotte_customer WHERE rowid = ".((int) $id);
@@ -243,7 +260,7 @@ if ($id > 0) {
 $form = new Form($db);
 
 // Initialize technical object to manage hooks. Note that conf->hooks_modules contains array of hooks
-$hookmanager->initHooks(array('customercard'));
+$hookmanager->initHooks(array('customer card'));
 
 /*
  * View
@@ -251,9 +268,9 @@ $hookmanager->initHooks(array('customercard'));
 
 $title = $langs->trans('Customer');
 if ($action == 'create') {
-    $title = $langs->trans('NewCustomer');
+    $title = $langs->trans('New Customer');
 } elseif ($action == 'edit') {
-    $title = $langs->trans('EditCustomer');
+    $title = $langs->trans('Edit Customer');
 } elseif ($id > 0) {
     $title = $langs->trans('Customer') . " " . $object->ref;
 }
@@ -262,6 +279,32 @@ llxHeader('', $title);
 
 ?>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script type="text/javascript">
+jQuery(document).ready(function() {
+    // Auto-fill fields when a Third Party is selected via the Dolibarr autocomplete
+    jQuery(document).on('change', 'input[name="fk_soc"], #fk_soc, select[name="fk_soc"]', function() {
+        var socid = jQuery(this).val();
+        if (socid > 0) {
+            jQuery.ajax({
+                url: '<?php echo $_SERVER['PHP_SELF']; ?>',
+                type: 'GET',
+                data: { action: 'fetch_thirdparty', fk_soc: socid },
+                dataType: 'json',
+                success: function(data) {
+                    if (data.company_name) jQuery('input[name="company_name"]').val(data.company_name);
+                    if (data.phone)        jQuery('input[name="phone"]').val(data.phone);
+                    if (data.email)        jQuery('input[name="email"]').val(data.email);
+                    if (data.tax_no)       jQuery('input[name="tax_no"]').val(data.tax_no);
+                    if (data.firstname)    jQuery('input[name="firstname"]').val(data.firstname);
+                    if (data.lastname)     jQuery('input[name="lastname"]').val(data.lastname);
+                },
+                error: function() { console.log('Error fetching Third Party data'); }
+            });
+        }
+    });
+});
+</script>
 
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
@@ -516,6 +559,12 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
     background: rgba(60,71,88,0.08); color: #3c4758;
     padding: 4px 10px; border-radius: 6px; font-weight: 500;
 }
+
+/* ── Third party selector row ── */
+.dc-field-thirdparty {
+    background: #f7f8fc;
+    border-bottom: 2px solid #e8eaf0 !important;
+}
 </style>
 <?php
 
@@ -544,8 +593,8 @@ $isEdit   = ($action == 'edit');
 $isCreate = ($action == 'create');
 $isView   = (!$isEdit && !$isCreate);
 
-$pageTitle = $isCreate ? $langs->trans('NewCustomer') : ($isEdit ? $langs->trans('EditCustomer') : $langs->trans('Customer'));
-$pageSub   = $isCreate ? $langs->trans('FillInCustomerDetails') : (isset($object->ref) ? $object->ref : '');
+$pageTitle = $isCreate ? $langs->trans('New Customer') : ($isEdit ? $langs->trans('EditCustomer') : $langs->trans('Customer'));
+$pageSub   = $isCreate ? $langs->trans('Fill In Customer Details') : (isset($object->ref) ? $object->ref : '');
 
 // Form start
 if ($isCreate || $isEdit) {
@@ -587,9 +636,19 @@ print '<div class="dc-grid">';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon blue"><i class="fa fa-id-card"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('CustomerInformation').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Customer Information').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
+
+// Third Party selector (create mode only — auto-fills fields below)
+if ($isCreate) {
+    print '  <div class="dc-field dc-field-thirdparty">';
+    print '    <div class="dc-field-label">'.$langs->trans('Customer').'</div>';
+    print '    <div class="dc-field-value">';
+    print $form->select_company('', 'fk_soc', 's.client = 1 AND s.fournisseur = 0', '-- '.$langs->trans('SelectThirdParty').' --', 0, 0, array(), 0, 'minwidth300');
+    print '      <div style="font-size:11.5px;color:#9aa0b4;margin-top:5px;"><i class="fa fa-info-circle"></i> '.$langs->trans('Selecting a third party will auto-fill the fields below.').'</div>';
+    print '    </div></div>';
+}
 
 // Reference
 print '  <div class="dc-field">';
@@ -607,17 +666,17 @@ print '    </div></div>';
 
 // First Name
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label required">'.$langs->trans('FirstName').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('First Name').'</div>';
 print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) print '<input type="text" name="firstname" value="'.(isset($object->firstname) ? dol_escape_htmltag($object->firstname) : '').'" required>';
+if ($isCreate || $isEdit) print '<input type="text" name="firstname" value="'.(isset($object->firstname) ? dol_escape_htmltag($object->firstname) : '').'">';
 else print dol_escape_htmltag($object->firstname);
 print '    </div></div>';
 
 // Last Name
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label required">'.$langs->trans('LastName').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Last Name').'</div>';
 print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) print '<input type="text" name="lastname" value="'.(isset($object->lastname) ? dol_escape_htmltag($object->lastname) : '').'" required>';
+if ($isCreate || $isEdit) print '<input type="text" name="lastname" value="'.(isset($object->lastname) ? dol_escape_htmltag($object->lastname) : '').'">';
 else print dol_escape_htmltag($object->lastname);
 print '    </div></div>';
 
@@ -644,13 +703,13 @@ print '</div>';  // dc-card
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon green"><i class="fa fa-building"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('AdditionalInformation').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Additional Information').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
 // Company Name
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('CompanyName').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Company Name').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="text" name="company_name" value="'.(isset($object->company_name) ? dol_escape_htmltag($object->company_name) : '').'">';
 else print (!empty($object->company_name) ? dol_escape_htmltag($object->company_name) : '&mdash;');
@@ -658,7 +717,7 @@ print '    </div></div>';
 
 // Tax Number
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('TaxNumber').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Tax Number').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="text" name="tax_no" value="'.(isset($object->tax_no) ? dol_escape_htmltag($object->tax_no) : '').'">';
 else print (!empty($object->tax_no) ? '<span class="dc-mono">'.dol_escape_htmltag($object->tax_no).'</span>' : '&mdash;');
@@ -666,7 +725,7 @@ print '    </div></div>';
 
 // Payment Delay
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('PaymentDelay').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Payment Delay').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="number" name="payment_delay" value="'.(isset($object->payment_delay) ? dol_escape_htmltag($object->payment_delay) : '').'" min="0" placeholder="0">';
 else print (!empty($object->payment_delay) ? dol_escape_htmltag($object->payment_delay).' '.$langs->trans('Days') : '&mdash;');
