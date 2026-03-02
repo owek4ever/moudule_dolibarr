@@ -57,15 +57,17 @@ function getDateFromPost($field) {
     $month = GETPOST($field.'month', 'int');
     $year  = GETPOST($field.'year',  'int');
     if ($day > 0 && $month > 0 && $year > 0) {
-        return sprintf('%04d-%02d-%02d', $year, $month, $day);
+        $hour = (int) GETPOST($field.'hour', 'int');
+        $min  = (int) GETPOST($field.'min',  'int');
+        return sprintf('%04d-%02d-%02d %02d:%02d:00', $year, $month, $day, $hour, $min);
     }
     $raw = GETPOST($field, 'alpha');
     if (empty($raw)) return '';
     $ts = dol_stringtotime($raw);
-    if ($ts) return dol_print_date($ts, '%Y-%m-%d', 'tzserver');
-    foreach (['Y-m-d', 'd/m/Y', 'm/d/Y'] as $fmt) {
+    if ($ts) return dol_print_date($ts, '%Y-%m-%d %H:%M:%S', 'tzserver');
+    foreach (['Y-m-d H:i:s', 'Y-m-d H:i', 'Y-m-d', 'd/m/Y', 'm/d/Y'] as $fmt) {
         $d = DateTime::createFromFormat($fmt, $raw);
-        if ($d) return $d->format('Y-m-d');
+        if ($d) return $d->format('Y-m-d H:i:s');
     }
     return '';
 }
@@ -385,101 +387,7 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
     gap: 20px;
     margin-bottom: 20px;
 }
-/* ══════════════════════════════════════
-   RESPONSIVE BREAKPOINTS
-══════════════════════════════════════ */
-
-/* Tablet (≤ 1024px) — tighten spacing */
-@media (max-width: 1024px) {
-    .dc-page {
-        padding: 0 12px 40px;
-    }
-    .dc-field-label {
-        flex: 0 0 130px;
-    }
-}
-
-/* Small tablet (≤ 860px) — single column grid */
-@media (max-width: 860px) {
-    .dc-grid {
-        grid-template-columns: 1fr;
-    }
-    .dc-page {
-        padding: 0 10px 36px;
-    }
-}
-
-/* Mobile (≤ 600px) — full reflow */
-@media (max-width: 600px) {
-    .dc-page {
-        padding: 0 8px 28px;
-    }
-
-    /* Header stacks */
-    .dc-header {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 16px 0 14px;
-        gap: 10px;
-    }
-    .dc-header-left {
-        gap: 10px;
-    }
-    .dc-header-icon {
-        width: 38px;
-        height: 38px;
-        font-size: 16px;
-    }
-    .dc-header-title {
-        font-size: 17px;
-    }
-    .dc-header-actions {
-        width: 100%;
-        justify-content: flex-start;
-        flex-wrap: wrap;
-        gap: 6px;
-    }
-    .dc-btn {
-        padding: 7px 12px;
-        font-size: 12px;
-    }
-
-    /* Field rows stack vertically */
-    .dc-field {
-        flex-direction: column;
-        gap: 5px;
-        padding: 11px 14px;
-    }
-    .dc-field-label {
-        flex: none;
-        width: 100%;
-        font-size: 11px;
-    }
-    .dc-field-value {
-        width: 100%;
-    }
-
-    /* Card header padding */
-    .dc-card-header {
-        padding: 12px 14px;
-    }
-
-    /* Action bar stacks on mobile */
-    .dc-action-bar {
-        flex-direction: column-reverse;
-        align-items: stretch;
-        gap: 8px;
-        padding: 14px 0 4px;
-    }
-    .dc-action-bar .dc-btn {
-        justify-content: center;
-        width: 100%;
-    }
-    .dc-action-bar-left {
-        margin-right: 0;
-        order: 99;
-    }
-}
+@media (max-width: 780px) { .dc-grid { grid-template-columns: 1fr; } }
 
 /* ── Section card ── */
 .dc-card {
@@ -584,6 +492,36 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
     flex-wrap: wrap;
 }
 .dc-action-bar-left { margin-right: auto; }
+
+/* ── Fix Dolibarr date/time widget styling ── */
+.dc-page .tcms { display:inline-flex !important; align-items:center !important; gap:4px !important; flex-wrap:wrap !important; }
+.dc-page input.hasDatepicker,
+.dc-page input[id^="start_date"],
+.dc-page input[id^="due_date"] {
+    padding: 7px 10px !important;
+    border: 1.5px solid #e2e5f0 !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    color: #2d3748 !important;
+    background: #fafbfe !important;
+    width: 120px !important;
+    box-sizing: border-box !important;
+}
+.dc-page select[id^="start_datehour"],
+.dc-page select[id^="start_datemin"],
+.dc-page select[id^="due_datehour"],
+.dc-page select[id^="due_datemin"] {
+    padding: 7px 6px !important;
+    border: 1.5px solid #e2e5f0 !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    color: #2d3748 !important;
+    background: #fafbfe !important;
+    width: auto !important;
+}
+.dc-page img[id$="DatePicker"] { display:none !important; }
 
 /* ── Ref tag ── */
 .dc-ref-tag {
@@ -810,16 +748,28 @@ print '  <div class="dc-card-body">';
 print '  <div class="dc-field">';
 print '    <div class="dc-field-label">'.$langs->trans('StartDate').'</div>';
 print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) print $form->selectDate($object->start_date ?: -1, 'start_date', '', '', 1, '', 1, 1);
-else print $object->start_date ? dol_print_date($db->jdate($object->start_date), 'day') : '&mdash;';
+if ($isCreate || $isEdit) {
+    $sdVal = !empty($object->start_date) ? htmlspecialchars($object->start_date) : '';
+    print '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+    print $form->selectDate($object->start_date ?: -1, 'start_date', 1, 1, 1, '', 1, 1);
+    print '</div>';
+} else {
+    print $object->start_date ? dol_print_date($db->jdate($object->start_date), 'dayhour') : '&mdash;';
+}
 print '    </div></div>';
 
 // Due Date
 print '  <div class="dc-field">';
 print '    <div class="dc-field-label">'.$langs->trans('DueDate').'</div>';
 print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) print $form->selectDate($object->due_date ?: -1, 'due_date', '', '', 1, '', 1, 1);
-else print $object->due_date ? dol_print_date($db->jdate($object->due_date), 'day') : '&mdash;';
+if ($isCreate || $isEdit) {
+    $ddVal = !empty($object->due_date) ? htmlspecialchars($object->due_date) : '';
+    print '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+    print $form->selectDate($object->due_date ?: -1, 'due_date', 1, 1, 1, '', 1, 1);
+    print '</div>';
+} else {
+    print $object->due_date ? dol_print_date($db->jdate($object->due_date), 'dayhour') : '&mdash;';
+}
 print '    </div></div>';
 
 print '  </div>';
