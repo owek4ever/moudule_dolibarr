@@ -349,7 +349,7 @@ $hookmanager->initHooks(array('vehiclecard'));
 
 $title = $langs->trans('Vehicle');
 if ($action == 'create') {
-    $title = $langs->trans('NewVehicle');
+    $title = $langs->trans('New Vehicle');
 } elseif ($action == 'edit') {
     $title = $langs->trans('EditVehicle');
 } elseif ($id > 0) {
@@ -593,8 +593,8 @@ $isEdit   = ($action == 'edit');
 $isCreate = ($action == 'create');
 $isView   = (!$isEdit && !$isCreate);
 
-$pageTitle = $isCreate ? $langs->trans('NewVehicle') : ($isEdit ? $langs->trans('EditVehicle') : $langs->trans('Vehicle'));
-$pageSub   = $isCreate ? $langs->trans('FillInVehicleDetails') : (isset($object->ref) ? $object->ref : '');
+$pageTitle = $isCreate ? $langs->trans('New Vehicle') : ($isEdit ? $langs->trans('EditVehicle') : $langs->trans('Vehicle'));
+$pageSub   = $isCreate ? $langs->trans('Fill In Vehicle Details') : (isset($object->ref) ? $object->ref : '');
 
 // Form start
 if ($isCreate || $isEdit) {
@@ -636,7 +636,7 @@ print '<div class="dc-grid">';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon blue"><i class="fa fa-car"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('BasicInformation').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Basic Information').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
@@ -664,7 +664,7 @@ print '    </div></div>';
 
 // Model
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label required">'.$langs->trans('VehicleModel').'</div>';
+print '    <div class="dc-field-label required">'.$langs->trans('Vehicle Model').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="text" name="model" value="'.(isset($object->model) ? dol_escape_htmltag($object->model) : '').'" required>';
 else print dol_escape_htmltag($object->model);
@@ -722,13 +722,13 @@ print '</div>';  // dc-card
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon green"><i class="fa fa-cog"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('VehicleDetails').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Vehicle Details').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
 // License Plate
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('LicensePlate').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('License Plate').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="text" name="license_plate" value="'.(isset($object->license_plate) ? dol_escape_htmltag($object->license_plate) : '').'">';
 else print (!empty($object->license_plate) ? '<span class="dc-mono">'.dol_escape_htmltag($object->license_plate).'</span>' : '&mdash;');
@@ -744,7 +744,7 @@ print '    </div></div>';
 
 // Engine Type
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('EngineType').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Engine Type').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $engine_options = array(
@@ -761,7 +761,7 @@ print '    </div></div>';
 
 // Horsepower
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('HorsePower').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Horse Power').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="text" name="horsepower" value="'.(isset($object->horsepower) ? dol_escape_htmltag($object->horsepower) : '').'">';
 else print (!empty($object->horsepower) ? dol_escape_htmltag($object->horsepower).' HP' : '&mdash;');
@@ -769,7 +769,7 @@ print '    </div></div>';
 
 // Initial Mileage
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('InitialMileage').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Initial Mileage').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="number" name="initial_mileage" value="'.(isset($object->initial_mileage) ? dol_escape_htmltag($object->initial_mileage) : '').'" min="0">';
 else print (!empty($object->initial_mileage) ? number_format($object->initial_mileage).' km' : '&mdash;');
@@ -777,7 +777,7 @@ print '    </div></div>';
 
 // In Service
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('InService').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('In Service').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print $form->selectyesno('in_service', (isset($object->in_service) ? $object->in_service : 1), 1);
@@ -801,13 +801,13 @@ print '<div class="dc-grid">';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon amber"><i class="fa fa-calendar-alt"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('ServiceInformation').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Service Information').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
 // Registration Expiry
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('RegistrationExpiry').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Registration Expiry').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print $form->selectDate((!empty($object->registration_expiry) ? $object->registration_expiry : ''), 'registration_expiry', 0, 0, 1, '', 1, 0);
 else print (!empty($object->registration_expiry) ? dol_print_date($object->registration_expiry, 'day') : '&mdash;');
@@ -815,7 +815,7 @@ print '    </div></div>';
 
 // License Expiry
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('LicenseExpiry').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('License Expiry').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print $form->selectDate((!empty($object->license_expiry) ? $object->license_expiry : ''), 'license_expiry', 0, 0, 1, '', 1, 0);
 else print (!empty($object->license_expiry) ? dol_print_date($object->license_expiry, 'day') : '&mdash;');
@@ -823,7 +823,7 @@ print '    </div></div>';
 
 // Insurance Expiry
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('InsuranceExpiry').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Insurance Expiry').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print $form->selectDate((!empty($object->insurance_expiry) ? $object->insurance_expiry : ''), 'insurance_expiry', 0, 0, 1, '', 1, 0);
 else print (!empty($object->insurance_expiry) ? dol_print_date($object->insurance_expiry, 'day') : '&mdash;');
@@ -836,7 +836,7 @@ print '</div>';  // dc-card
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon purple"><i class="fa fa-ruler-combined"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('DimensionsAndSpecs').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Dimensions And Specs').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
@@ -866,7 +866,7 @@ print '    </div></div>';
 
 // Max Weight
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('MaxWeight').' (kg)</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Max Weight').' (kg)</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="number" step="0.01" name="max_weight_kg" value="'.(isset($object->max_weight_kg) ? dol_escape_htmltag($object->max_weight_kg) : '').'" min="0">';
 else print (!empty($object->max_weight_kg) ? dol_escape_htmltag($object->max_weight_kg).' kg' : '&mdash;');
@@ -874,7 +874,7 @@ print '    </div></div>';
 
 // Ground Height
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('GroundHeight').' (cm)</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Ground Height').' (cm)</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="number" step="0.01" name="ground_height_cm" value="'.(isset($object->ground_height_cm) ? dol_escape_htmltag($object->ground_height_cm) : '').'" min="0">';
 else print (!empty($object->ground_height_cm) ? dol_escape_htmltag($object->ground_height_cm).' cm' : '&mdash;');
@@ -891,16 +891,16 @@ print '</div>';// dc-grid row2
 print '<div class="dc-card" style="margin-bottom:20px;">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon red"><i class="fa fa-paperclip"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('DocumentsAndPhotos').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Documents And Photos').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 print '  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0;">';
 
 $file_fields = array(
-    array('field' => 'vehicle_photo',             'label' => $langs->trans('VehiclePhoto'),            'accept' => 'image/*,.pdf'),
-    array('field' => 'registration_card',         'label' => $langs->trans('RegistrationCard'),        'accept' => 'image/*,.pdf'),
-    array('field' => 'platform_registration_card','label' => $langs->trans('PlatformRegistrationCard'),'accept' => 'image/*,.pdf'),
-    array('field' => 'insurance_document',        'label' => $langs->trans('InsuranceDocument'),       'accept' => 'image/*,.pdf'),
+    array('field' => 'vehicle_photo',             'label' => $langs->trans('Vehicle Photo'),            'accept' => 'image/*,.pdf'),
+    array('field' => 'registration_card',         'label' => $langs->trans('Registration Card'),        'accept' => 'image/*,.pdf'),
+    array('field' => 'platform_registration_card','label' => $langs->trans('Platform Registration Card'),'accept' => 'image/*,.pdf'),
+    array('field' => 'insurance_document',        'label' => $langs->trans('Insurance Document'),       'accept' => 'image/*,.pdf'),
 );
 
 foreach ($file_fields as $ff) {
