@@ -37,6 +37,21 @@ require_once DOL_DOCUMENT_ROOT.'/user/class/user.class.php';
 // Load translation files
 $langs->loadLangs(array("flotte@flotte", "users", "hrm", "other"));
 
+/**
+ * Translate a key, and if no translation exists, convert CamelCase to spaced words.
+ * Supports optional substitution parameters just like $langs->trans().
+ */
+function transLabel($langs, $key) {
+    $args = func_get_args();
+    array_shift($args); // remove $langs from args
+    $result = call_user_func_array(array($langs, 'trans'), $args);
+    if ($result === $key) {
+        // No translation found — insert a space before each capital letter
+        $result = trim(preg_replace('/([a-z])([A-Z])/', '$1 $2', $key));
+    }
+    return $result;
+}
+
 // Get parameters
 $action = GETPOST('action', 'aZ09') ? GETPOST('action', 'aZ09') : 'view';
 $confirm = GETPOST('confirm', 'alpha');
@@ -157,7 +172,7 @@ if ($action == 'confirm_delete' && $confirm == 'yes') {
     $resql_del = $db->query($sql_del);
     if ($resql_del) {
         $db->commit();
-        setEventMessages($langs->trans("DriverDeletedSuccessfully"), null, 'mesgs');
+        setEventMessages(transLabel($langs, "DriverDeletedSuccessfully"), null, 'mesgs');
         header('Location: driver_list.php');
         exit;
     } else {
@@ -218,11 +233,11 @@ if ($action == 'add' && !$cancel && $_SERVER["REQUEST_METHOD"] == "POST") {
     
     if (empty($firstname)) {
         $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", "FirstName");
+        $errors[] = transLabel($langs, "ErrorFieldRequired", "FirstName");
     }
     if (empty($lastname)) {
         $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", "LastName");
+        $errors[] = transLabel($langs, "ErrorFieldRequired", "LastName");
     }
     
     // Check if this employee is already a driver
@@ -271,7 +286,7 @@ if ($action == 'add' && !$cancel && $_SERVER["REQUEST_METHOD"] == "POST") {
         if ($resql) {
             $newid = $db->last_insert_id(MAIN_DB_PREFIX."flotte_driver");
             $db->commit();
-            setEventMessages($langs->trans("DriverCreatedSuccessfully"), null, 'mesgs');
+            setEventMessages(transLabel($langs, "DriverCreatedSuccessfully"), null, 'mesgs');
             header('Location: '.$_SERVER['PHP_SELF'].'?id='.$newid);
             exit;
         } else {
@@ -330,11 +345,11 @@ if ($action == 'update' && $id > 0 && !$cancel && $_SERVER["REQUEST_METHOD"] == 
     // Validation
     if (empty($firstname)) {
         $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", "FirstName");
+        $errors[] = transLabel($langs, "ErrorFieldRequired", "FirstName");
     }
     if (empty($lastname)) {
         $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", "LastName");
+        $errors[] = transLabel($langs, "ErrorFieldRequired", "LastName");
     }
 
     if (!$error) {
@@ -380,7 +395,7 @@ if ($action == 'update' && $id > 0 && !$cancel && $_SERVER["REQUEST_METHOD"] == 
         $resql = $db->query($sql);
         if ($resql) {
             $db->commit();
-            setEventMessages($langs->trans("DriverUpdatedSuccessfully"), null, 'mesgs');
+            setEventMessages(transLabel($langs, "DriverUpdatedSuccessfully"), null, 'mesgs');
             $action = 'view';
             // Reload driver data
             header('Location: '.$_SERVER['PHP_SELF'].'?id='.$id);
@@ -410,7 +425,7 @@ if ($cancel) {
  * View
  */
 
-llxHeader('', $langs->trans('Driver'), '');
+llxHeader('', transLabel($langs, 'Driver'), '');
 
 // Auto-fill JS
 ?>
@@ -752,7 +767,7 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
 
 // Show delete confirmation dialog
 if ($action == 'delete') {
-    $formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$id, $langs->trans('DeleteDriver'), $langs->trans('ConfirmDeleteDriver'), 'confirm_delete', '', 0, 1);
+    $formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$id, transLabel($langs, 'DeleteDriver'), transLabel($langs, 'ConfirmDeleteDriver'), 'confirm_delete', '', 0, 1);
     print $formconfirm;
 }
 
@@ -761,8 +776,8 @@ $isEdit   = ($action == 'edit');
 $isCreate = ($action == 'create');
 $isView   = (!$isEdit && !$isCreate);
 
-$pageTitle = $isCreate ? $langs->trans('NewDriver') : ($isEdit ? $langs->trans('EditDriver') : $langs->trans('Driver'));
-$pageSub   = $isCreate ? $langs->trans('FillInDriverDetails') : (isset($driver_data['ref']) ? $driver_data['ref'] : '');
+$pageTitle = $isCreate ? transLabel($langs, 'NewDriver') : ($isEdit ? transLabel($langs, 'EditDriver') : transLabel($langs, 'Driver'));
+$pageSub   = $isCreate ? transLabel($langs, 'FillInDriverDetails') : (isset($driver_data['ref']) ? $driver_data['ref'] : '');
 
 // Form start
 if ($isCreate || $isEdit) {
@@ -792,9 +807,9 @@ if ($isView && $id > 0) {
         $stClass = ($st == 'Active') ? 'active' : (($st == 'Inactive') ? 'inactive' : 'onleave');
         print '<span class="dc-badge '.$stClass.'">'.dol_escape_htmltag($st).'</span>';
     }
-    print '<a class="dc-btn dc-btn-ghost" href="'.dol_buildpath('/flotte/driver_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('BackToList').'</a>';
-    print '<a class="dc-btn dc-btn-ghost" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=edit"><i class="fa fa-pen"></i> '.$langs->trans('Modify').'</a>';
-    print '<a class="dc-btn dc-btn-danger" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=delete"><i class="fa fa-trash"></i> '.$langs->trans('Delete').'</a>';
+    print '<a class="dc-btn dc-btn-ghost" href="'.dol_buildpath('/flotte/driver_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.transLabel($langs, 'BackToList').'</a>';
+    print '<a class="dc-btn dc-btn-ghost" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=edit"><i class="fa fa-pen"></i> '.transLabel($langs, 'Modify').'</a>';
+    print '<a class="dc-btn dc-btn-danger" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=delete"><i class="fa fa-trash"></i> '.transLabel($langs, 'Delete').'</a>';
 }
 
 print '  </div>';
@@ -809,16 +824,16 @@ print '<div class="dc-grid">';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon blue"><i class="fa fa-id-card"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('BasicInformation').'</span>';
+print '    <span class="dc-card-title">'.transLabel($langs, 'BasicInformation').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
 // Reference
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Reference').'</div>';
+print '    <div class="dc-field-label">'.transLabel($langs, 'Reference').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate) {
-    print '<em style="color:#9aa0b4;font-size:12.5px;">'.$langs->trans('AutoGenerated').'</em>';
+    print '<em style="color:#9aa0b4;font-size:12.5px;">'.transLabel($langs, 'AutoGenerated').'</em>';
 } else {
     print '<span class="dc-ref-tag">'.dol_escape_htmltag($driver_data['ref']).'</span>';
 }
@@ -826,12 +841,12 @@ print '    </div></div>';
 
 // Employee
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label required">'.$langs->trans('Employee').'</div>';
+print '    <div class="dc-field-label required">'.transLabel($langs, 'Employee').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate) {
     $sql_users = "SELECT u.rowid, u.lastname, u.firstname, u.employee FROM ".MAIN_DB_PREFIX."user as u WHERE u.employee = 1 AND u.entity IN (".getEntity('user').") AND u.statut = 1 ORDER BY u.lastname, u.firstname";
     print '<div style="display:flex;gap:8px;align-items:center;">';
-    print '<select name="fk_user" id="fk_user"><option value="">-- '.$langs->trans('Select Employee').' --</option>';
+    print '<select name="fk_user" id="fk_user"><option value="">-- '.transLabel($langs, 'Select Employee').' --</option>';
     $resql_users = $db->query($sql_users);
     if ($resql_users) {
         while ($obj_user = $db->fetch_object($resql_users)) {
@@ -842,7 +857,7 @@ if ($isCreate) {
         }
     }
     print '</select>';
-    print '<a href="'.DOL_URL_ROOT.'/user/card.php?action=create&employee=1&backtopage='.urlencode($_SERVER['PHP_SELF'].'?action=create').'" target="_blank" style="flex-shrink:0;">'.img_picto($langs->trans("Create Employee"), 'add').'</a>';
+    print '<a href="'.DOL_URL_ROOT.'/user/card.php?action=create&employee=1&backtopage='.urlencode($_SERVER['PHP_SELF'].'?action=create').'" target="_blank" style="flex-shrink:0;">'.img_picto(transLabel($langs, "Create Employee"), 'add').'</a>';
     print '</div>';
 } else {
     if ($employee->id > 0) { print $employee->getNomUrl(1); if ($employee->employee) print ' <span class="dc-mono">'.$employee->employee.'</span>'; }
@@ -852,7 +867,7 @@ print '    </div></div>';
 
 // First Name
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label required">'.$langs->trans('FirstName').'</div>';
+print '    <div class="dc-field-label required">'.transLabel($langs, 'FirstName').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="text" name="firstname" value="'.(isset($driver_data['firstname']) ? dol_escape_htmltag($driver_data['firstname']) : '').'">';
 else print dol_escape_htmltag($driver_data['firstname']);
@@ -860,7 +875,7 @@ print '    </div></div>';
 
 // Middle Name
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('MiddleName').'</div>';
+print '    <div class="dc-field-label">'.transLabel($langs, 'MiddleName').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="text" name="middlename" value="'.(isset($driver_data['middlename']) ? dol_escape_htmltag($driver_data['middlename']) : '').'">';
 else print dol_escape_htmltag($driver_data['middlename']);
@@ -868,7 +883,7 @@ print '    </div></div>';
 
 // Last Name
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label required">'.$langs->trans('LastName').'</div>';
+print '    <div class="dc-field-label required">'.transLabel($langs, 'LastName').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="text" name="lastname" value="'.(isset($driver_data['lastname']) ? dol_escape_htmltag($driver_data['lastname']) : '').'">';
 else print dol_escape_htmltag($driver_data['lastname']);
@@ -876,7 +891,7 @@ print '    </div></div>';
 
 // Email
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Email').'</div>';
+print '    <div class="dc-field-label">'.transLabel($langs, 'Email').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="email" name="email" value="'.(isset($driver_data['email']) ? dol_escape_htmltag($driver_data['email']) : '').'">';
 else print dol_print_email($driver_data['email']);
@@ -884,7 +899,7 @@ print '    </div></div>';
 
 // Phone
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Phone').'</div>';
+print '    <div class="dc-field-label">'.transLabel($langs, 'Phone').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="text" name="phone" value="'.(isset($driver_data['phone']) ? dol_escape_htmltag($driver_data['phone']) : '').'">';
 else print dol_print_phone($driver_data['phone']);
@@ -892,12 +907,12 @@ print '    </div></div>';
 
 // Gender
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Gender').'</div>';
+print '    <div class="dc-field-label">'.transLabel($langs, 'Gender').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<select name="gender"><option value="">--</option>';
-    print '<option value="Male"'.(isset($driver_data['gender']) && $driver_data['gender'] == 'Male' ? ' selected' : '').'>'.$langs->trans('Male').'</option>';
-    print '<option value="Female"'.(isset($driver_data['gender']) && $driver_data['gender'] == 'Female' ? ' selected' : '').'>'.$langs->trans('Female').'</option>';
+    print '<option value="Male"'.(isset($driver_data['gender']) && $driver_data['gender'] == 'Male' ? ' selected' : '').'>'.transLabel($langs, 'Male').'</option>';
+    print '<option value="Female"'.(isset($driver_data['gender']) && $driver_data['gender'] == 'Female' ? ' selected' : '').'>'.transLabel($langs, 'Female').'</option>';
     print '</select>';
 } else print dol_escape_htmltag($driver_data['gender']);
 print '    </div></div>';
@@ -909,13 +924,13 @@ print '</div>';  // dc-card
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon green"><i class="fa fa-briefcase"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('EmploymentInformation').'</span>';
+print '    <span class="dc-card-title">'.transLabel($langs, 'EmploymentInformation').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
 // Employee ID
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('EmployeeID').'</div>';
+print '    <div class="dc-field-label">'.transLabel($langs, 'EmployeeID').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="text" name="employee_id" value="'.(isset($driver_data['employee_id']) ? dol_escape_htmltag($driver_data['employee_id']) : '').'">';
 else print (!empty($driver_data['employee_id']) ? '<span class="dc-mono">'.dol_escape_htmltag($driver_data['employee_id']).'</span>' : '&mdash;');
@@ -923,7 +938,7 @@ print '    </div></div>';
 
 // Contract Number
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('ContractNumber').'</div>';
+print '    <div class="dc-field-label">'.transLabel($langs, 'ContractNumber').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="text" name="contract_number" value="'.(isset($driver_data['contract_number']) ? dol_escape_htmltag($driver_data['contract_number']) : '').'">';
 else print (!empty($driver_data['contract_number']) ? '<span class="dc-mono">'.dol_escape_htmltag($driver_data['contract_number']).'</span>' : '&mdash;');
@@ -931,7 +946,7 @@ print '    </div></div>';
 
 // Department
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Department').'</div>';
+print '    <div class="dc-field-label">'.transLabel($langs, 'Department').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="text" name="department" value="'.(isset($driver_data['department']) ? dol_escape_htmltag($driver_data['department']) : '').'">';
 else print dol_escape_htmltag($driver_data['department']);
@@ -939,7 +954,7 @@ print '    </div></div>';
 
 // Join Date
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('JoinDate').'</div>';
+print '    <div class="dc-field-label">'.transLabel($langs, 'JoinDate').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print $form->selectDate(isset($driver_data['join_date']) ? $driver_data['join_date'] : -1, 'join_date', 0, 0, 1, '', 1, 0);
 else print dol_print_date($driver_data['join_date'], 'day');
@@ -947,7 +962,7 @@ print '    </div></div>';
 
 // Leave Date
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('LeaveDate').'</div>';
+print '    <div class="dc-field-label">'.transLabel($langs, 'LeaveDate').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print $form->selectDate(isset($driver_data['leave_date']) ? $driver_data['leave_date'] : -1, 'leave_date', 0, 0, 1, '', 1, 0);
 else print dol_print_date($driver_data['leave_date'], 'day');
@@ -955,13 +970,13 @@ print '    </div></div>';
 
 // Status
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Status').'</div>';
+print '    <div class="dc-field-label">'.transLabel($langs, 'Status').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<select name="status"><option value="">--</option>';
-    print '<option value="Active"'.(isset($driver_data['status']) && $driver_data['status'] == 'Active' ? ' selected' : '').'>'.$langs->trans('Active').'</option>';
-    print '<option value="Inactive"'.(isset($driver_data['status']) && $driver_data['status'] == 'Inactive' ? ' selected' : '').'>'.$langs->trans('Inactive').'</option>';
-    print '<option value="On Leave"'.(isset($driver_data['status']) && $driver_data['status'] == 'On Leave' ? ' selected' : '').'>'.$langs->trans('OnLeave').'</option>';
+    print '<option value="Active"'.(isset($driver_data['status']) && $driver_data['status'] == 'Active' ? ' selected' : '').'>'.transLabel($langs, 'Active').'</option>';
+    print '<option value="Inactive"'.(isset($driver_data['status']) && $driver_data['status'] == 'Inactive' ? ' selected' : '').'>'.transLabel($langs, 'Inactive').'</option>';
+    print '<option value="On Leave"'.(isset($driver_data['status']) && $driver_data['status'] == 'On Leave' ? ' selected' : '').'>'.transLabel($langs, 'OnLeave').'</option>';
     print '</select>';
 } else {
     if (!empty($driver_data['status'])) {
@@ -974,10 +989,10 @@ print '    </div></div>';
 
 // Assigned Vehicle
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('AssignedVehicle').'</div>';
+print '    <div class="dc-field-label">'.transLabel($langs, 'AssignedVehicle').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<select name="fk_vehicle"><option value="">-- '.$langs->trans('SelectVehicle').' --</option>';
+    print '<select name="fk_vehicle"><option value="">-- '.transLabel($langs, 'SelectVehicle').' --</option>';
     foreach ($vehicles as $vid => $vlabel) {
         $selected = (isset($driver_data['fk_vehicle']) && $driver_data['fk_vehicle'] == $vid) ? ' selected' : '';
         print '<option value="'.$vid.'"'.$selected.'>'.dol_escape_htmltag($vlabel).'</option>';
@@ -987,7 +1002,7 @@ if ($isCreate || $isEdit) {
     if (!empty($driver_data['fk_vehicle']) && isset($vehicles[$driver_data['fk_vehicle']])) {
         print '<span class="dc-vehicle"><i class="fa fa-car" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($vehicles[$driver_data['fk_vehicle']]).'</span>';
     } else {
-        print '<span style="color:#c4c9d8;font-size:13px;">'.$langs->trans('NoVehicleAssigned').'</span>';
+        print '<span style="color:#c4c9d8;font-size:13px;">'.transLabel($langs, 'NoVehicleAssigned').'</span>';
     }
 }
 print '    </div></div>';
@@ -1006,13 +1021,13 @@ print '<div class="dc-grid">';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon amber"><i class="fa fa-id-badge"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('LicenseInformation').'</span>';
+print '    <span class="dc-card-title">'.transLabel($langs, 'LicenseInformation').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
 // License Number
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('LicenseNumber').'</div>';
+print '    <div class="dc-field-label">'.transLabel($langs, 'LicenseNumber').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="text" name="license_number" value="'.(isset($driver_data['license_number']) ? dol_escape_htmltag($driver_data['license_number']) : '').'">';
 else print (!empty($driver_data['license_number']) ? '<span class="dc-mono">'.dol_escape_htmltag($driver_data['license_number']).'</span>' : '&mdash;');
@@ -1020,7 +1035,7 @@ print '    </div></div>';
 
 // License Issue Date
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('LicenseIssueDate').'</div>';
+print '    <div class="dc-field-label">'.transLabel($langs, 'LicenseIssueDate').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print $form->selectDate(isset($driver_data['license_issue_date']) ? $driver_data['license_issue_date'] : -1, 'license_issue_date', 0, 0, 1, '', 1, 0);
 else print dol_print_date($driver_data['license_issue_date'], 'day');
@@ -1028,7 +1043,7 @@ print '    </div></div>';
 
 // License Expiry Date
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('LicenseExpiryDate').'</div>';
+print '    <div class="dc-field-label">'.transLabel($langs, 'LicenseExpiryDate').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print $form->selectDate(isset($driver_data['license_expiry_date']) ? $driver_data['license_expiry_date'] : -1, 'license_expiry_date', 0, 0, 1, '', 1, 0);
 else print dol_print_date($driver_data['license_expiry_date'], 'day');
@@ -1041,13 +1056,13 @@ print '</div>';  // dc-card
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon purple"><i class="fa fa-map-marker-alt"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('AddressAndContact').'</span>';
+print '    <span class="dc-card-title">'.transLabel($langs, 'AddressAndContact').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
 // Address
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Address').'</div>';
+print '    <div class="dc-field-label">'.transLabel($langs, 'Address').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<textarea name="address" rows="3">'.(isset($driver_data['address']) ? dol_escape_htmltag($driver_data['address']) : '').'</textarea>';
 else print nl2br(dol_escape_htmltag($driver_data['address']));
@@ -1055,7 +1070,7 @@ print '    </div></div>';
 
 // Emergency Contact
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('EmergencyContact').'</div>';
+print '    <div class="dc-field-label">'.transLabel($langs, 'EmergencyContact').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<textarea name="emergency_contact" rows="3">'.(isset($driver_data['emergency_contact']) ? dol_escape_htmltag($driver_data['emergency_contact']) : '').'</textarea>';
 else print nl2br(dol_escape_htmltag($driver_data['emergency_contact']));
@@ -1072,16 +1087,16 @@ print '</div>';// dc-grid row2
 print '<div class="dc-card" style="margin-bottom:20px;">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon red"><i class="fa fa-paperclip"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('Files').'</span>';
+print '    <span class="dc-card-title">'.transLabel($langs, 'Files').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 print '  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:0;">';
 
 // Helper for file fields
 $file_fields = array(
-    array('field' => 'driver_image',  'label' => $langs->trans('DriverImage'),  'accept' => 'image/*'),
-    array('field' => 'license_image', 'label' => $langs->trans('LicenseImage'), 'accept' => 'image/*'),
-    array('field' => 'documents',     'label' => $langs->trans('Documents'),    'accept' => '.pdf,.doc,.docx,.jpg,.jpeg,.png'),
+    array('field' => 'driver_image',  'label' => transLabel($langs, 'DriverImage'),  'accept' => 'image/*'),
+    array('field' => 'license_image', 'label' => transLabel($langs, 'LicenseImage'), 'accept' => 'image/*'),
+    array('field' => 'documents',     'label' => transLabel($langs, 'Documents'),    'accept' => '.pdf,.doc,.docx,.jpg,.jpeg,.png'),
 );
 foreach ($file_fields as $ff) {
     print '<div class="dc-field" style="flex-direction:column;gap:8px;">';
@@ -1094,7 +1109,7 @@ foreach ($file_fields as $ff) {
         print '  <small>Accepted: '.str_replace('image/*','JPG, PNG',$ff['accept']).'</small>';
         print '</div>';
         if (!empty($driver_data[$ff['field']])) {
-            print '<div class="dc-file-current"><i class="fa fa-paperclip"></i> '.$langs->trans('Current').': '.dol_escape_htmltag($driver_data[$ff['field']]).'</div>';
+            print '<div class="dc-file-current"><i class="fa fa-paperclip"></i> '.transLabel($langs, 'Current').': '.dol_escape_htmltag($driver_data[$ff['field']]).'</div>';
         }
     } else {
         if (!empty($driver_data[$ff['field']])) {
@@ -1120,16 +1135,16 @@ print '</div>';   // dc-card
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 if ($isCreate || $isEdit) {
     print '<div class="dc-action-bar">';
-    print '<a class="dc-btn dc-btn-ghost dc-action-bar-left" href="'.dol_buildpath('/flotte/driver_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('BackToList').'</a>';
-    print '<a class="dc-btn dc-btn-ghost" href="'.($id > 0 ? $_SERVER['PHP_SELF'].'?id='.$id : dol_buildpath('/flotte/driver_list.php', 1)).'"><i class="fa fa-times"></i> '.$langs->trans('Cancel').'</a>';
-    print '<button type="submit" class="dc-btn dc-btn-primary"><i class="fa fa-check"></i> '.($isCreate ? $langs->trans('Create') : $langs->trans('Save')).'</button>';
+    print '<a class="dc-btn dc-btn-ghost dc-action-bar-left" href="'.dol_buildpath('/flotte/driver_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.transLabel($langs, 'BackToList').'</a>';
+    print '<a class="dc-btn dc-btn-ghost" href="'.($id > 0 ? $_SERVER['PHP_SELF'].'?id='.$id : dol_buildpath('/flotte/driver_list.php', 1)).'"><i class="fa fa-times"></i> '.transLabel($langs, 'Cancel').'</a>';
+    print '<button type="submit" class="dc-btn dc-btn-primary"><i class="fa fa-check"></i> '.($isCreate ? transLabel($langs, 'Create') : transLabel($langs, 'Save')).'</button>';
     print '</div>';
     print '</form>';
 } elseif ($id > 0) {
     print '<div class="dc-action-bar">';
-    print '<a class="dc-btn dc-btn-ghost dc-action-bar-left" href="'.dol_buildpath('/flotte/driver_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('BackToList').'</a>';
-    print '<a class="dc-btn dc-btn-ghost" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=edit"><i class="fa fa-pen"></i> '.$langs->trans('Modify').'</a>';
-    print '<a class="dc-btn dc-btn-danger" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=delete"><i class="fa fa-trash"></i> '.$langs->trans('Delete').'</a>';
+    print '<a class="dc-btn dc-btn-ghost dc-action-bar-left" href="'.dol_buildpath('/flotte/driver_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.transLabel($langs, 'BackToList').'</a>';
+    print '<a class="dc-btn dc-btn-ghost" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=edit"><i class="fa fa-pen"></i> '.transLabel($langs, 'Modify').'</a>';
+    print '<a class="dc-btn dc-btn-danger" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=delete"><i class="fa fa-trash"></i> '.transLabel($langs, 'Delete').'</a>';
     print '</div>';
 }
 
