@@ -844,40 +844,6 @@ a.stat-card:hover::after {
     </div>
 </div>
 
-<!-- Quick Actions Section -->
-<div class="section">
-    <div class="section-header">
-        <h2 class="section-title">
-            <i class="fa fa-bolt"></i> Quick Actions
-        </h2>
-    </div>
-    <div class="card">
-        <div class="actions-grid">
-            <?php
-            $actions = array(
-                array('icon' => 'car', 'label' => 'Vehicles', 'url' => 'vehicle_list.php'),
-                array('icon' => 'user', 'label' => 'Drivers', 'url' => 'driver_list.php'),
-                array('icon' => 'users', 'label' => 'Customers', 'url' => 'customer_list.php'),
-                array('icon' => 'calendar', 'label' => 'Bookings', 'url' => 'booking_list.php'),
-                array('icon' => 'gas-pump', 'label' => 'Fuel', 'url' => 'fuel_list.php'),
-                array('icon' => 'store', 'label' => 'Vendors', 'url' => 'vendor_list.php'),
-                array('icon' => 'cog', 'label' => 'Parts', 'url' => 'part_list.php'),
-                array('icon' => 'tools', 'label' => 'Work Orders', 'url' => 'workorder_list.php'),
-                array('icon' => 'clipboard-check', 'label' => 'Inspections', 'url' => 'inspection_list.php'),
-                array('icon' => 'chart-line', 'label' => 'Reports', 'url' => 'flotteindex.php')
-            );
-            
-            foreach ($actions as $action) {
-                echo '<a href="' . dol_buildpath('/flotte/' . $action['url'], 1) . '" class="action-btn">';
-                echo '<div class="action-icon"><i class="fa fa-' . $action['icon'] . '"></i></div>';
-                echo '<div class="action-label">' . $action['label'] . '</div>';
-                echo '</a>';
-            }
-            ?>
-        </div>
-    </div>
-</div>
-
 <!-- Analytics Section -->
 <div class="section">
     <div class="section-header">
@@ -1035,6 +1001,40 @@ a.stat-card:hover::after {
                 All systems are running smoothly. No alerts at this time.
             </div>
             <?php } ?>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions Section -->
+<div class="section">
+    <div class="section-header">
+        <h2 class="section-title">
+            <i class="fa fa-bolt"></i> Quick Actions
+        </h2>
+    </div>
+    <div class="card">
+        <div class="actions-grid">
+            <?php
+            $actions = array(
+                array('icon' => 'car', 'label' => 'Vehicles', 'url' => 'vehicle_list.php'),
+                array('icon' => 'user', 'label' => 'Drivers', 'url' => 'driver_list.php'),
+                array('icon' => 'users', 'label' => 'Customers', 'url' => 'customer_list.php'),
+                array('icon' => 'calendar', 'label' => 'Bookings', 'url' => 'booking_list.php'),
+                array('icon' => 'gas-pump', 'label' => 'Fuel', 'url' => 'fuel_list.php'),
+                array('icon' => 'store', 'label' => 'Vendors', 'url' => 'vendor_list.php'),
+                array('icon' => 'cog', 'label' => 'Parts', 'url' => 'part_list.php'),
+                array('icon' => 'tools', 'label' => 'Work Orders', 'url' => 'workorder_list.php'),
+                array('icon' => 'clipboard-check', 'label' => 'Inspections', 'url' => 'inspection_list.php'),
+                array('icon' => 'chart-line', 'label' => 'Reports', 'url' => 'flotteindex.php')
+            );
+            
+            foreach ($actions as $action) {
+                echo '<a href="' . dol_buildpath('/flotte/' . $action['url'], 1) . '" class="action-btn">';
+                echo '<div class="action-icon"><i class="fa fa-' . $action['icon'] . '"></i></div>';
+                echo '<div class="action-label">' . $action['label'] . '</div>';
+                echo '</a>';
+            }
+            ?>
         </div>
     </div>
 </div>
