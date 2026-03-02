@@ -392,8 +392,128 @@ table.vl-table tbody td.center { text-align: center; }
 .vl-page-btn.active { background: #3c4758; color: #fff; border-color: transparent; }
 .vl-page-btn.disabled { opacity: 0.35; pointer-events: none; }
 
-@media (max-width: 900px) { .vl-filters { flex-direction: column; } .vl-filter-group { min-width: 100%; } }
-@media (max-width: 600px) { .vl-header { flex-direction: column; align-items: flex-start; } }
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   RESPONSIVE STYLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* ── 1100px: tighten table columns ── */
+@media (max-width: 1100px) {
+    .vl-wrap { padding: 0 10px 40px; }
+    table.vl-table thead th,
+    table.vl-table tbody td { padding: 11px 10px; }
+}
+
+/* ── 900px: stack filters ── */
+@media (max-width: 900px) {
+    .vl-filters { flex-direction: column; gap: 10px; }
+    .vl-filter-group { min-width: 100%; max-width: 100% !important; }
+    .vl-filter-actions { width: 100%; }
+    .vl-btn-filter { flex: 1; justify-content: center; }
+    .vl-stats { gap: 8px; }
+}
+
+/* ── 760px: hide lower-priority columns, stack header ── */
+@media (max-width: 760px) {
+    .vl-wrap { padding: 0 8px 32px; }
+
+    .vl-header { flex-direction: column; align-items: flex-start; gap: 12px; padding: 18px 0 16px; }
+    .vl-header-actions { width: 100%; }
+    .vl-btn { flex: 1; justify-content: center; }
+
+    /* Hide lower-priority columns */
+    table.vl-table thead th:nth-child(4),
+    table.vl-table tbody td:nth-child(4),
+    table.vl-table thead th:nth-child(7),
+    table.vl-table tbody td:nth-child(7),
+    table.vl-table thead th:nth-child(8),
+    table.vl-table tbody td:nth-child(8) { display: none; }
+
+    table.vl-table thead th,
+    table.vl-table tbody td { padding: 10px 8px; font-size: 12.5px; }
+
+    .vl-pagination { flex-direction: column; align-items: center; gap: 10px; padding: 14px 12px; }
+    .vl-page-btn { min-width: 30px; height: 30px; font-size: 12px; }
+}
+
+/* ── 540px: card-style rows for mobile ── */
+@media (max-width: 540px) {
+    .vl-wrap { padding: 0 6px 24px; }
+    .vl-header-left h1 { font-size: 18px; }
+    .vl-header-left .vl-subtitle { font-size: 12px; }
+
+    /* Switch table to card layout */
+    .vl-table-wrap { overflow-x: unset; }
+    table.vl-table { display: block; }
+    table.vl-table thead { display: none; }
+    table.vl-table tbody { display: flex; flex-direction: column; gap: 10px; padding: 10px; }
+    table.vl-table tbody tr {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 12px;
+        border: 1px solid #e8eaf0;
+        border-radius: 10px;
+        padding: 12px 14px;
+        background: #fff;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    }
+    table.vl-table tbody tr:hover { background: #fafbff; }
+    table.vl-table tbody td {
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+        border: none;
+        font-size: 13px;
+    }
+
+    /* Restore hidden columns */
+    table.vl-table tbody td:nth-child(4),
+    table.vl-table tbody td:nth-child(7),
+    table.vl-table tbody td:nth-child(8) { display: flex; }
+
+    /* Column labels via pseudo-elements */
+    table.vl-table tbody td::before {
+        content: attr(data-label);
+        font-size: 10px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #9aa0b4;
+        margin-bottom: 2px;
+    }
+
+    /* Ref spans full width at top */
+    table.vl-table tbody td:nth-child(1) {
+        grid-column: 1 / -1;
+        border-bottom: 1px solid #f0f2f8;
+        padding-bottom: 8px;
+        margin-bottom: 2px;
+    }
+    /* Actions span full width at bottom */
+    table.vl-table tbody td:last-child {
+        grid-column: 1 / -1;
+        border-top: 1px solid #f0f2f8;
+        padding-top: 8px;
+        margin-top: 2px;
+    }
+    .vl-actions { justify-content: flex-start; }
+
+    /* Empty state row: undo grid */
+    table.vl-table tbody tr:has(.vl-empty) {
+        display: block;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+    }
+
+    /* Filters & stats */
+    .vl-filters { padding: 14px 12px; border-radius: 10px; }
+    .vl-filter-actions { flex-direction: row; }
+    .vl-stats { gap: 6px; }
+    .vl-stat-chip { font-size: 11.5px; padding: 5px 10px; }
+
+    /* Pagination */
+    .vl-page-btns { flex-wrap: wrap; justify-content: center; }
+}
 </style>
 
 <div class="vl-wrap">
@@ -526,7 +646,7 @@ table.vl-table tbody td.center { text-align: center; }
         ?>
             <tr>
                 <!-- Ref -->
-                <td>
+                <td data-label="Ref">
                     <a href="<?php echo $cardUrl; ?>" class="vl-ref-link">
                         <span class="vl-ref-icon"><i class="fa fa-store"></i></span>
                         <?php echo dol_escape_htmltag($obj->ref); ?>
@@ -534,7 +654,7 @@ table.vl-table tbody td.center { text-align: center; }
                 </td>
 
                 <!-- Name + email -->
-                <td>
+                <td data-label="Name">
                     <div class="vl-vendor-name"><?php echo dol_escape_htmltag($obj->name ?: '—'); ?></div>
                     <?php if (!empty($obj->email)) { ?>
                     <div class="vl-vendor-sub"><?php echo dol_escape_htmltag($obj->email); ?></div>
@@ -542,13 +662,13 @@ table.vl-table tbody td.center { text-align: center; }
                 </td>
 
                 <!-- Phone -->
-                <td><?php echo dol_escape_htmltag($obj->phone ?: '—'); ?></td>
+                <td data-label="Phone"><?php echo dol_escape_htmltag($obj->phone ?: '—'); ?></td>
 
                 <!-- Email -->
-                <td><?php echo dol_escape_htmltag($obj->email ?: '—'); ?></td>
+                <td data-label="Email"><?php echo dol_escape_htmltag($obj->email ?: '—'); ?></td>
 
                 <!-- Type -->
-                <td>
+                <td data-label="Type">
                     <?php
                     $t = $obj->type;
                     $badge_class = strtolower($t);
@@ -558,13 +678,13 @@ table.vl-table tbody td.center { text-align: center; }
                 </td>
 
                 <!-- City -->
-                <td><?php echo dol_escape_htmltag($obj->city ?: '—'); ?></td>
+                <td data-label="City"><?php echo dol_escape_htmltag($obj->city ?: '—'); ?></td>
 
                 <!-- State -->
-                <td><?php echo dol_escape_htmltag($obj->state ?: '—'); ?></td>
+                <td data-label="State"><?php echo dol_escape_htmltag($obj->state ?: '—'); ?></td>
 
                 <!-- Website -->
-                <td>
+                <td data-label="Website">
                     <?php if (!empty($obj->website)) {
                         $website_url = strpos($obj->website, 'http') === 0 ? $obj->website : 'http://' . $obj->website;
                     ?>
@@ -576,7 +696,7 @@ table.vl-table tbody td.center { text-align: center; }
                 </td>
 
                 <!-- Actions -->
-                <td>
+                <td data-label="Actions">
                     <div class="vl-actions">
                         <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="View"><i class="fa fa-eye"></i></a>
                         <?php if ($user->rights->flotte->write) { ?>
