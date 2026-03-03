@@ -417,7 +417,7 @@ $title = $langs->trans('Inspection');
 if ($action == 'create') {
     $title = $langs->trans('NewInspection');
 } elseif ($action == 'edit') {
-    $title = $langs->trans('EditInspection');
+    $title = $langs->trans('Edit Inspection');
 } elseif ($id > 0) {
     $title = $langs->trans('Inspection') . " " . $object->ref;
 }
