@@ -670,7 +670,7 @@ $isEdit   = ($action == 'edit');
 $isCreate = ($action == 'create');
 $isView   = (!$isEdit && !$isCreate);
 
-$pageTitle = $isCreate ? $langs->trans('NewInspection') : ($isEdit ? $langs->trans('EditInspection') : $langs->trans('Inspection'));
+$pageTitle = $isCreate ? $langs->trans('NewInspection') : ($isEdit ? $langs->trans('Edit Inspection') : $langs->trans('Inspection'));
 $pageSub   = $isCreate ? $langs->trans('FillInInspectionDetails') : (isset($object->ref) ? $object->ref : '');
 
 // Form start
