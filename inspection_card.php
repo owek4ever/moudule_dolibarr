@@ -84,6 +84,27 @@ function getNextInspectionRef($db, $entity) {
     return $prefix.str_pad($next_number, 4, '0', STR_PAD_LEFT);
 }
 
+// Function to extract and format a date+time from Dolibarr selectDate POST fields
+function getDateFromPost($field) {
+    $day   = GETPOST($field.'day',   'int');
+    $month = GETPOST($field.'month', 'int');
+    $year  = GETPOST($field.'year',  'int');
+    if ($day > 0 && $month > 0 && $year > 0) {
+        $hour = (int) GETPOST($field.'hour', 'int');
+        $min  = (int) GETPOST($field.'min',  'int');
+        return sprintf('%04d-%02d-%02d %02d:%02d:00', $year, $month, $day, $hour, $min);
+    }
+    $raw = GETPOST($field, 'alpha');
+    if (empty($raw)) return '';
+    $ts = dol_stringtotime($raw);
+    if ($ts) return dol_print_date($ts, '%Y-%m-%d %H:%M:%S', 'tzserver');
+    foreach (['Y-m-d H:i:s', 'Y-m-d H:i', 'Y-m-d', 'd/m/Y', 'm/d/Y'] as $fmt) {
+        $d = DateTime::createFromFormat($fmt, $raw);
+        if ($d) return $d->format('Y-m-d H:i:s');
+    }
+    return '';
+}
+
 // Get parameters
 $id = GETPOST('id', 'int');
 $action = GETPOST('action', 'aZ09') ? GETPOST('action', 'aZ09') : 'view';
@@ -124,6 +145,7 @@ $object->seats_condition = 0;
 $object->oil_check = 0;
 $object->suspension = 0;
 $object->toolboxes_condition = 0;
+$object->note = '';
 
 $error = 0;
 $errors = array();
@@ -170,38 +192,10 @@ if ($action == 'add') {
     $fuel_out = GETPOST('fuel_out', 'alpha');
     $fuel_in = GETPOST('fuel_in', 'alpha');
     
-    // Fix: Convert datetime_out to MySQL format
-    $datetime_out_raw = GETPOST('datetime_out', 'alpha');
-    $datetime_out = '';
-    if (!empty($datetime_out_raw)) {
-        // Handle Dolibarr date format
-        $day = GETPOST('dateday', 'int');
-        $month = GETPOST('datemonth', 'int');
-        $year = GETPOST('dateyear', 'int');
-        
-        if ($day > 0 && $month > 0 && $year > 0) {
-            $datetime_out = sprintf('%04d-%02d-%02d', $year, $month, $day);
-        } else {
-            $datetime_out = convertDateToMysql($datetime_out_raw);
-        }
-    }
-    
-    // Fix: Convert datetime_in to MySQL format
-    $datetime_in_raw = GETPOST('datetime_in', 'alpha');
-    $datetime_in = '';
-    if (!empty($datetime_in_raw)) {
-        // Handle Dolibarr date format
-        $day_in = GETPOST('datetime_inday', 'int');
-        $month_in = GETPOST('datetime_inmonth', 'int');
-        $year_in = GETPOST('datetime_inyear', 'int');
-        
-        if ($day_in > 0 && $month_in > 0 && $year_in > 0) {
-            $datetime_in = sprintf('%04d-%02d-%02d', $year_in, $month_in, $day_in);
-        } else {
-            $datetime_in = convertDateToMysql($datetime_in_raw);
-        }
-    }
-    
+    $datetime_out = getDateFromPost('datetime_out');
+    $datetime_in  = getDateFromPost('datetime_in');
+    $note = GETPOST('note', 'restricthtml');
+
     // Checkbox fields
     $petrol_card = GETPOST('petrol_card', 'int') ? 1 : 0;
     $lights_indicators = GETPOST('lights_indicators', 'int') ? 1 : 0;
@@ -243,7 +237,7 @@ if ($action == 'add') {
         $sql .= "mats_seats, interior_damage, interior_lights, exterior_damage, tyres_condition, ";
         $sql .= "ladders, extension_leeds, power_tools, ac_working, headlights_working, ";
         $sql .= "locks_alarms, windows_condition, seats_condition, oil_check, suspension, toolboxes_condition, ";
-        $sql .= "fk_user_author";
+        $sql .= "note, fk_user_author";
         $sql .= ") VALUES (";
         $sql .= "'".$db->escape($ref)."', ".((int) $conf->entity).", ";
         $sql .= "".((int) $fk_vehicle).", ";
@@ -273,6 +267,7 @@ if ($action == 'add') {
         $sql .= "".((int) $oil_check).", ";
         $sql .= "".((int) $suspension).", ";
         $sql .= "".((int) $toolboxes_condition).", ";
+        $sql .= (!empty($note) ? "'".$db->escape($note)."'" : "NULL").", ";
         $sql .= ((int) $user->id);
         $sql .= ")";
         
@@ -306,38 +301,10 @@ if ($action == 'update' && $id > 0) {
     $fuel_out = GETPOST('fuel_out', 'alpha');
     $fuel_in = GETPOST('fuel_in', 'alpha');
     
-    // Fix: Convert datetime_out to MySQL format
-    $datetime_out_raw = GETPOST('datetime_out', 'alpha');
-    $datetime_out = '';
-    if (!empty($datetime_out_raw)) {
-        // Handle Dolibarr date format
-        $day = GETPOST('datetime_outday', 'int');
-        $month = GETPOST('datetime_outmonth', 'int');
-        $year = GETPOST('datetime_outyear', 'int');
-        
-        if ($day > 0 && $month > 0 && $year > 0) {
-            $datetime_out = sprintf('%04d-%02d-%02d', $year, $month, $day);
-        } else {
-            $datetime_out = convertDateToMysql($datetime_out_raw);
-        }
-    }
-    
-    // Fix: Convert datetime_in to MySQL format
-    $datetime_in_raw = GETPOST('datetime_in', 'alpha');
-    $datetime_in = '';
-    if (!empty($datetime_in_raw)) {
-        // Handle Dolibarr date format
-        $day_in = GETPOST('datetime_inday', 'int');
-        $month_in = GETPOST('datetime_inmonth', 'int');
-        $year_in = GETPOST('datetime_inyear', 'int');
-        
-        if ($day_in > 0 && $month_in > 0 && $year_in > 0) {
-            $datetime_in = sprintf('%04d-%02d-%02d', $year_in, $month_in, $day_in);
-        } else {
-            $datetime_in = convertDateToMysql($datetime_in_raw);
-        }
-    }
-    
+    $datetime_out = getDateFromPost('datetime_out');
+    $datetime_in  = getDateFromPost('datetime_in');
+    $note = GETPOST('note', 'restricthtml');
+
     // Checkbox fields
     $petrol_card = GETPOST('petrol_card', 'int') ? 1 : 0;
     $lights_indicators = GETPOST('lights_indicators', 'int') ? 1 : 0;
@@ -397,6 +364,7 @@ if ($action == 'update' && $id > 0) {
         $sql .= "oil_check = ".((int) $oil_check).", ";
         $sql .= "suspension = ".((int) $suspension).", ";
         $sql .= "toolboxes_condition = ".((int) $toolboxes_condition).", ";
+        $sql .= "note = ".(!empty($note) ? "'".$db->escape($note)."'" : "NULL").", ";
         $sql .= "fk_user_modif = ".((int) $user->id).", ";
         $sql .= "tms = '".$db->idate($now)."' ";
         $sql .= "WHERE rowid = ".((int) $id);
@@ -644,6 +612,36 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
     background: rgba(60,71,88,0.08); color: #3c4758;
     padding: 4px 10px; border-radius: 6px; font-weight: 500;
 }
+
+/* ── Fix Dolibarr date/time widget styling ── */
+.dc-page .tcms { display:inline-flex !important; align-items:center !important; gap:4px !important; flex-wrap:wrap !important; }
+.dc-page input.hasDatepicker,
+.dc-page input[id^="datetime_out"],
+.dc-page input[id^="datetime_in"] {
+    padding: 7px 10px !important;
+    border: 1.5px solid #e2e5f0 !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    color: #2d3748 !important;
+    background: #fafbfe !important;
+    width: 120px !important;
+    box-sizing: border-box !important;
+}
+.dc-page select[id^="datetime_outhour"],
+.dc-page select[id^="datetime_outmin"],
+.dc-page select[id^="datetime_inhour"],
+.dc-page select[id^="datetime_inmin"] {
+    padding: 7px 6px !important;
+    border: 1.5px solid #e2e5f0 !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    color: #2d3748 !important;
+    background: #fafbfe !important;
+    width: auto !important;
+}
+.dc-page img[id$="DatePicker"] { display:none !important; }
 </style>
 <?php
 
@@ -716,7 +714,7 @@ print '<div class="dc-grid">';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon blue"><i class="fa fa-clipboard-list"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('InspectionInformation').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Inspection Information').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
@@ -766,7 +764,7 @@ print '    </div></div>';
 
 // Registration Number
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('RegistrationNumber').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Registration Number').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="text" name="registration_number" value="'.(isset($object->registration_number) ? dol_escape_htmltag($object->registration_number) : '').'">';
@@ -777,23 +775,23 @@ print '    </div></div>';
 
 // Date Out
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('DateOut').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Date Out').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print $form->selectDate((isset($object->datetime_out) ? $object->datetime_out : ''), 'datetime_out', 1, 1, 1, '', 1, 1);
 } else {
-    print (!empty($object->datetime_out) ? dol_print_date($object->datetime_out, 'dayhour') : '&mdash;');
+    print (!empty($object->datetime_out) ? dol_print_date($db->jdate($object->datetime_out), 'dayhour') : '&mdash;');
 }
 print '    </div></div>';
 
 // Date In
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('DateIn').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Date In').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print $form->selectDate((isset($object->datetime_in) ? $object->datetime_in : ''), 'datetime_in', 1, 1, 1, '', 1, 1);
 } else {
-    print (!empty($object->datetime_in) ? dol_print_date($object->datetime_in, 'dayhour') : '&mdash;');
+    print (!empty($object->datetime_in) ? dol_print_date($db->jdate($object->datetime_in), 'dayhour') : '&mdash;');
 }
 print '    </div></div>';
 
@@ -804,13 +802,13 @@ print '</div>';  // dc-card
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon amber"><i class="fa fa-tachometer-alt"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('MeterAndFuelInformation').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Meter And Fuel Information').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
 // Meter Out
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('MeterOut').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Meter Out').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="number" name="meter_out" value="'.(isset($object->meter_out) ? dol_escape_htmltag($object->meter_out) : '').'" min="0">';
@@ -821,7 +819,7 @@ print '    </div></div>';
 
 // Meter In
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('MeterIn').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Meter In').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="number" name="meter_in" value="'.(isset($object->meter_in) ? dol_escape_htmltag($object->meter_in) : '').'" min="0">';
@@ -832,7 +830,7 @@ print '    </div></div>';
 
 // Fuel Out
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('FuelOut').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Fuel Out').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="text" name="fuel_out" value="'.(isset($object->fuel_out) ? dol_escape_htmltag($object->fuel_out) : '').'">';
@@ -843,7 +841,7 @@ print '    </div></div>';
 
 // Fuel In
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('FuelIn').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Fuel In').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="text" name="fuel_in" value="'.(isset($object->fuel_in) ? dol_escape_htmltag($object->fuel_in) : '').'">';
@@ -885,7 +883,7 @@ $checklist_items = array(
 print '<div class="dc-card" style="margin-bottom:20px;">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon green"><i class="fa fa-check-double"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('InspectionChecklist').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Inspection Checklist').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 print '  <div class="dc-checklist">';
@@ -910,6 +908,24 @@ foreach ($checklist_items as $field => $label) {
 print '  </div>';// dc-checklist
 print '  </div>';// card-body
 print '</div>';  // dc-card
+
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   NOTES CARD
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+print '<div class="dc-card" style="margin-bottom:20px;">';
+print '  <div class="dc-card-header">';
+print '    <div class="dc-card-header-icon purple"><i class="fa fa-sticky-note"></i></div>';
+print '    <span class="dc-card-title">'.$langs->trans('Notes').'</span>';
+print '  </div>';
+print '  <div class="dc-card-body" style="padding:16px 20px;">';
+if ($isCreate || $isEdit) {
+    print '<textarea name="note" rows="5" style="width:100%;">'.(isset($object->note) ? dol_escape_htmltag($object->note, 1) : '').'</textarea>';
+} else {
+    print (!empty($object->note) ? '<p style="margin:4px 0;font-size:13.5px;color:#2d3748;line-height:1.6;white-space:pre-wrap;">'.dol_escape_htmltag($object->note, 1).'</p>' : '<span style="color:#c4c9d8;">&mdash;</span>');
+}
+print '  </div>';
+print '</div>';
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    BOTTOM ACTION BAR
