@@ -99,14 +99,31 @@ $object->id = 0;
 $object->ref = '';
 $object->fk_vehicle = '';
 $object->fk_driver = '';
+$object->fk_vendor = '';
 $object->fk_customer = '';
+$object->buying_tax_rate = '';
+$object->selling_tax_rate = '';
 $object->booking_date = '';
 $object->status = 'pending';
 $object->distance = '';
 $object->arriving_address = '';
 $object->departure_address = '';
+$object->dep_lat = '';
+$object->dep_lon = '';
+$object->arr_lat = '';
+$object->arr_lon = '';
 $object->buying_amount = '';
 $object->selling_amount = '';
+$object->buying_qty = '';
+$object->buying_price = '';
+$object->buying_unit = '';
+$object->buying_amount_ttc = '';
+$object->selling_qty = '';
+$object->selling_price = '';
+$object->selling_unit = '';
+$object->selling_amount_ttc = '';
+$object->stops = '';
+$object->eta = '';
 
 $error = 0;
 $errors = array();
@@ -148,31 +165,46 @@ if ($action == 'add') {
     $ref = GETPOST('ref', 'alpha');
     $fk_vehicle = GETPOST('fk_vehicle', 'int');
     $fk_driver = GETPOST('fk_driver', 'int');
+    $fk_vendor = GETPOST('fk_vendor', 'int');
     $fk_customer = GETPOST('fk_customer', 'int');
-    
+    $buying_tax_rate  = GETPOST('buying_tax_rate', 'alpha');
+    $selling_tax_rate = GETPOST('selling_tax_rate', 'alpha');
+
     // Fix: Convert date to MySQL format
     $booking_date_raw = GETPOST('booking_date', 'alpha');
     $booking_date = '';
     if (!empty($booking_date_raw)) {
-        // Handle Dolibarr date format
         $day = GETPOST('booking_dateday', 'int');
         $month = GETPOST('booking_datemonth', 'int');
         $year = GETPOST('booking_dateyear', 'int');
-        
         if ($day > 0 && $month > 0 && $year > 0) {
             $booking_date = sprintf('%04d-%02d-%02d', $year, $month, $day);
         } else {
             $booking_date = convertDateToMysql($booking_date_raw);
         }
     }
-    
-    $status = GETPOST('status', 'alpha');
-    $distance = GETPOST('distance', 'int');
-    $arriving_address = GETPOST('arriving_address', 'restricthtml');
+
+    $status           = GETPOST('status', 'alpha');
+    $distance         = GETPOST('distance', 'int');
+    $arriving_address  = GETPOST('arriving_address', 'restricthtml');
     $departure_address = GETPOST('departure_address', 'restricthtml');
-    $buying_amount = GETPOST('buying_amount', 'alpha');
-    $selling_amount = GETPOST('selling_amount', 'alpha');
-    
+    $dep_lat = GETPOST('dep_lat', 'alpha');
+    $dep_lon = GETPOST('dep_lon', 'alpha');
+    $arr_lat = GETPOST('arr_lat', 'alpha');
+    $arr_lon = GETPOST('arr_lon', 'alpha');
+    $buying_amount      = GETPOST('buying_amount', 'alpha');
+    $selling_amount     = GETPOST('selling_amount', 'alpha');
+    $buying_qty         = GETPOST('buying_qty', 'alpha');
+    $buying_price       = GETPOST('buying_price', 'alpha');
+    $buying_unit        = GETPOST('buying_unit', 'alphanohtml');
+    $buying_amount_ttc  = GETPOST('buying_amount_ttc', 'alpha');
+    $selling_qty        = GETPOST('selling_qty', 'alpha');
+    $selling_price      = GETPOST('selling_price', 'alpha');
+    $selling_unit       = GETPOST('selling_unit', 'alphanohtml');
+    $selling_amount_ttc = GETPOST('selling_amount_ttc', 'alpha');
+    $stops            = GETPOST('stops', 'restricthtml');
+    $eta              = GETPOST('eta', 'alpha');
+
     // Auto-generate reference if empty
     if (empty($ref)) {
         $ref = getNextBookingRef($db, $conf->entity);
@@ -197,20 +229,39 @@ if ($action == 'add') {
     
     if (!$error) {
         $sql = "INSERT INTO ".MAIN_DB_PREFIX."flotte_booking (";
-        $sql .= "ref, entity, fk_vehicle, fk_driver, fk_customer, booking_date, status, distance, ";
-        $sql .= "arriving_address, departure_address, buying_amount, selling_amount, fk_user_author";
+        $sql .= "ref, entity, fk_vehicle, fk_driver, fk_vendor, fk_customer, booking_date, status, distance, ";
+        $sql .= "arriving_address, departure_address, dep_lat, dep_lon, arr_lat, arr_lon, buying_amount, selling_amount, stops, eta, ";
+        $sql .= "buying_tax_rate, buying_qty, buying_price, buying_unit, buying_amount_ttc, ";
+        $sql .= "selling_tax_rate, selling_qty, selling_price, selling_unit, selling_amount_ttc, fk_user_author";
         $sql .= ") VALUES (";
         $sql .= "'".$db->escape($ref)."', ".((int) $conf->entity).", ";
         $sql .= "".((int) $fk_vehicle).", ";
         $sql .= ($fk_driver > 0 ? ((int) $fk_driver) : "NULL").", ";
+        $sql .= ($fk_vendor > 0 ? ((int) $fk_vendor) : "NULL").", ";
         $sql .= "".((int) $fk_customer).", ";
         $sql .= "'".$db->escape($booking_date)."', ";
         $sql .= "'".$db->escape($status)."', ";
         $sql .= ($distance > 0 ? ((int) $distance) : "NULL").", ";
         $sql .= "'".$db->escape($arriving_address)."', ";
         $sql .= "'".$db->escape($departure_address)."', ";
+        $sql .= (!empty($dep_lat) ? "'".$db->escape($dep_lat)."'" : "NULL").", ";
+        $sql .= (!empty($dep_lon) ? "'".$db->escape($dep_lon)."'" : "NULL").", ";
+        $sql .= (!empty($arr_lat) ? "'".$db->escape($arr_lat)."'" : "NULL").", ";
+        $sql .= (!empty($arr_lon) ? "'".$db->escape($arr_lon)."'" : "NULL").", ";
         $sql .= ($buying_amount ? ((float) $buying_amount) : "NULL").", ";
         $sql .= ($selling_amount ? ((float) $selling_amount) : "NULL").", ";
+        $sql .= (!empty($stops) ? "'".$db->escape($stops)."'" : "NULL").", ";
+        $sql .= (!empty($eta) ? "'".$db->escape($eta)."'" : "NULL").", ";
+        $sql .= (!empty($buying_tax_rate) ? "'".$db->escape($buying_tax_rate)."'" : "NULL").", ";
+        $sql .= ($buying_qty ? ((float) $buying_qty) : "NULL").", ";
+        $sql .= ($buying_price ? ((float) $buying_price) : "NULL").", ";
+        $sql .= (!empty($buying_unit) ? "'".$db->escape($buying_unit)."'" : "NULL").", ";
+        $sql .= ($buying_amount_ttc ? ((float) $buying_amount_ttc) : "NULL").", ";
+        $sql .= (!empty($selling_tax_rate) ? "'".$db->escape($selling_tax_rate)."'" : "NULL").", ";
+        $sql .= ($selling_qty ? ((float) $selling_qty) : "NULL").", ";
+        $sql .= ($selling_price ? ((float) $selling_price) : "NULL").", ";
+        $sql .= (!empty($selling_unit) ? "'".$db->escape($selling_unit)."'" : "NULL").", ";
+        $sql .= ($selling_amount_ttc ? ((float) $selling_amount_ttc) : "NULL").", ";
         $sql .= ((int) $user->id);
         $sql .= ")";
         
@@ -239,9 +290,10 @@ if ($action == 'update' && $id > 0) {
     $ref = GETPOST('ref', 'alpha');
     $fk_vehicle = GETPOST('fk_vehicle', 'int');
     $fk_driver = GETPOST('fk_driver', 'int');
+    $fk_vendor = GETPOST('fk_vendor', 'int');
     $fk_customer = GETPOST('fk_customer', 'int');
-    
-    // Fix: Convert date to MySQL format
+    $buying_tax_rate  = GETPOST('buying_tax_rate', 'alpha');
+    $selling_tax_rate = GETPOST('selling_tax_rate', 'alpha');
     $booking_date_raw = GETPOST('booking_date', 'alpha');
     $booking_date = '';
     if (!empty($booking_date_raw)) {
@@ -261,8 +313,22 @@ if ($action == 'update' && $id > 0) {
     $distance = GETPOST('distance', 'int');
     $arriving_address = GETPOST('arriving_address', 'restricthtml');
     $departure_address = GETPOST('departure_address', 'restricthtml');
-    $buying_amount = GETPOST('buying_amount', 'alpha');
-    $selling_amount = GETPOST('selling_amount', 'alpha');
+    $dep_lat = GETPOST('dep_lat', 'alpha');
+    $dep_lon = GETPOST('dep_lon', 'alpha');
+    $arr_lat = GETPOST('arr_lat', 'alpha');
+    $arr_lon = GETPOST('arr_lon', 'alpha');
+    $buying_amount      = GETPOST('buying_amount', 'alpha');
+    $selling_amount     = GETPOST('selling_amount', 'alpha');
+    $buying_qty         = GETPOST('buying_qty', 'alpha');
+    $buying_price       = GETPOST('buying_price', 'alpha');
+    $buying_unit        = GETPOST('buying_unit', 'alphanohtml');
+    $buying_amount_ttc  = GETPOST('buying_amount_ttc', 'alpha');
+    $selling_qty        = GETPOST('selling_qty', 'alpha');
+    $selling_price      = GETPOST('selling_price', 'alpha');
+    $selling_unit       = GETPOST('selling_unit', 'alphanohtml');
+    $selling_amount_ttc = GETPOST('selling_amount_ttc', 'alpha');
+    $stops = GETPOST('stops', 'restricthtml');
+    $eta = GETPOST('eta', 'alpha');
     
     // Validation
     if (empty($fk_vehicle)) {
@@ -288,14 +354,31 @@ if ($action == 'update' && $id > 0) {
         $sql .= "ref = '".$db->escape($ref)."', ";
         $sql .= "fk_vehicle = ".((int) $fk_vehicle).", ";
         $sql .= "fk_driver = ".($fk_driver > 0 ? ((int) $fk_driver) : "NULL").", ";
+        $sql .= "fk_vendor = ".($fk_vendor > 0 ? ((int) $fk_vendor) : "NULL").", ";
         $sql .= "fk_customer = ".((int) $fk_customer).", ";
         $sql .= "booking_date = '".$db->escape($booking_date)."', ";
         $sql .= "status = '".$db->escape($status)."', ";
         $sql .= "distance = ".($distance > 0 ? ((int) $distance) : "NULL").", ";
         $sql .= "arriving_address = '".$db->escape($arriving_address)."', ";
         $sql .= "departure_address = '".$db->escape($departure_address)."', ";
+        $sql .= "dep_lat = ".(!empty($dep_lat) ? "'".$db->escape($dep_lat)."'" : "NULL").", ";
+        $sql .= "dep_lon = ".(!empty($dep_lon) ? "'".$db->escape($dep_lon)."'" : "NULL").", ";
+        $sql .= "arr_lat = ".(!empty($arr_lat) ? "'".$db->escape($arr_lat)."'" : "NULL").", ";
+        $sql .= "arr_lon = ".(!empty($arr_lon) ? "'".$db->escape($arr_lon)."'" : "NULL").", ";
         $sql .= "buying_amount = ".($buying_amount ? ((float) $buying_amount) : "NULL").", ";
         $sql .= "selling_amount = ".($selling_amount ? ((float) $selling_amount) : "NULL").", ";
+        $sql .= "buying_qty = ".($buying_qty ? ((float) $buying_qty) : "NULL").", ";
+        $sql .= "buying_price = ".($buying_price ? ((float) $buying_price) : "NULL").", ";
+        $sql .= "buying_unit = ".(!empty($buying_unit) ? "'".$db->escape($buying_unit)."'" : "NULL").", ";
+        $sql .= "buying_amount_ttc = ".($buying_amount_ttc ? ((float) $buying_amount_ttc) : "NULL").", ";
+        $sql .= "selling_qty = ".($selling_qty ? ((float) $selling_qty) : "NULL").", ";
+        $sql .= "selling_price = ".($selling_price ? ((float) $selling_price) : "NULL").", ";
+        $sql .= "selling_unit = ".(!empty($selling_unit) ? "'".$db->escape($selling_unit)."'" : "NULL").", ";
+        $sql .= "selling_amount_ttc = ".($selling_amount_ttc ? ((float) $selling_amount_ttc) : "NULL").", ";
+        $sql .= "stops = ".(!empty($stops) ? "'".$db->escape($stops)."'" : "NULL").", ";
+        $sql .= "eta = ".(!empty($eta) ? "'".$db->escape($eta)."'" : "NULL").", ";
+        $sql .= "buying_tax_rate = ".(!empty($buying_tax_rate) ? "'".$db->escape($buying_tax_rate)."'" : "NULL").", ";
+        $sql .= "selling_tax_rate = ".(!empty($selling_tax_rate) ? "'".$db->escape($selling_tax_rate)."'" : "NULL").", ";
         $sql .= "fk_user_modif = ".((int) $user->id).", ";
         $sql .= "tms = '".$db->idate($now)."' ";
         $sql .= "WHERE rowid = ".((int) $id);
@@ -505,6 +588,36 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
 }
 .dc-amount.selling { color: #16a34a; }
 .dc-amount.buying  { color: #dc2626; }
+.dc-tax-badge { background: rgba(109,40,217,0.08) !important; color: #6d28d9 !important; }
+
+/* ── Inline tax selector ── */
+.dc-field-value-inline { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dc-field-value-inline > select,
+.dc-field-value-inline > div > select { flex: 1; min-width: 120px; }
+.dc-inline-tax { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.dc-inline-tax-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #8b92a9; white-space: nowrap; }
+select.dc-tax-select { width: auto !important; min-width: 70px !important; max-width: 80px !important; padding: 8px 8px !important; color: #6d28d9 !important; border-color: rgba(109,40,217,0.25) !important; background: rgba(109,40,217,0.04) !important; font-weight: 600 !important; }
+select.dc-tax-select:focus { border-color: #6d28d9 !important; box-shadow: 0 0 0 3px rgba(109,40,217,0.1) !important; }
+.dc-pricing-header .dc-field-value { flex-direction: column; gap: 0; }
+.dc-pricing-grid { width: 100%; display: flex; flex-direction: column; gap: 10px; }
+.dc-pricing-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.dc-pricing-inputs { border-bottom: 1px dashed #e8eaf0; padding-bottom: 10px; }
+.dc-pricing-col { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 80px; }
+.dc-pricing-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #8b92a9; }
+.dc-pricing-results { align-items: center; gap: 8px; flex-wrap: wrap; }
+.dc-pricing-result-item { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 100px; }
+.dc-pricing-result-sep { display: flex; flex-direction: column; align-items: center; gap: 2px; padding-top: 18px; color: #8b92a9; font-size: 11px; }
+.dc-tax-icon { font-size: 9px; }
+.dc-tax-pct { font-size: 10px; font-weight: 700; color: #6d28d9; }
+input.dc-calc-result { background: #f5f6fa !important; color: #4a5568 !important; font-family: 'DM Mono', monospace !important; font-weight: 500 !important; }
+input.dc-incl-val { background: #edfaf3 !important; color: #16a34a !important; font-family: 'DM Mono', monospace !important; font-weight: 600 !important; border-color: #bbf7d0 !important; }
+
+/* view mode pricing */
+.dc-pricing-view { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dc-pricing-meta { font-size: 11.5px; color: #8b92a9; background: #f5f6fa; padding: 3px 8px; border-radius: 5px; }
+.dc-pricing-arrow { color: #b0b8cc; font-size: 13px; }
+.dc-amount.buying-ttc { color: #16a34a; font-weight: 700; }
+.dc-amount.selling-ttc { color: #16a34a; font-weight: 700; }
 
 /* ── Form inputs ── */
 .dc-page input[type="text"],
@@ -525,6 +638,20 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
     max-width: 100% !important;
     box-sizing: border-box !important;
 }
+/* Date picker: let Dolibarr control its own layout */
+.dc-page .blockdatepicker input[type="text"],
+.dc-page input.hasDatepicker,
+.dc-page .inputdate,
+.dc-page input[id$="day"],
+.dc-page input[id$="month"],
+.dc-page input[id$="year"] {
+    width: auto !important;
+    max-width: none !important;
+    display: inline-block !important;
+}
+.dc-page .blockdatepicker { display: inline-flex !important; align-items: center !important; gap: 4px !important; flex-wrap: nowrap !important; }
+.dc-page .blockdatepicker a,
+.dc-page .blockdatepicker img { flex-shrink: 0 !important; }
 .dc-page input[type="text"]:focus,
 .dc-page input[type="email"]:focus,
 .dc-page input[type="number"]:focus,
@@ -612,6 +739,40 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
         min-width: 120px;
     }
 }
+
+/* ── OSM Autocomplete ── */
+.osm-autocomplete-wrap { position: relative; width: 100%; }
+.osm-suggestions {
+    position: absolute; z-index: 9999; left: 0; right: 0; top: calc(100% + 4px);
+    background: #fff; border: 1.5px solid #e2e5f0; border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.10); list-style: none;
+    margin: 0; padding: 4px 0; max-height: 220px; overflow-y: auto; display: none;
+}
+.osm-suggestions li {
+    padding: 9px 14px; font-size: 12.5px; color: #2d3748; cursor: pointer;
+    display: flex; align-items: flex-start; gap: 8px; line-height: 1.4;
+}
+.osm-suggestions li:hover, .osm-suggestions li.active { background: #f0f4ff; color: #3c4758; }
+.osm-suggestions li i { color: #16a34a; margin-top: 2px; flex-shrink: 0; }
+.osm-suggestions li.osm-loading { color: #8b92a9; cursor: default; }
+.osm-suggestions li.osm-loading:hover { background: none; }
+.osm-stop-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.osm-stop-row .osm-autocomplete-wrap { flex: 1; }
+.osm-stop-num-badge {
+    width: 22px; height: 22px; border-radius: 50%; background: #3c4758; color: #fff;
+    font-size: 10px; font-weight: 700; display: flex; align-items: center;
+    justify-content: center; flex-shrink: 0;
+}
+.osm-remove-stop { background: none; border: none; cursor: pointer; color: #ef4444; padding: 4px; font-size: 14px; line-height: 1; border-radius: 4px; transition: background 0.15s; }
+.osm-remove-stop:hover { background: #fef2f2; }
+.osm-add-stop { margin-top: 6px; font-size: 12px !important; padding: 5px 12px !important; }
+.osm-stops-view { display: flex; flex-direction: column; gap: 6px; }
+.osm-stop-badge { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: #2d3748; }
+.osm-stop-badge .osm-stop-num { width: 20px; height: 20px; border-radius: 50%; background: #3c4758; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+#osm-map-wrap { width: 100%; border-radius: 10px; overflow: hidden; border: 1.5px solid #e2e5f0; position: relative; min-height: 240px; }
+#osm-map { width: 100%; height: 240px; }
+#osm-map-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: #f7f8fc; color: #b0b8cc; font-size: 13px; }
+#osm-map-empty i { font-size: 28px; opacity: 0.4; }
 
 /* Small phones: 480px and below */
 @media (max-width: 480px) {
@@ -809,10 +970,50 @@ if ($isCreate || $isEdit) {
 }
 print '    </div></div>';
 
-// Customer
+// Vendor + Buying Tax (inline)
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('Vendor').'</div>';
+print '    <div class="dc-field-value dc-field-value-inline">';
+if ($isCreate || $isEdit) {
+    $vendors = array();
+    $sql = "SELECT rowid, name FROM ".MAIN_DB_PREFIX."flotte_vendor WHERE entity IN (".getEntity('flotte').")";
+    $resql = $db->query($sql);
+    if ($resql) {
+        while ($obj = $db->fetch_object($resql)) {
+            $vendors[$obj->rowid] = dol_escape_htmltag($obj->name);
+        }
+    }
+    print $form->selectarray('fk_vendor', $vendors, (isset($object->fk_vendor) ? $object->fk_vendor : ''), 1);
+    $btr = isset($object->buying_tax_rate) ? $object->buying_tax_rate : '';
+    print '<div class="dc-inline-tax">';
+    print '<label class="dc-inline-tax-label">'.$langs->trans('Tax').'</label>';
+    print '<select name="buying_tax_rate" id="buying_tax_rate" class="dc-tax-select">';
+    print '<option value="">—</option>';
+    foreach (array('0','7','14') as $r) { $s=($btr===$r)?' selected':''; print '<option value="'.$r.'"'.$s.'>'.$r.'%</option>'; }
+    print '</select></div>';
+} else {
+    if (!empty($object->fk_vendor)) {
+        $sql = "SELECT name FROM ".MAIN_DB_PREFIX."flotte_vendor WHERE rowid = ".((int) $object->fk_vendor);
+        $resql = $db->query($sql);
+        if ($resql && $db->num_rows($resql) > 0) {
+            $obj = $db->fetch_object($resql);
+            print '<span class="dc-chip"><i class="fa fa-store" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($obj->name).'</span>';
+        } else {
+            print '<span style="color:#c4c9d8;">'.$langs->trans('VendorNotFound').'</span>';
+        }
+    } else {
+        print '<span style="color:#c4c9d8;">'.$langs->trans('NotAssigned').'</span>';
+    }
+    if (isset($object->buying_tax_rate) && $object->buying_tax_rate !== '') {
+        print '<span class="dc-chip dc-tax-badge" style="margin-left:8px;"><i class="fa fa-percent" style="font-size:10px;opacity:0.6;"></i>'.$object->buying_tax_rate.'%</span>';
+    }
+}
+print '    </div></div>';
+
+// Customer + Selling Tax (inline)
 print '  <div class="dc-field">';
 print '    <div class="dc-field-label required">'.$langs->trans('Customer').'</div>';
-print '    <div class="dc-field-value">';
+print '    <div class="dc-field-value dc-field-value-inline">';
 if ($isCreate || $isEdit) {
     $customers = array();
     $sql = "SELECT rowid, firstname, lastname, company_name FROM ".MAIN_DB_PREFIX."flotte_customer WHERE entity IN (".getEntity('flotte').")";
@@ -825,6 +1026,13 @@ if ($isCreate || $isEdit) {
         }
     }
     print $form->selectarray('fk_customer', $customers, (isset($object->fk_customer) ? $object->fk_customer : ''), 1);
+    $str = isset($object->selling_tax_rate) ? $object->selling_tax_rate : '';
+    print '<div class="dc-inline-tax">';
+    print '<label class="dc-inline-tax-label">'.$langs->trans('Tax').'</label>';
+    print '<select name="selling_tax_rate" id="selling_tax_rate" class="dc-tax-select">';
+    print '<option value="">—</option>';
+    foreach (array('0','7','14') as $r) { $s=($str===$r)?' selected':''; print '<option value="'.$r.'"'.$s.'>'.$r.'%</option>'; }
+    print '</select></div>';
 } else {
     if (!empty($object->fk_customer)) {
         $sql = "SELECT firstname, lastname, company_name FROM ".MAIN_DB_PREFIX."flotte_customer WHERE rowid = ".((int) $object->fk_customer);
@@ -840,8 +1048,108 @@ if ($isCreate || $isEdit) {
     } else {
         print '<span style="color:#c4c9d8;">'.$langs->trans('NotAssigned').'</span>';
     }
+    if (isset($object->selling_tax_rate) && $object->selling_tax_rate !== '') {
+        print '<span class="dc-chip dc-tax-badge" style="margin-left:8px;"><i class="fa fa-percent" style="font-size:10px;opacity:0.6;"></i>'.$object->selling_tax_rate.'%</span>';
+    }
 }
 print '    </div></div>';
+
+
+// ── Buying Section ──
+print '  <div class="dc-field dc-pricing-header">';
+print '    <div class="dc-field-label">'.$langs->trans('BuyingAmount').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) {
+    $bq = isset($object->buying_qty)   ? dol_escape_htmltag($object->buying_qty)   : '';
+    $bp = isset($object->buying_price) ? dol_escape_htmltag($object->buying_price) : '';
+    $bu = isset($object->buying_unit) && $object->buying_unit !== '' ? dol_escape_htmltag($object->buying_unit) : 'All Inclusive';
+    $ba = isset($object->buying_amount)     ? dol_escape_htmltag($object->buying_amount)     : '';
+    $bt = isset($object->buying_amount_ttc) ? dol_escape_htmltag($object->buying_amount_ttc) : '';
+    print '<div class="dc-pricing-grid">';
+    print '  <div class="dc-pricing-row dc-pricing-inputs">';
+    print '    <div class="dc-pricing-col"><label class="dc-pricing-label">'.$langs->trans('Qty').'</label>';
+    print '    <input type="number" id="buying_qty" name="buying_qty" value="'.$bq.'" min="0" step="any" placeholder="0"></div>';
+    print '    <div class="dc-pricing-col"><label class="dc-pricing-label">'.$langs->trans('Unit').'</label>';
+    print '    <select id="buying_unit" name="buying_unit"><option value="">—</option>';
+    foreach (array('All Inclusive','Ton','Kg','Km','Hour','Day','Week') as $u) {
+        $sel = ($bu === $u) ? ' selected' : '';
+        print '<option value="'.dol_escape_htmltag($u).'"'.$sel.'>'.dol_escape_htmltag($u).'</option>';
+    }
+    print '</select></div>';
+    print '    <div class="dc-pricing-col"><label class="dc-pricing-label">'.$langs->trans('UnitPrice').'</label>';
+    print '    <input type="number" id="buying_price" name="buying_price" value="'.$bp.'" min="0" step="any" placeholder="0.00"></div>';
+    print '  </div>';
+    print '  <div class="dc-pricing-row dc-pricing-results">';
+    print '    <div class="dc-pricing-result-item"><span class="dc-pricing-result-label">'.$langs->trans('ExclTax').'</span>';
+    print '    <input type="number" id="buying_amount" name="buying_amount" value="'.$ba.'" step="any" readonly placeholder="0.00" class="dc-calc-result"></div>';
+    print '    <div class="dc-pricing-result-sep"><i class="fa fa-plus dc-tax-icon"></i><span class="dc-tax-pct" id="buying_tax_pct">0%</span></div>';
+    print '    <div class="dc-pricing-result-item dc-incl"><span class="dc-pricing-result-label">'.$langs->trans('InclTax').'</span>';
+    print '    <input type="number" id="buying_amount_ttc" name="buying_amount_ttc" value="'.$bt.'" step="any" readonly placeholder="0.00" class="dc-calc-result dc-incl-val"></div>';
+    print '  </div>';
+    print '</div>';
+} else {
+    print '<div class="dc-pricing-view">';
+    $bexcl = !empty($object->buying_amount)     ? price($object->buying_amount)     : '—';
+    $bincl = !empty($object->buying_amount_ttc) ? price($object->buying_amount_ttc) : '—';
+    $bqv   = !empty($object->buying_qty)   ? $object->buying_qty   : '—';
+    $bpv   = !empty($object->buying_price) ? price($object->buying_price) : '—';
+    $buv   = !empty($object->buying_unit)  ? dol_escape_htmltag($object->buying_unit) : '';
+    print '<span class="dc-pricing-meta">'.$bqv.($buv?' '.$buv:'').' × '.$bpv.'</span>';
+    print '<span class="dc-pricing-excl dc-amount buying">'.$bexcl.'</span>';
+    print '<span class="dc-pricing-arrow">→</span>';
+    print '<span class="dc-pricing-incl dc-amount buying-ttc">'.$bincl.'</span>';
+    print '</div>';
+}
+print '    </div></div>';
+
+// ── Selling Section ──
+print '  <div class="dc-field dc-pricing-header">';
+print '    <div class="dc-field-label">'.$langs->trans('SellingAmount').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) {
+    $sq = isset($object->selling_qty)   ? dol_escape_htmltag($object->selling_qty)   : '';
+    $sp = isset($object->selling_price) ? dol_escape_htmltag($object->selling_price) : '';
+    $su = isset($object->selling_unit) && $object->selling_unit !== '' ? dol_escape_htmltag($object->selling_unit) : 'All Inclusive';
+    $sa = isset($object->selling_amount)     ? dol_escape_htmltag($object->selling_amount)     : '';
+    $st = isset($object->selling_amount_ttc) ? dol_escape_htmltag($object->selling_amount_ttc) : '';
+    print '<div class="dc-pricing-grid">';
+    print '  <div class="dc-pricing-row dc-pricing-inputs">';
+    print '    <div class="dc-pricing-col"><label class="dc-pricing-label">'.$langs->trans('Qty').'</label>';
+    print '    <input type="number" id="selling_qty" name="selling_qty" value="'.$sq.'" min="0" step="any" placeholder="0"></div>';
+    print '    <div class="dc-pricing-col"><label class="dc-pricing-label">'.$langs->trans('Unit').'</label>';
+    print '    <select id="selling_unit" name="selling_unit"><option value="">—</option>';
+    foreach (array('All Inclusive','Ton','Kg','Km','Hour','Day','Week') as $u) {
+        $sel = ($su === $u) ? ' selected' : '';
+        print '<option value="'.dol_escape_htmltag($u).'"'.$sel.'>'.dol_escape_htmltag($u).'</option>';
+    }
+    print '</select></div>';
+    print '    <div class="dc-pricing-col"><label class="dc-pricing-label">'.$langs->trans('UnitPrice').'</label>';
+    print '    <input type="number" id="selling_price" name="selling_price" value="'.$sp.'" min="0" step="any" placeholder="0.00"></div>';
+    print '  </div>';
+    print '  <div class="dc-pricing-row dc-pricing-results">';
+    print '    <div class="dc-pricing-result-item"><span class="dc-pricing-result-label">'.$langs->trans('ExclTax').'</span>';
+    print '    <input type="number" id="selling_amount" name="selling_amount" value="'.$sa.'" step="any" readonly placeholder="0.00" class="dc-calc-result"></div>';
+    print '    <div class="dc-pricing-result-sep"><i class="fa fa-plus dc-tax-icon"></i><span class="dc-tax-pct" id="selling_tax_pct">0%</span></div>';
+    print '    <div class="dc-pricing-result-item dc-incl"><span class="dc-pricing-result-label">'.$langs->trans('InclTax').'</span>';
+    print '    <input type="number" id="selling_amount_ttc" name="selling_amount_ttc" value="'.$st.'" step="any" readonly placeholder="0.00" class="dc-calc-result dc-incl-val"></div>';
+    print '  </div>';
+    print '</div>';
+} else {
+    print '<div class="dc-pricing-view">';
+    $sexcl = !empty($object->selling_amount)     ? price($object->selling_amount)     : '—';
+    $sincl = !empty($object->selling_amount_ttc) ? price($object->selling_amount_ttc) : '—';
+    $sqv   = !empty($object->selling_qty)   ? $object->selling_qty   : '—';
+    $spv   = !empty($object->selling_price) ? price($object->selling_price) : '—';
+    $suv   = !empty($object->selling_unit)  ? dol_escape_htmltag($object->selling_unit) : '';
+    print '<span class="dc-pricing-meta">'.$sqv.($suv?' '.$suv:'').' × '.$spv.'</span>';
+    print '<span class="dc-pricing-excl dc-amount selling">'.$sexcl.'</span>';
+    print '<span class="dc-pricing-arrow">→</span>';
+    print '<span class="dc-pricing-incl dc-amount selling-ttc">'.$sincl.'</span>';
+    print '</div>';
+}
+print '    </div></div>';
+
+// Booking Date
 
 // Booking Date
 print '  <div class="dc-field">';
@@ -881,7 +1189,7 @@ print '  </div>';// card-body
 print '</div>';  // dc-card
 
 /* ── Card: Trip Details ── */
-print '<div class="dc-card">';
+print '<div class="dc-card" id="trip-details-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon green"><i class="fa fa-route"></i></div>';
 print '    <span class="dc-card-title">'.$langs->trans('TripDetails').'</span>';
@@ -892,41 +1200,101 @@ print '  <div class="dc-card-body">';
 print '  <div class="dc-field">';
 print '    <div class="dc-field-label">'.$langs->trans('DepartureAddress').'</div>';
 print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) print '<input type="text" name="departure_address" value="'.dol_escape_htmltag(isset($object->departure_address) ? $object->departure_address : '').'">';
-else print (!empty($object->departure_address) ? dol_escape_htmltag($object->departure_address) : '&mdash;');
+if ($isCreate || $isEdit) {
+    print '<div class="osm-autocomplete-wrap">';
+    print '<input type="text" id="departure_address" name="departure_address" value="'.dol_escape_htmltag(isset($object->departure_address) ? $object->departure_address : '').'" placeholder="'.$langs->trans('TypeToSearch').'" autocomplete="off">';
+    print '<ul class="osm-suggestions" id="dep-suggestions"></ul>';
+    print '<input type="hidden" id="dep_lat" name="dep_lat" value="'.dol_escape_htmltag(isset($object->dep_lat) ? $object->dep_lat : '').'">';
+    print '<input type="hidden" id="dep_lon" name="dep_lon" value="'.dol_escape_htmltag(isset($object->dep_lon) ? $object->dep_lon : '').'">';
+    print '</div>';
+} else {
+    print (!empty($object->departure_address) ? dol_escape_htmltag($object->departure_address) : '&mdash;');
+}
+print '    </div></div>';
+
+// Stops
+print '  <div class="dc-field" id="stops-field">';
+print '    <div class="dc-field-label">'.$langs->trans('Stops').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) {
+    $stopsJson = isset($object->stops) ? dol_escape_htmltag($object->stops) : '[]';
+    print '<div id="stops-container"></div>';
+    print '<input type="hidden" id="stops" name="stops" value="'.$stopsJson.'">';
+    print '<button type="button" class="dc-btn dc-btn-ghost osm-add-stop" onclick="addStop()"><i class="fa fa-plus"></i> '.$langs->trans('AddStop').'</button>';
+} else {
+    if (!empty($object->stops) && $object->stops !== '[]') {
+        $stops_arr = json_decode($object->stops, true);
+        if (!empty($stops_arr)) {
+            print '<div class="osm-stops-view">';
+            foreach ($stops_arr as $i => $s) {
+                print '<div class="osm-stop-badge"><span class="osm-stop-num">'.($i+1).'</span>'.dol_escape_htmltag($s['address']).'</div>';
+            }
+            print '</div>';
+        } else { print '&mdash;'; }
+    } else { print '&mdash;'; }
+}
 print '    </div></div>';
 
 // Arriving Address
 print '  <div class="dc-field">';
 print '    <div class="dc-field-label">'.$langs->trans('ArrivingAddress').'</div>';
 print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) print '<input type="text" name="arriving_address" value="'.dol_escape_htmltag(isset($object->arriving_address) ? $object->arriving_address : '').'">';
-else print (!empty($object->arriving_address) ? dol_escape_htmltag($object->arriving_address) : '&mdash;');
+if ($isCreate || $isEdit) {
+    print '<div class="osm-autocomplete-wrap">';
+    print '<input type="text" id="arriving_address" name="arriving_address" value="'.dol_escape_htmltag(isset($object->arriving_address) ? $object->arriving_address : '').'" placeholder="'.$langs->trans('TypeToSearch').'" autocomplete="off">';
+    print '<ul class="osm-suggestions" id="arr-suggestions"></ul>';
+    print '<input type="hidden" id="arr_lat" name="arr_lat" value="'.dol_escape_htmltag(isset($object->arr_lat) ? $object->arr_lat : '').'">';
+    print '<input type="hidden" id="arr_lon" name="arr_lon" value="'.dol_escape_htmltag(isset($object->arr_lon) ? $object->arr_lon : '').'">';
+    print '</div>';
+} else {
+    print (!empty($object->arriving_address) ? dol_escape_htmltag($object->arriving_address) : '&mdash;');
+}
 print '    </div></div>';
 
 // Distance
 print '  <div class="dc-field">';
 print '    <div class="dc-field-label">'.$langs->trans('Distance').'</div>';
 print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) print '<input type="number" name="distance" value="'.dol_escape_htmltag(isset($object->distance) ? $object->distance : '').'" min="0">';
-else print (!empty($object->distance) ? dol_escape_htmltag($object->distance).' '.$langs->trans('Km') : '&mdash;');
+if ($isCreate || $isEdit) {
+    print '<div style="display:flex;gap:8px;align-items:center;">';
+    print '<input type="number" id="distance" name="distance" value="'.dol_escape_htmltag(isset($object->distance) ? $object->distance : '').'" min="0" placeholder="'.$langs->trans('AutoCalculated').'">';
+    print '<span id="distance-loader" style="display:none;font-size:11px;color:#8b92a9;"><i class="fa fa-spinner fa-spin"></i> '.$langs->trans('Calculating').'...</span>';
+    print '</div>';
+} else {
+    print (!empty($object->distance) ? dol_escape_htmltag($object->distance).' '.$langs->trans('Km') : '&mdash;');
+}
 print '    </div></div>';
 
-// Buying Amount
+// ETA
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('BuyingAmount').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('ETA').'</div>';
 print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) print '<input type="number" name="buying_amount" value="'.dol_escape_htmltag(isset($object->buying_amount) ? $object->buying_amount : '').'" min="0" step="0.01">';
-else print (!empty($object->buying_amount) ? '<span class="dc-amount buying">'.price($object->buying_amount).'</span>' : '&mdash;');
+if ($isCreate || $isEdit) {
+    print '<div style="display:flex;gap:8px;align-items:center;">';
+    print '<input type="text" id="eta" name="eta" value="'.dol_escape_htmltag(isset($object->eta) ? $object->eta : '').'" placeholder="'.$langs->trans('AutoCalculated').'" readonly style="background:#f5f6fa!important;color:#5a6482!important;">';
+    print '</div>';
+} else {
+    print (!empty($object->eta) ? '<span class="dc-chip"><i class="fa fa-clock" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($object->eta).'</span>' : '&mdash;');
+}
 print '    </div></div>';
 
-// Selling Amount
-print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('SellingAmount').'</div>';
-print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) print '<input type="number" name="selling_amount" value="'.dol_escape_htmltag(isset($object->selling_amount) ? $object->selling_amount : '').'" min="0" step="0.01">';
-else print (!empty($object->selling_amount) ? '<span class="dc-amount selling">'.price($object->selling_amount).'</span>' : '&mdash;');
-print '    </div></div>';
+// Map preview
+if ($isCreate || $isEdit) {
+    print '  <div class="dc-field" style="flex-direction:column;gap:10px;">';
+    print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('RoutePreview').'</div>';
+    print '    <div id="osm-map-wrap">';
+    print '      <div id="osm-map"></div>';
+    print '      <div id="osm-map-empty"><i class="fa fa-map-marked-alt"></i><span>'.$langs->trans('EnterAddressesToSeeRoute').'</span></div>';
+    print '    </div>';
+    print '  </div>';
+} else {
+    if (!empty($object->departure_address) && !empty($object->arriving_address)) {
+        print '  <div class="dc-field" style="flex-direction:column;gap:10px;">';
+        print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('RoutePreview').'</div>';
+        print '    <div id="osm-map-wrap"><div id="osm-map"></div></div>';
+        print '  </div>';
+    }
+}
 
 print '  </div>';// card-body
 print '</div>';  // dc-card
@@ -954,6 +1322,242 @@ if ($isCreate || $isEdit) {
 }
 
 print '</div>';// dc-page
+
+// Pricing calculation script
+print '<script>
+(function(){
+function calcPricing() {
+    var buyTax  = parseFloat(document.getElementById("buying_tax_rate")  ? document.getElementById("buying_tax_rate").value  : 0) || 0;
+    var sellTax = parseFloat(document.getElementById("selling_tax_rate") ? document.getElementById("selling_tax_rate").value : 0) || 0;
+
+    // Buying
+    var bQty   = parseFloat(document.getElementById("buying_qty")   ? document.getElementById("buying_qty").value   : 0) || 0;
+    var bPrice = parseFloat(document.getElementById("buying_price") ? document.getElementById("buying_price").value : 0) || 0;
+    var bExcl  = Math.round(bQty * bPrice * 100) / 100;
+    var bTTC   = Math.round(bExcl * (1 + buyTax / 100) * 100) / 100;
+    var bAmtEl = document.getElementById("buying_amount");
+    var bTTCEl = document.getElementById("buying_amount_ttc");
+    var bPctEl = document.getElementById("buying_tax_pct");
+    if (bAmtEl) bAmtEl.value = bExcl > 0 ? bExcl.toFixed(2) : "";
+    if (bTTCEl) bTTCEl.value = bTTC  > 0 ? bTTC.toFixed(2)  : "";
+    if (bPctEl) bPctEl.textContent = buyTax + "%";
+
+    // Selling
+    var sQty   = parseFloat(document.getElementById("selling_qty")   ? document.getElementById("selling_qty").value   : 0) || 0;
+    var sPrice = parseFloat(document.getElementById("selling_price") ? document.getElementById("selling_price").value : 0) || 0;
+    var sExcl  = Math.round(sQty * sPrice * 100) / 100;
+    var sTTC   = Math.round(sExcl * (1 + sellTax / 100) * 100) / 100;
+    var sAmtEl = document.getElementById("selling_amount");
+    var sTTCEl = document.getElementById("selling_amount_ttc");
+    var sPctEl = document.getElementById("selling_tax_pct");
+    if (sAmtEl) sAmtEl.value = sExcl > 0 ? sExcl.toFixed(2) : "";
+    if (sTTCEl) sTTCEl.value = sTTC  > 0 ? sTTC.toFixed(2)  : "";
+    if (sPctEl) sPctEl.textContent = sellTax + "%";
+}
+document.addEventListener("DOMContentLoaded", function(){
+    ["buying_qty","buying_price","selling_qty","selling_price"].forEach(function(id){
+        var el = document.getElementById(id); if(el) el.addEventListener("input", calcPricing);
+    });
+    ["buying_tax_rate","selling_tax_rate"].forEach(function(id){
+        var el = document.getElementById(id); if(el) el.addEventListener("change", calcPricing);
+    });
+    calcPricing();
+});
+})();
+</script>';
+
+// OSM/Leaflet scripts
+print '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>';
+print '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>';
+
+$existingDep    = isset($object->departure_address) ? dol_escape_js($object->departure_address) : '';
+$existingArr    = isset($object->arriving_address)  ? dol_escape_js($object->arriving_address)  : '';
+// Use json_encode for stops to avoid double-escaping issues
+$stopsRawData   = isset($object->stops) && $object->stops ? $object->stops : '[]';
+$stopsDecoded   = json_decode($stopsRawData, true);
+$existingStopsJS = json_encode(is_array($stopsDecoded) ? $stopsDecoded : array());
+$existingDepLat = isset($object->dep_lat) && $object->dep_lat !== '' ? (float)$object->dep_lat : 0;
+$existingDepLon = isset($object->dep_lon) && $object->dep_lon !== '' ? (float)$object->dep_lon : 0;
+$existingArrLat = isset($object->arr_lat) && $object->arr_lat !== '' ? (float)$object->arr_lat : 0;
+$existingArrLon = isset($object->arr_lon) && $object->arr_lon !== '' ? (float)$object->arr_lon : 0;
+$isEditMode     = ($isCreate || $isEdit) ? 'true' : 'false';
+
+print '<script>
+(function(){
+"use strict";
+var EDIT_MODE = '.$isEditMode.';
+var map = null, routeLayer = null, markers = [], depCoords = null, arrCoords = null, stopCoords = [], stopCount = 0;
+
+// Stored coords from DB (0 means not saved yet)
+var storedDep = { lat: '.$existingDepLat.', lon: '.$existingDepLon.' };
+var storedArr = { lat: '.$existingArrLat.', lon: '.$existingArrLon.' };
+var storedStops = '.$existingStopsJS.';
+
+document.addEventListener("DOMContentLoaded", function() {
+    if (!EDIT_MODE) {
+        var dA = "'.addslashes($existingDep).'", aA = "'.addslashes($existingArr).'";
+        if (dA && aA) {
+            initMap();
+            // Use stored coords if available, otherwise geocode
+            var depPromise = (storedDep.lat && storedDep.lon)
+                ? Promise.resolve(storedDep)
+                : geocode(dA);
+            var arrPromise = (storedArr.lat && storedArr.lon)
+                ? Promise.resolve(storedArr)
+                : geocode(aA);
+            Promise.all([depPromise, arrPromise]).then(function(r) {
+                if (!r[0] || !r[1]) return;
+                depCoords = r[0]; arrCoords = r[1];
+                var sa = storedStops;
+                Promise.all(sa.map(function(s){ return (s.lat&&s.lon) ? Promise.resolve({lat:parseFloat(s.lat),lon:parseFloat(s.lon)}) : geocode(s.address); })).then(function(sc){
+                    stopCoords = sc.filter(Boolean); drawRoute();
+                });
+            });
+        }
+        return;
+    }
+    setupAutocomplete("departure_address","dep-suggestions",function(c){ depCoords=c; document.getElementById("dep_lat").value=c.lat; document.getElementById("dep_lon").value=c.lon; recalcRoute(); });
+    setupAutocomplete("arriving_address","arr-suggestions",function(c){ arrCoords=c; document.getElementById("arr_lat").value=c.lat; document.getElementById("arr_lon").value=c.lon; recalcRoute(); });
+    storedStops.forEach(function(s){ addStop(s.address, s.lat, s.lon); });
+    initMap();
+    var dV = document.getElementById("departure_address"), aV = document.getElementById("arriving_address");
+    if (dV && aV && dV.value && aV.value) {
+        // Use stored coords if available, otherwise geocode
+        var depP = (storedDep.lat && storedDep.lon) ? Promise.resolve(storedDep) : geocode(dV.value);
+        var arrP = (storedArr.lat && storedArr.lon) ? Promise.resolve(storedArr) : geocode(aV.value);
+        Promise.all([depP, arrP]).then(function(r){
+            if (r[0]) { depCoords=r[0]; document.getElementById("dep_lat").value=r[0].lat; document.getElementById("dep_lon").value=r[0].lon; }
+            if (r[1]) { arrCoords=r[1]; document.getElementById("arr_lat").value=r[1].lat; document.getElementById("arr_lon").value=r[1].lon; }
+            recalcRoute();
+        });
+    }
+});
+
+function geocode(q) {
+    return fetch("https://nominatim.openstreetmap.org/search?format=json&q="+encodeURIComponent(q)+"&limit=1",{headers:{"Accept-Language":"en","User-Agent":"DolibarrFlotte/1.0"}})
+    .then(function(r){return r.json();}).then(function(d){return d.length?{lat:parseFloat(d[0].lat),lon:parseFloat(d[0].lon)}:null;}).catch(function(){return null;});
+}
+
+var ntTimers = {};
+function setupAutocomplete(inId, sugId, onSel) {
+    var inp = document.getElementById(inId), lst = document.getElementById(sugId);
+    if (!inp||!lst) return;
+    inp.addEventListener("input", function(){
+        var q = inp.value.trim(); lst.innerHTML=""; lst.style.display="none";
+        if (q.length<3) return;
+        clearTimeout(ntTimers[inId]);
+        ntTimers[inId] = setTimeout(function(){
+            lst.innerHTML="<li class=\'osm-loading\'><i class=\'fa fa-spinner fa-spin\'></i> Searching...</li>"; lst.style.display="block";
+            fetch("https://nominatim.openstreetmap.org/search?format=json&q="+encodeURIComponent(q)+"&limit=5",{headers:{"Accept-Language":"en","User-Agent":"DolibarrFlotte/1.0"}})
+            .then(function(r){return r.json();}).then(function(data){
+                lst.innerHTML="";
+                if (!data.length){lst.innerHTML="<li style=\'color:#8b92a9;padding:9px 14px;font-size:12.5px;\'>No results</li>";lst.style.display="block";return;}
+                data.forEach(function(p){
+                    var li=document.createElement("li");
+                    li.innerHTML="<i class=\'fa fa-map-marker-alt\'></i><span>"+escH(p.display_name)+"</span>";
+                    li.addEventListener("mousedown",function(e){e.preventDefault();inp.value=p.display_name;lst.style.display="none";onSel({lat:parseFloat(p.lat),lon:parseFloat(p.lon)},p.display_name);});
+                    lst.appendChild(li);
+                });
+                lst.style.display="block";
+            }).catch(function(){lst.style.display="none";});
+        },400);
+    });
+    inp.addEventListener("blur",function(){setTimeout(function(){lst.style.display="none";},200);});
+    inp.addEventListener("focus",function(){if(lst.children.length)lst.style.display="block";});
+}
+
+window.addStop = function(existAddr, existLat, existLon) {
+    stopCount++;
+    var idx = stopCount;
+    var cont = document.getElementById("stops-container"); if(!cont) return;
+    var row=document.createElement("div"); row.className="osm-stop-row"; row.id="stop-row-"+idx;
+    var badge=document.createElement("span"); badge.className="osm-stop-num-badge"; badge.textContent=cont.children.length+1;
+    var wrap=document.createElement("div"); wrap.className="osm-autocomplete-wrap";
+    var inp=document.createElement("input"); inp.type="text"; inp.id="stop-input-"+idx; inp.placeholder="Stop address..."; inp.autocomplete="off";
+    if(existAddr) inp.value=existAddr;
+    var sug=document.createElement("ul"); sug.className="osm-suggestions"; sug.id="stop-sug-"+idx;
+    wrap.appendChild(inp); wrap.appendChild(sug);
+    var latI=document.createElement("input"); latI.type="hidden"; latI.id="stop-lat-"+idx; if(existLat) latI.value=existLat;
+    var lonI=document.createElement("input"); lonI.type="hidden"; lonI.id="stop-lon-"+idx; if(existLon) lonI.value=existLon;
+    var rm=document.createElement("button"); rm.type="button"; rm.className="osm-remove-stop"; rm.innerHTML="<i class=\'fa fa-times\'></i>";
+    rm.addEventListener("click",function(){row.remove();renumberStops();updateStopsHidden();recalcRoute();});
+    row.appendChild(badge); row.appendChild(wrap); row.appendChild(latI); row.appendChild(lonI); row.appendChild(rm);
+    cont.appendChild(row);
+    setupAutocomplete("stop-input-"+idx,"stop-sug-"+idx,function(c){document.getElementById("stop-lat-"+idx).value=c.lat;document.getElementById("stop-lon-"+idx).value=c.lon;updateStopsHidden();recalcRoute();});
+};
+
+function renumberStops() {
+    document.querySelectorAll("#stops-container .osm-stop-row").forEach(function(r,i){var b=r.querySelector(".osm-stop-num-badge");if(b)b.textContent=i+1;});
+}
+function updateStopsHidden() {
+    var rows=document.querySelectorAll("#stops-container .osm-stop-row"), stops=[];
+    rows.forEach(function(row){
+        var i=row.querySelector("input[type=\'text\']"), lI=row.querySelector("input[id^=\'stop-lat\']"), nI=row.querySelector("input[id^=\'stop-lon\']");
+        stops.push({address:i?i.value:"",lat:lI?parseFloat(lI.value)||null:null,lon:nI?parseFloat(nI.value)||null:null});
+    });
+    var h=document.getElementById("stops"); if(h) h.value=JSON.stringify(stops);
+}
+
+function initMap() {
+    var el=document.getElementById("osm-map"); if(!el) return;
+    map=L.map("osm-map",{zoomControl:true,scrollWheelZoom:false}).setView([34.0,9.0],6);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap contributors",maxZoom:18}).addTo(map);
+}
+
+function recalcRoute() {
+    updateStopsHidden();
+    if (!depCoords||!arrCoords) return;
+    var rows=document.querySelectorAll("#stops-container .osm-stop-row");
+    var proms=Array.from(rows).map(function(row){
+        var lI=row.querySelector("input[id^=\'stop-lat\']"),nI=row.querySelector("input[id^=\'stop-lon\']"),iI=row.querySelector("input[type=\'text\']");
+        if(lI&&nI&&lI.value&&nI.value) return Promise.resolve({lat:parseFloat(lI.value),lon:parseFloat(nI.value)});
+        if(iI&&iI.value.trim().length>2) return geocode(iI.value.trim());
+        return Promise.resolve(null);
+    });
+    Promise.all(proms).then(function(sc){
+        var wps=[depCoords]; sc.forEach(function(c){if(c)wps.push(c);}); wps.push(arrCoords);
+        var coords=wps.map(function(c){return c.lon+","+c.lat;}).join(";");
+        showLoaders(true);
+        fetch("https://router.project-osrm.org/route/v1/driving/"+coords+"?overview=full&geometries=geojson")
+        .then(function(r){return r.json();}).then(function(data){
+            showLoaders(false);
+            if(!data.routes||!data.routes.length) return;
+            var route=data.routes[0];
+            var dInp=document.getElementById("distance"); if(dInp) dInp.value=Math.round(route.distance/1000);
+            var eInp=document.getElementById("eta");
+            if(eInp){var h=Math.floor(route.duration/3600),m=Math.round((route.duration%3600)/60);eInp.value=(h>0?h+"h ":"")+m+"min";}
+            drawRouteGeoJSON(route.geometry,wps);
+        }).catch(function(){showLoaders(false);});
+    });
+}
+
+function drawRoute() {
+    if(!depCoords||!arrCoords) return;
+    var wps=[depCoords].concat(stopCoords).concat([arrCoords]);
+    var coords=wps.map(function(c){return c.lon+","+c.lat;}).join(";");
+    fetch("https://router.project-osrm.org/route/v1/driving/"+coords+"?overview=full&geometries=geojson")
+    .then(function(r){return r.json();}).then(function(data){if(data.routes&&data.routes.length)drawRouteGeoJSON(data.routes[0].geometry,wps);}).catch(function(){});
+}
+
+function drawRouteGeoJSON(geometry, wps) {
+    if(!map) return;
+    var emp=document.getElementById("osm-map-empty"); if(emp) emp.style.display="none";
+    if(routeLayer) map.removeLayer(routeLayer);
+    markers.forEach(function(m){map.removeLayer(m);}); markers=[];
+    routeLayer=L.geoJSON(geometry,{style:{color:"#3c4758",weight:4,opacity:0.85}}).addTo(map);
+    var iDep=L.divIcon({className:"",html:"<div style=\'background:#16a34a;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);\'></div>",iconSize:[14,14],iconAnchor:[7,7]});
+    var iArr=L.divIcon({className:"",html:"<div style=\'background:#dc2626;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);\'></div>",iconSize:[14,14],iconAnchor:[7,7]});
+    var iStp=L.divIcon({className:"",html:"<div style=\'background:#3c4758;width:11px;height:11px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.25);\'></div>",iconSize:[11,11],iconAnchor:[5.5,5.5]});
+    wps.forEach(function(c,i){var ic=(i===0)?iDep:(i===wps.length-1?iArr:iStp);markers.push(L.marker([c.lat,c.lon],{icon:ic}).addTo(map));});
+    map.fitBounds(routeLayer.getBounds(),{padding:[24,24]});
+}
+
+function showLoaders(s) {
+    var dl=document.getElementById("distance-loader"); if(dl) dl.style.display=s?"inline-flex":"none";
+}
+function escH(str){var d=document.createElement("div");d.appendChild(document.createTextNode(str));return d.innerHTML;}
+})();
+</script>';
 
 // End of page
 llxFooter();
