@@ -211,6 +211,7 @@ CREATE TABLE IF NOT EXISTS llx_flotte_inspection (
   oil_check           tinyint DEFAULT NULL,
   suspension          tinyint DEFAULT NULL,
   toolboxes_condition tinyint DEFAULT NULL,
+  note                text,
   fk_user_author      int DEFAULT NULL,
   fk_user_modif       int DEFAULT NULL,
   tms                 timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

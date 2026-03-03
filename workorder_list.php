@@ -363,6 +363,11 @@ table.vl-table tbody td.center { text-align: center; }
         <div class="vl-subtitle"><?php echo $nbtotalofrecords; ?> work order<?php echo $nbtotalofrecords != 1 ? 's' : ''; ?> found</div>
     </div>
     <div class="vl-header-actions">
+        <?php if ($user->rights->flotte->read) { ?>
+        <a class="vl-btn vl-btn-secondary" href="<?php echo dol_buildpath('/flotte/workorder_list.php', 1); ?>?action=export">
+            <i class="fa fa-download"></i> Export
+        </a>
+        <?php } ?>
         <?php if ($user->rights->flotte->write) { ?>
         <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/workorder_card.php', 1); ?>?action=create">
             <i class="fa fa-plus"></i> New Work Order
