@@ -606,7 +606,7 @@ print '<div class="dc-grid">';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon blue"><i class="fa fa-truck"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('VendorInformation').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Vendor Information').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
@@ -626,13 +626,13 @@ print '    </div></div>';
 
 // Third Party
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label required">'.$langs->trans('ThirdParty').'</div>';
+print '    <div class="dc-field-label required">'.$langs->trans('Third Party').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate) {
     print $formcompany->select_company($object->fk_soc, 'fk_soc', 's.fournisseur = 1', 'SelectThirdParty', 0, 0, array(), 0, '');
     print ' <a href="'.DOL_URL_ROOT.'/societe/card.php?action=create&type=f&backtopage='.urlencode($_SERVER['PHP_SELF'].'?action=create').'" target="_blank" title="'.$langs->trans('CreateThirdParty').'" style="margin-left:6px;">';
     print '<i class="fa fa-plus-circle" style="color:#3c4758;"></i></a>';
-    print '<div class="dc-autofill-notice"><i class="fa fa-magic" style="font-size:10px;"></i>'.$langs->trans('SelectThirdPartyToAutofill').'</div>';
+    print '<div class="dc-autofill-notice"><i class="fa fa-magic" style="font-size:10px;"></i>'.$langs->trans('Select Third Party To Autofill').'</div>';
 } else {
     if ($thirdparty->id > 0) {
         print $thirdparty->getNomUrl(1);
@@ -724,7 +724,7 @@ print '</div>';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon green"><i class="fa fa-map-marker-alt"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('AddressInformation').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Address Information').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
