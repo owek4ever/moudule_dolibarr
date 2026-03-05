@@ -635,7 +635,7 @@ print '<div class="dc-grid">';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon blue"><i class="fa fa-puzzle-piece"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('PartInformation').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Part Information').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
@@ -655,7 +655,7 @@ print '    </div></div>';
 
 // Part Title
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label required">'.$langs->trans('PartTitle').'</div>';
+print '    <div class="dc-field-label required">'.$langs->trans('Part Title').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="text" name="title" value="'.dol_escape_htmltag($object->title).'" required>';
@@ -666,7 +666,7 @@ print '    </div></div>';
 
 // Part Number
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('PartNumber').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Part Number').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="text" name="number" value="'.dol_escape_htmltag($object->number).'">';
@@ -688,7 +688,7 @@ print '    </div></div>';
 
 // Manufacturer
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Manufacturer').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Manu facturer').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="text" name="manufacturer" value="'.dol_escape_htmltag($object->manufacturer).'">';
@@ -726,13 +726,13 @@ print '</div>';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon green"><i class="fa fa-boxes"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('InventoryAndSourcing').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Inventory And Sourcing').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
 // Quantity on Hand
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('QtyOnHand').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Qty On Hand').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="number" name="qty_on_hand" value="'.(int)$object->qty_on_hand.'" min="0">';
@@ -743,7 +743,7 @@ print '    </div></div>';
 
 // Unit Cost
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('UnitCost').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Unit Cost').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="number" name="unit_cost" value="'.(float)$object->unit_cost.'" step="0.01" min="0">';
@@ -758,7 +758,7 @@ print '    <div class="dc-field-label">'.$langs->trans('Status').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $status_options = array(
-        ''             => $langs->trans('SelectStatus'),
+        ''             => $langs->trans('Select Status'),
         'Active'       => $langs->trans('Active'),
         'Inactive'     => $langs->trans('Inactive'),
         'Maintenance'  => $langs->trans('Maintenance'),
