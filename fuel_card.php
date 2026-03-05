@@ -557,6 +557,33 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
 .dc-page input[type="checkbox"] { width: auto !important; cursor: pointer; }
 .dc-page textarea { resize: vertical !important; }
 
+/* ── Fix Dolibarr date/time widget styling ── */
+.dc-page .tcms { display:inline-flex !important; align-items:center !important; gap:4px !important; flex-wrap:wrap !important; }
+.dc-page input.hasDatepicker,
+.dc-page input[id^="date"] {
+    padding: 7px 10px !important;
+    border: 1.5px solid #e2e5f0 !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    color: #2d3748 !important;
+    background: #fafbfe !important;
+    width: 120px !important;
+    box-sizing: border-box !important;
+}
+.dc-page select[id^="datehour"],
+.dc-page select[id^="datemin"] {
+    padding: 7px 6px !important;
+    border: 1.5px solid #e2e5f0 !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-family: 'DM Sans', sans-serif !important;
+    color: #2d3748 !important;
+    background: #fafbfe !important;
+    width: auto !important;
+}
+.dc-page img[id$="DatePicker"] { display:none !important; }
+
 /* ── Live total row ── */
 .dc-live-total {
     display: flex; align-items: center; gap: 10px;
@@ -756,7 +783,7 @@ print '<div class="dc-grid">';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon blue"><i class="fa fa-gas-pump"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('FuelRecordInformation').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Fuel Record Information').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
@@ -782,7 +809,7 @@ if ($isCreate || $isEdit) {
     print $form->selectarray('fk_vehicle', $vehicles, (isset($object->fk_vehicle) ? $object->fk_vehicle : ''), 1);
 } else {
     if (!empty($object->fk_vehicle)) {
-        print '<span class="dc-chip"><i class="fa fa-car" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($object->maker.' '.$object->model.' ('.$object->license_plate.')').'</span>';
+        print '<span class="dc-chip"><i class="fa fa-car" style="font-size:11px;opacity:0.6;"></i> '.dol_escape_htmltag($object->maker.' '.$object->model.' ('.$object->license_plate.')').'</span>';
     } else {
         print '<span style="color:#c4c9d8;">&mdash;</span>';
     }
@@ -794,7 +821,7 @@ print '  <div class="dc-field">';
 print '    <div class="dc-field-label required">'.$langs->trans('Date').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print $form->selectDate((isset($object->date) ? $db->jdate($object->date) : ''), 'date', 0, 0, 0, '', 1, 1);
+    print $form->selectDate((isset($object->date) ? $db->jdate($object->date) : ''), 'date', 1, 1, 0, '', 1, 1);
 } else {
     print dol_print_date($db->jdate($object->date), 'day');
 }
@@ -802,7 +829,7 @@ print '    </div></div>';
 
 // Meter Reading
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('MeterReading').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Meter Reading').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="number" name="start_meter" value="'.(isset($object->start_meter) ? dol_escape_htmltag($object->start_meter) : '').'" min="0" step="1">';
@@ -813,7 +840,7 @@ print '    </div></div>';
 
 // Reference Number
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('ReferenceNumber').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Reference Number').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="text" name="reference" value="'.(isset($object->reference) ? dol_escape_htmltag($object->reference) : '').'">';
@@ -850,13 +877,13 @@ print '</div>';  // dc-card
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon amber"><i class="fa fa-tint"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('FuelDetails').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Fuel Details').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
 // Fuel Source
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('FuelSource').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Fuel Source').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $source_options = array(
@@ -894,7 +921,7 @@ print '    </div></div>';
 
 // Cost per Unit
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label required">'.$langs->trans('CostUnit').'</div>';
+print '    <div class="dc-field-label required">'.$langs->trans('Cost Unit').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="number" name="cost_unit" id="dc_cost" value="'.(isset($object->cost_unit) ? dol_escape_htmltag($object->cost_unit) : '').'" min="0.01" step="0.01" required>';
@@ -905,7 +932,7 @@ print '    </div></div>';
 
 // Complete Fill-up
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('CompleteFillup').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Complete Fill up').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="checkbox" name="complete_fillup" value="1"'.(isset($object->complete_fillup) && $object->complete_fillup ? ' checked' : '').'>';
@@ -918,7 +945,7 @@ print '    </div></div>';
 
 // Total Cost — live in edit, static in view
 print '  <div class="dc-live-total">';
-print '    <span class="dc-live-total-label">'.$langs->trans('TotalCost').'</span>';
+print '    <span class="dc-live-total-label">'.$langs->trans('Total Cost').'</span>';
 if ($isCreate || $isEdit) {
     print '    <span class="dc-live-total-value" id="dc_total">'.price($total_cost).'</span>';
 } else {
