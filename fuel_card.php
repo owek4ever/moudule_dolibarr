@@ -30,6 +30,26 @@ if (!$res) { die("Include of main fails"); }
 
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
+require_once DOL_DOCUMENT_ROOT.'/core/class/html.formfile.class.php';
+
+// Function to handle file upload
+function handleFileUpload($file_field_name, $upload_dir) {
+    if (isset($_FILES[$file_field_name]) && $_FILES[$file_field_name]['error'] == 0) {
+        $allowed = array('jpg', 'jpeg', 'png', 'pdf');
+        $filename = $_FILES[$file_field_name]['name'];
+        $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+        if (in_array($ext, $allowed)) {
+            $new_filename = uniqid() . '_' . $filename;
+            $destination = $upload_dir . '/' . $new_filename;
+
+            if (move_uploaded_file($_FILES[$file_field_name]['tmp_name'], $destination)) {
+                return $new_filename;
+            }
+        }
+    }
+    return null;
+}
 
 // Load translation files
 $langs->loadLangs(array("flotte@flotte", "other"));
@@ -92,6 +112,12 @@ $cancel = GETPOST('cancel', 'alpha');
 
 // Security check
 restrictedArea($user, 'flotte');
+
+// Define upload directory for fuel photos
+$upload_dir = DOL_DATA_ROOT.'/flotte/fuel';
+if (!is_dir($upload_dir)) {
+    dol_mkdir($upload_dir);
+}
 
 // Initialize variables
 $object = new stdClass();
@@ -183,6 +209,9 @@ if ($action == 'add') {
     $qty = GETPOST('qty', 'alpha');
     $cost_unit = GETPOST('cost_unit', 'alpha');
     
+    // Handle fuel photo upload
+    $fuel_photo = handleFileUpload('fuel_photo', $upload_dir);
+
     // Auto-generate reference if empty
     if (empty($ref)) {
         $ref = getNextFuelRef($db, $conf->entity);
@@ -200,18 +229,9 @@ if ($action == 'add') {
         $error++;
         $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("Date"));
     }
-    if (empty($qty) || $qty_numeric <= 0) {
-        $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("Quantity"));
-    }
-    if (empty($cost_unit) || $cost_unit_numeric <= 0) {
-        $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("CostUnit"));
-    }
-    
     if (!$error) {
         $sql = "INSERT INTO ".MAIN_DB_PREFIX."flotte_fuel (";
-        $sql .= "ref, entity, fk_vehicle, date, start_meter, reference, state, note, complete_fillup, fuel_source, qty, cost_unit, fk_user_author";
+        $sql .= "ref, entity, fk_vehicle, date, start_meter, reference, state, note, complete_fillup, fuel_source, qty, cost_unit, fuel_photo, fk_user_author";
         $sql .= ") VALUES (";
         $sql .= "'".$db->escape($ref)."', ".$conf->entity.", ";
         $sql .= "'".$db->escape($fk_vehicle)."', ";
@@ -224,6 +244,7 @@ if ($action == 'add') {
         $sql .= "'".$db->escape($fuel_source)."', ";
         $sql .= "'".$db->escape($qty_numeric)."', ";
         $sql .= "'".$db->escape($cost_unit_numeric)."', ";
+        $sql .= ($fuel_photo ? "'".$db->escape($fuel_photo)."'" : "NULL").", ";
         $sql .= $user->id;
         $sql .= ")";
         
@@ -275,6 +296,9 @@ if ($action == 'update') {
     $qty = GETPOST('qty', 'alpha');
     $cost_unit = GETPOST('cost_unit', 'alpha');
     
+    // Handle fuel photo upload (only update if a new file is uploaded)
+    $fuel_photo = handleFileUpload('fuel_photo', $upload_dir);
+
     // Convert to numbers for database
     $qty_numeric = (float) str_replace(',', '.', $qty);
     $cost_unit_numeric = (float) str_replace(',', '.', $cost_unit);
@@ -286,14 +310,6 @@ if ($action == 'update') {
     if (empty($date)) {
         $error++;
         $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("Date"));
-    }
-    if (empty($qty) || $qty_numeric <= 0) {
-        $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("Quantity"));
-    }
-    if (empty($cost_unit) || $cost_unit_numeric <= 0) {
-        $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("CostUnit"));
     }
     
     if (!$error) {
@@ -309,6 +325,9 @@ if ($action == 'update') {
         $sql .= "fuel_source = '".$db->escape($fuel_source)."', ";
         $sql .= "qty = '".$db->escape($qty_numeric)."', ";
         $sql .= "cost_unit = '".$db->escape($cost_unit_numeric)."', ";
+        if ($fuel_photo) {
+            $sql .= "fuel_photo = '".$db->escape($fuel_photo)."', ";
+        }
         $sql .= "fk_user_modif = ".$user->id." ";
         $sql .= "WHERE rowid = ".((int) $id);
         
@@ -703,6 +722,23 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
     .dc-live-total { flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 14px; }
     .dc-live-total-value { font-size: 18px; }
 }
+/* ── File upload zone ── */
+.dc-page input[type="file"] {
+    font-size: 12.5px; color: #5a6482;
+}
+.dc-file-zone {
+    border: 2px dashed #d1d5e0; border-radius: 8px;
+    padding: 14px 16px; text-align: center;
+    background: #fafbfc; transition: border-color 0.15s, background 0.15s;
+}
+.dc-file-zone:hover { border-color: #3c4758; background: #f5f6fa; }
+.dc-file-zone i { font-size: 22px; color: #c4c9d8; margin-bottom: 6px; display: block; }
+.dc-file-zone small { font-size: 11.5px; color: #9aa0b4; display: block; }
+.dc-file-current {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; color: #5a6482; margin-top: 6px;
+    padding: 4px 8px; background: #f5f6fa; border-radius: 4px;
+}
 </style>
 <?php
 
@@ -742,7 +778,7 @@ if (is_numeric($object->qty) && is_numeric($object->cost_unit)) {
 
 // Form start
 if ($isCreate || $isEdit) {
-    print '<form method="POST" action="'.$_SERVER['PHP_SELF'].($id > 0 ? '?id='.$id : '').'">';
+    print '<form method="POST" action="'.$_SERVER['PHP_SELF'].($id > 0 ? '?id='.$id : '').'" enctype="multipart/form-data">';
     print '<input type="hidden" name="action" value="'.($isCreate ? 'add' : 'update').'">';
     print '<input type="hidden" name="token" value="'.newToken().'">';
 }
@@ -910,10 +946,10 @@ print '    </div></div>';
 
 // Quantity
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label required">'.$langs->trans('Quantity').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Quantity').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="number" name="qty" id="dc_qty" value="'.(isset($object->qty) ? dol_escape_htmltag($object->qty) : '').'" min="0.01" step="0.01" required>';
+    print '<input type="number" name="qty" id="dc_qty" value="'.(isset($object->qty) && $object->qty > 0 ? dol_escape_htmltag($object->qty) : '').'" min="0" step="0.01" placeholder="0.00">';
 } else {
     print '<span class="dc-mono">'.(is_numeric($object->qty) ? number_format((float)$object->qty, 2) : '0.00').' L</span>';
 }
@@ -921,10 +957,10 @@ print '    </div></div>';
 
 // Cost per Unit
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label required">'.$langs->trans('Cost Unit').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Cost Unit').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="number" name="cost_unit" id="dc_cost" value="'.(isset($object->cost_unit) ? dol_escape_htmltag($object->cost_unit) : '').'" min="0.01" step="0.01" required>';
+    print '<input type="number" name="cost_unit" id="dc_cost" value="'.(isset($object->cost_unit) && $object->cost_unit > 0 ? dol_escape_htmltag($object->cost_unit) : '').'" min="0" step="0.01" placeholder="0.00">';
 } else {
     print '<span class="dc-mono">'.(is_numeric($object->cost_unit) ? price($object->cost_unit) : price(0)).' / L</span>';
 }
@@ -943,11 +979,11 @@ if ($isCreate || $isEdit) {
 }
 print '    </div></div>';
 
-// Total Cost — live in edit, static in view
+// Total Cost — editable input in edit/create, static in view
 print '  <div class="dc-live-total">';
 print '    <span class="dc-live-total-label">'.$langs->trans('Total Cost').'</span>';
 if ($isCreate || $isEdit) {
-    print '    <span class="dc-live-total-value" id="dc_total">'.price($total_cost).'</span>';
+    print '    <input type="number" id="dc_total" min="0" step="0.01" placeholder="0.00" style="font-family:\'DM Mono\',monospace;font-size:15px;font-weight:600;color:#1a1f2e;border:1.5px solid #d1d5e0;border-radius:6px;padding:5px 10px;width:160px;background:#fff;" value="'.($total_cost > 0 ? $total_cost : '').'">';
 } else {
     print '    <span class="dc-total">'.price($total_cost).'</span>';
 }
@@ -957,6 +993,85 @@ print '  </div>';// card-body
 print '</div>';  // dc-card
 
 print '</div>';// dc-grid row1
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ROW 2 — Fuel Photo
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+$fuel_photo_val = isset($object->fuel_photo) ? $object->fuel_photo : '';
+if ($isCreate || $isEdit || !empty($fuel_photo_val)) {
+    print '<div class="dc-card" style="margin-bottom:20px;">';
+    print '  <div class="dc-card-header">';
+    print '    <div class="dc-card-header-icon amber"><i class="fa fa-camera"></i></div>';
+    print '    <span class="dc-card-title">'.$langs->trans('Fuel Photo').'</span>';
+    print '  </div>';
+    print '  <div class="dc-card-body">';
+    print '  <div class="dc-field" style="flex-direction:column;gap:12px;">';
+    print '    <div class="dc-field-value" style="width:100%;">';
+
+    if ($isCreate || $isEdit) {
+        print '<div class="dc-file-zone" onclick="document.getElementById(\'fuel_photo_input\').click()" style="cursor:pointer;">';
+        print '  <i class="fa fa-cloud-upload-alt" id="fuel_photo_icon"></i>';
+        print '  <input type="file" id="fuel_photo_input" name="fuel_photo" accept="image/*,.pdf" style="display:none;">';
+        print '  <small id="fuel_photo_label">'.$langs->trans('Click to select — JPG, PNG, PDF').'</small>';
+        print '</div>';
+        // Live preview container
+        print '<div id="fuel_photo_preview" style="margin-top:10px;display:'.(!empty($fuel_photo_val) ? 'block' : 'none').';">';
+        if (!empty($fuel_photo_val)) {
+            $ext_prev = strtolower(pathinfo($fuel_photo_val, PATHINFO_EXTENSION));
+            if (in_array($ext_prev, array('jpg','jpeg','png','gif'))) {
+                $img_url = DOL_URL_ROOT.'/document.php?modulepart=flotte&file=fuel/'.urlencode($fuel_photo_val).'&entity='.$conf->entity;
+                print '<img id="fuel_photo_img" src="'.dol_escape_htmltag($img_url).'" style="max-width:260px;max-height:180px;border-radius:8px;border:1px solid #e8eaf0;display:block;" />';
+            }
+            print '<div class="dc-file-current" style="margin-top:6px;"><i class="fa fa-paperclip"></i> '.dol_escape_htmltag($fuel_photo_val).'</div>';
+        } else {
+            print '<img id="fuel_photo_img" src="" style="max-width:260px;max-height:180px;border-radius:8px;border:1px solid #e8eaf0;display:none;" />';
+        }
+        print '</div>';
+
+        // JS: live preview on file select
+        print '<script>
+        document.getElementById("fuel_photo_input").addEventListener("change", function() {
+            var file = this.files[0];
+            if (!file) return;
+            document.getElementById("fuel_photo_label").textContent = file.name;
+            document.getElementById("fuel_photo_icon").className = "fa fa-check-circle";
+            document.getElementById("fuel_photo_icon").style.color = "#22c55e";
+            if (file.type.match("image.*")) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    var img = document.getElementById("fuel_photo_img");
+                    img.src = e.target.result;
+                    img.style.display = "block";
+                    document.getElementById("fuel_photo_preview").style.display = "block";
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        </script>';
+
+    } else {
+        if (!empty($fuel_photo_val)) {
+            $file_path = $upload_dir.'/'.$fuel_photo_val;
+            $ext = strtolower(pathinfo($fuel_photo_val, PATHINFO_EXTENSION));
+            if (in_array($ext, array('jpg','jpeg','png','gif'))) {
+                $img_url = DOL_URL_ROOT.'/document.php?modulepart=flotte&file=fuel/'.urlencode($fuel_photo_val).'&entity='.$conf->entity;
+                print '<a href="'.dol_escape_htmltag($img_url).'" target="_blank">';
+                print '<img src="'.dol_escape_htmltag($img_url).'" style="max-width:260px;max-height:180px;border-radius:8px;border:1px solid #e8eaf0;" />';
+                print '</a>';
+            } else {
+                $dl_url = DOL_URL_ROOT.'/document.php?modulepart=flotte&file=fuel/'.urlencode($fuel_photo_val).'&entity='.$conf->entity;
+                print '<a href="'.dol_escape_htmltag($dl_url).'" target="_blank" class="dc-file-current"><i class="fa fa-download"></i> '.dol_escape_htmltag($fuel_photo_val).'</a>';
+            }
+        } else {
+            print '<span style="color:#c4c9d8;font-size:13px;">&mdash;</span>';
+        }
+    }
+
+    print '    </div>';
+    print '  </div>';
+    print '  </div>';
+    print '</div>';
+}
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    ROW 2 — Notes (always shown in edit; only when filled in view)
@@ -1001,25 +1116,80 @@ if ($isCreate || $isEdit) {
 
 print '</div>';// dc-page
 
-// JavaScript: live total calculation in create/edit
+// JavaScript: bidirectional live calculation in create/edit
 if ($isCreate || $isEdit) {
     print '<script type="text/javascript">
     (function() {
-        function formatNum(n) {
-            return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        function val(id) {
+            var v = parseFloat(document.getElementById(id).value);
+            return (isNaN(v) || v <= 0) ? null : v;
         }
-        function calcTotal() {
-            var qty  = parseFloat(document.getElementById("dc_qty").value)  || 0;
-            var cost = parseFloat(document.getElementById("dc_cost").value) || 0;
-            var el   = document.getElementById("dc_total");
-            if (el) el.textContent = formatNum(qty * cost);
+        function setVal(id, num) {
+            var el = document.getElementById(id);
+            if (el && num !== null && isFinite(num) && num > 0) {
+                el.value = (Math.round(num * 10000) / 10000).toFixed(2);
+            }
         }
+
+        // Called whenever any field changes.
+        // Rule: fill whichever field is currently empty using the two that have values.
+        // If all three are filled, the changed field drives the calculation and
+        // overwrites the field that was NOT just changed (prefer total as output
+        // when qty/cost changed, prefer qty as output when total/cost changed).
+        function recalc(changed) {
+            var qty   = val("dc_qty");
+            var cost  = val("dc_cost");
+            var total = val("dc_total");
+
+            if (changed === "dc_qty" || changed === "dc_cost") {
+                // User is editing qty or cost → always recalculate total
+                if (qty !== null && cost !== null) {
+                    setVal("dc_total", qty * cost);
+                }
+            } else if (changed === "dc_total" || changed === "dc_cost_from_total") {
+                // User edited total or cost while total is the "anchor"
+                // Recalculate qty = total / cost
+                var t2 = val("dc_total");
+                var c2 = val("dc_cost");
+                if (t2 !== null && c2 !== null) {
+                    setVal("dc_qty", t2 / c2);
+                }
+            }
+        }
+
         document.addEventListener("DOMContentLoaded", function() {
-            var q = document.getElementById("dc_qty");
-            var c = document.getElementById("dc_cost");
-            if (q) q.addEventListener("input", calcTotal);
-            if (c) c.addEventListener("input", calcTotal);
-            calcTotal();
+            var qEl = document.getElementById("dc_qty");
+            var cEl = document.getElementById("dc_cost");
+            var tEl = document.getElementById("dc_total");
+
+            // We track whether the user has touched total — if they have,
+            // cost changes should recalculate qty instead of total.
+            var totalTouched = (tEl && tEl.value !== "");
+
+            if (tEl) tEl.addEventListener("input", function() {
+                totalTouched = (tEl.value !== "");
+                recalc("dc_total");
+            });
+
+            if (qEl) qEl.addEventListener("input", function() {
+                // If total is touched, recalc total from qty*cost
+                recalc("dc_qty");
+            });
+
+            if (cEl) cEl.addEventListener("input", function() {
+                if (totalTouched && val("dc_total") !== null) {
+                    // total / cost → qty
+                    recalc("dc_cost_from_total");
+                } else {
+                    // qty * cost → total
+                    recalc("dc_cost");
+                }
+            });
+
+            // Initial pass on page load
+            if (val("dc_qty") !== null && val("dc_cost") !== null) {
+                recalc("dc_qty");
+            }
         });
     })();
     </script>';

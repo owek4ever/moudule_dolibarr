@@ -168,6 +168,7 @@ CREATE TABLE IF NOT EXISTS llx_flotte_fuel (
   fuel_source         varchar(50) DEFAULT NULL,
   qty                 decimal(10,2) DEFAULT NULL,
   cost_unit           decimal(10,2) DEFAULT NULL,
+  fuel_photo          varchar(255) DEFAULT NULL,
   fk_user_author      int DEFAULT NULL,
   fk_user_modif       int DEFAULT NULL,
   tms                 timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
