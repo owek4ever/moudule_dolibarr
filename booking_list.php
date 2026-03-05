@@ -47,6 +47,9 @@ $search_customer = GETPOST('search_customer', 'alpha');
 $search_status = GETPOST('search_status', 'alpha');
 $search_date_from = GETPOST('search_date_from', 'alpha');
 $search_date_to = GETPOST('search_date_to', 'alpha');
+$search_vendor = GETPOST('search_vendor', 'alpha');
+$search_invoiced_customer = GETPOST('search_invoiced_customer', 'alpha');
+$search_invoiced_vendor   = GETPOST('search_invoiced_vendor', 'alpha');
 
 $limit = GETPOST('limit', 'int') ? GETPOST('limit', 'int') : $conf->liste_limit;
 $sortfield = GETPOST('sortfield', 'aZ09comma');
@@ -90,6 +93,9 @@ if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter.x'
     $search_status = '';
     $search_date_from = '';
     $search_date_to = '';
+    $search_vendor = '';
+    $search_invoiced_customer = '';
+    $search_invoiced_vendor   = '';
 }
 
 // Handle confirmed delete from list page
@@ -115,15 +121,29 @@ if ($action == 'confirm_delete' && GETPOST('confirm', 'alpha') == 'yes') {
     $action = 'list';
 }
 
+// ── Invoiced lookup (must run before main SQL for filter support) ────────
+$invoiced_customer_ids = array();
+$invoiced_vendor_ids   = array();
+
+$_ri = $db->query("SELECT note_private FROM ".MAIN_DB_PREFIX."facture WHERE note_private LIKE '%FLOTTE_BOOKING_IDS:%' AND fk_statut >= 1 AND entity IN (".getEntity('facture').")");
+if ($_ri) { while ($_inv = $db->fetch_object($_ri)) { if (preg_match('/FLOTTE_BOOKING_IDS:([\d,]+)/', $_inv->note_private, $_m)) { foreach (explode(',', $_m[1]) as $_bid) { $_bid = (int)trim($_bid); if ($_bid > 0) $invoiced_customer_ids[$_bid] = true; } } } }
+
+$_ri2 = $db->query("SELECT note_private FROM ".MAIN_DB_PREFIX."facture_fourn WHERE note_private LIKE '%FLOTTE_VENDOR_BOOKING_IDS:%' AND fk_statut >= 1 AND entity IN (".getEntity('facture_fourn').")");
+if ($_ri2) { while ($_inv = $db->fetch_object($_ri2)) { if (preg_match('/FLOTTE_VENDOR_BOOKING_IDS:([\d,]+)/', $_inv->note_private, $_m)) { foreach (explode(',', $_m[1]) as $_bid) { $_bid = (int)trim($_bid); if ($_bid > 0) $invoiced_vendor_ids[$_bid] = true; } } } }
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Build and execute select
-$sql = 'SELECT t.rowid, t.ref, t.booking_date, t.status, t.distance, t.arriving_address, t.departure_address, t.buying_amount, t.selling_amount,';
+$sql = 'SELECT t.rowid, t.ref, t.booking_date, t.status, t.distance, t.arriving_address, t.departure_address, t.buying_amount, t.selling_amount, IFNULL(t.selling_amount_ttc, t.selling_amount) as selling_amount_ttc, IFNULL(t.buying_amount_ttc, t.buying_amount) as buying_amount_ttc,';
+$sql .= ' t.fk_customer, t.fk_vendor,';
 $sql .= ' v.ref as vehicle_ref, v.maker, v.model, v.license_plate,';
 $sql .= ' d.firstname as driver_firstname, d.lastname as driver_lastname,';
-$sql .= ' c.firstname as customer_firstname, c.lastname as customer_lastname, c.company_name';
+$sql .= ' c.firstname as customer_firstname, c.lastname as customer_lastname, c.company_name,';
+$sql .= ' vn.name as vendor_name';
 $sql .= ' FROM '.MAIN_DB_PREFIX.'flotte_booking as t';
 $sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'flotte_vehicle as v ON t.fk_vehicle = v.rowid';
 $sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'flotte_driver as d ON t.fk_driver = d.rowid';
 $sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'flotte_customer as c ON t.fk_customer = c.rowid';
+$sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'flotte_vendor as vn ON t.fk_vendor = vn.rowid';
 $sql .= ' WHERE 1 = 1';
 $sql .= ' AND t.entity IN ('.getEntity('flotte').')';
 
@@ -145,14 +165,32 @@ if ($search_status) {
 if ($search_date_from) {
     $sql .= " AND t.booking_date >= '".$db->escape($search_date_from)."'";
 }
+if ($search_vendor) {
+    $sql .= " AND vn.name LIKE '%".$db->escape($search_vendor)."%'";
+}
 if ($search_date_to) {
     $sql .= " AND t.booking_date <= '".$db->escape($search_date_to)."'";
+}
+if ($search_invoiced_customer === '1') {
+    $ids = !empty($invoiced_customer_ids) ? implode(',', array_keys($invoiced_customer_ids)) : '0';
+    $sql .= " AND t.rowid IN (".$ids.")";
+} elseif ($search_invoiced_customer === '0') {
+    $ids = !empty($invoiced_customer_ids) ? implode(',', array_keys($invoiced_customer_ids)) : '0';
+    $sql .= " AND t.rowid NOT IN (".$ids.")";
+}
+if ($search_invoiced_vendor === '1') {
+    $ids = !empty($invoiced_vendor_ids) ? implode(',', array_keys($invoiced_vendor_ids)) : '0';
+    $sql .= " AND t.rowid IN (".$ids.")";
+} elseif ($search_invoiced_vendor === '0') {
+    $ids = !empty($invoiced_vendor_ids) ? implode(',', array_keys($invoiced_vendor_ids)) : '0';
+    $sql .= " AND t.rowid NOT IN (".$ids.")";
 }
 
 $sql .= $db->order($sortfield, $sortorder);
 
 // Count total nb of records
-$sqlcount = preg_replace('/^SELECT[^,]+(,\s*[^,]+)*\s+FROM/', 'SELECT COUNT(*) as nb FROM', $sql);
+$sqlcount = preg_replace('/SELECT .+ FROM /s', 'SELECT COUNT(*) as nb FROM ', $sql);
+$sqlcount = preg_replace('/ ORDER BY.+$/s', '', $sqlcount);
 $resql = $db->query($sqlcount);
 $nbtotalofrecords = 0;
 if ($resql) {
@@ -175,8 +213,11 @@ if (!empty($search_vehicle))    $param .= '&search_vehicle='.urlencode($search_v
 if (!empty($search_driver))     $param .= '&search_driver='.urlencode($search_driver);
 if (!empty($search_customer))   $param .= '&search_customer='.urlencode($search_customer);
 if (!empty($search_status))     $param .= '&search_status='.urlencode($search_status);
+if (!empty($search_vendor))    $param .= '&search_vendor='.urlencode($search_vendor);
 if (!empty($search_date_from))  $param .= '&search_date_from='.urlencode($search_date_from);
 if (!empty($search_date_to))    $param .= '&search_date_to='.urlencode($search_date_to);
+if ($search_invoiced_customer !== '') $param .= '&search_invoiced_customer='.urlencode($search_invoiced_customer);
+if ($search_invoiced_vendor   !== '') $param .= '&search_invoiced_vendor='.urlencode($search_invoiced_vendor);
 
 // Page header
 llxHeader('', $langs->trans("Bookings List"), '');
@@ -228,10 +269,11 @@ foreach ($rows as $r) {
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
+html, body { overflow-x: hidden; max-width: 100%; }
 .vl-wrap * { box-sizing: border-box; }
 .vl-wrap {
     font-family: 'DM Sans', sans-serif;
-    max-width: 1480px; margin: 0 auto; padding: 0 4px 40px; color: #1a1f2e;
+    max-width: 100%; margin: 0 auto; padding: 0 4px 40px; color: #1a1f2e;
 }
 
 /* Header */
@@ -249,7 +291,7 @@ foreach ($rows as $r) {
     display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px;
     border-radius: 6px; font-size: 13px; font-weight: 600; text-decoration: none !important;
     transition: all 0.15s ease; border: none; cursor: pointer;
-    font-family: 'DM Sans', sans-serif; white-space: nowrap;
+    font-family: 'DM Sans', sans-serif;
 }
 .vl-btn-primary   { background: #3c4758 !important; color: #fff !important; }
 .vl-btn-primary:hover  { background: #2a3346 !important; color: #fff !important; }
@@ -276,7 +318,7 @@ foreach ($rows as $r) {
 .vl-filter-actions { display: flex; gap: 8px; align-items: flex-end; padding-bottom: 1px; }
 .vl-btn-filter {
     padding: 8px 16px; font-size: 13px; border-radius: 6px; font-weight: 600;
-    border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; white-space: nowrap;
+    border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s;
 }
 .vl-btn-filter.apply { background: #3c4758 !important; color: #fff !important; }
 .vl-btn-filter.apply:hover { background: #2a3346 !important; }
@@ -304,14 +346,14 @@ foreach ($rows as $r) {
 /* Table */
 .vl-table-card {
     background: #fff; border: 1px solid #e8eaf0; border-radius: 14px;
-    overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
 }
-.vl-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-table.vl-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.vl-table-wrap { overflow-x: visible; }
+table.vl-table { width: 100%; border-collapse: collapse; font-size: 12.5px; table-layout: auto; }
 table.vl-table thead tr { background: #f7f8fc; border-bottom: 2px solid #e8eaf0; }
 table.vl-table thead th {
-    padding: 13px 16px; text-align: left; font-size: 11px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.7px; color: #8b92a9; white-space: nowrap;
+    padding: 10px 10px; text-align: left; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.7px; color: #8b92a9;
 }
 table.vl-table thead th a { color: #8b92a9; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: color 0.15s; }
 table.vl-table thead th a:hover { color: #3c4758; }
@@ -322,7 +364,7 @@ table.vl-table thead th.right  { text-align: right; }
 table.vl-table tbody tr { border-bottom: 1px solid #f0f2f8; transition: background 0.12s; }
 table.vl-table tbody tr:last-child { border-bottom: none; }
 table.vl-table tbody tr:hover { background: #fafbff; }
-table.vl-table tbody td { padding: 14px 16px; color: #2d3748; vertical-align: middle; }
+table.vl-table tbody td { padding: 10px 10px; color: #2d3748; vertical-align: middle; }
 table.vl-table tbody td.center { text-align: center; }
 table.vl-table tbody td.right  { text-align: right; }
 
@@ -343,6 +385,12 @@ table.vl-table tbody td.right  { text-align: right; }
     font-weight: 600; color: #3c4758; background: rgba(60,71,88,0.07);
     padding: 4px 10px; border-radius: 6px;
 }
+/* Vendor chip */
+.vl-vendor-chip {
+    display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px;
+    font-weight: 600; color: #0f766e; background: rgba(15,118,110,0.07);
+    padding: 4px 10px; border-radius: 6px;
+}
 .vl-sub { font-size: 11px; color: #9aa0b4; margin-top: 2px; }
 
 /* Amount */
@@ -355,13 +403,22 @@ table.vl-table tbody td.right  { text-align: right; }
 /* Date chip */
 .vl-date-chip {
     display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px;
-    color: #4a5568; background: #f0f2fa; padding: 4px 10px; border-radius: 6px; white-space: nowrap;
+    color: #4a5568; background: #f0f2fa; padding: 4px 10px; border-radius: 6px;
 }
+
+/* Invoiced badges */
+.vl-invoiced-wrap { display: flex; flex-direction: column; gap: 4px; }
+.vl-inv-badge {
+    display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px;
+    border-radius: 20px; font-size: 11px; font-weight: 600;
+}
+.vl-inv-badge.customer { background: #ede9fe; color: #6d28d9; }
+.vl-inv-badge.vendor   { background: #ccfbf1; color: #0f766e; }
 
 /* Status badge */
 .vl-badge {
     display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px;
-    border-radius: 20px; font-size: 11.5px; font-weight: 600; white-space: nowrap;
+    border-radius: 20px; font-size: 11.5px; font-weight: 600;
 }
 .vl-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .vl-badge.pending     { background: #fff8ec; color: #b45309; }
@@ -425,11 +482,13 @@ table.vl-table tbody td.right  { text-align: right; }
     .vl-filter-group { min-width: 100% !important; max-width: 100% !important; }
     .vl-filter-actions { width: 100%; justify-content: flex-end; }
 
-    /* Hide Distance and Amount on tablet */
+    /* Hide Vendor, Distance and Amounts on tablet */
     table.vl-table th:nth-child(6),
     table.vl-table td:nth-child(6),
     table.vl-table th:nth-child(7),
-    table.vl-table td:nth-child(7) { display: none; }
+    table.vl-table td:nth-child(7),
+    table.vl-table th:nth-child(8),
+    table.vl-table td:nth-child(8) { display: none; }
 }
 
 /* Mobile (≤ 600px) */
@@ -452,7 +511,7 @@ table.vl-table tbody td.right  { text-align: right; }
     .vl-stat-chip { padding: 5px 10px; font-size: 11px; }
 
     /* Convert table to stacked card layout */
-    .vl-table-wrap { overflow-x: unset; }
+    
 
     table.vl-table,
     table.vl-table thead,
@@ -519,6 +578,46 @@ table.vl-table tbody td.right  { text-align: right; }
     .vl-page-btns { flex-wrap: wrap; justify-content: center; }
     .vl-page-btn { min-width: 30px; height: 30px; font-size: 12px; }
 }
+
+/* ══════════════════════════════════════
+   INVOICE SELECTION MODE
+══════════════════════════════════════ */
+.vl-btn-invoice { background: #7c3aed !important; color: #fff !important; }
+.vl-btn-invoice:hover { background: #6d28d9 !important; color: #fff !important; }
+.vl-btn-invoice.active { background: #6d28d9 !important; box-shadow: 0 0 0 3px rgba(124,58,237,0.25) !important; }
+
+/* Checkbox column */
+.vl-check-col { width: 44px; text-align: center !important; padding: 0 8px !important; }
+.vl-row-check {
+    width: 18px; height: 18px; cursor: pointer; accent-color: #7c3aed;
+    border-radius: 4px; border: 2px solid #c4c9d8;
+}
+.vl-select-all { width: 18px; height: 18px; cursor: pointer; accent-color: #7c3aed; }
+table.vl-table tbody tr.vl-selected { background: #faf5ff !important; }
+table.vl-table tbody tr.vl-selected td { border-bottom-color: #e9d5ff !important; }
+
+/* Sticky invoice action bar */
+.vl-invoice-bar {
+    position: fixed; bottom: -100px; left: 0; right: 0; z-index: 9999;
+    background: #1a1f2e; color: #fff;
+    padding: 14px 28px; display: flex; align-items: center; gap: 16px;
+    box-shadow: 0 -4px 24px rgba(0,0,0,0.18); flex-wrap: wrap;
+    transition: bottom 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+.vl-invoice-bar.visible { bottom: 0; }
+.vl-invoice-bar-info { font-size: 13.5px; font-weight: 600; color: #a5b4fc; margin-right: auto; }
+.vl-invoice-bar-info strong { color: #fff; font-size: 15px; }
+.vl-inv-btn {
+    display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px;
+    border-radius: 8px; font-size: 13.5px; font-weight: 700; cursor: pointer;
+    border: none; font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+}
+.vl-inv-btn-customer { background: #7c3aed; color: #fff; }
+.vl-inv-btn-customer:hover { background: #6d28d9; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124,58,237,0.4); }
+.vl-inv-btn-vendor { background: #0f766e; color: #fff; }
+.vl-inv-btn-vendor:hover { background: #0d6b63; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(15,118,110,0.4); }
+.vl-inv-btn-cancel { background: rgba(255,255,255,0.08); color: #e2e8f0; border: 1.5px solid rgba(255,255,255,0.15); }
+.vl-inv-btn-cancel:hover { background: rgba(255,255,255,0.15); }
 </style>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -533,6 +632,9 @@ table.vl-table tbody td.right  { text-align: right; }
     </div>
     <div class="vl-header-actions">
         <?php if ($user->rights->flotte->read) { ?>
+        <button type="button" class="vl-btn vl-btn-invoice" id="btn-invoice-mode" onclick="toggleInvoiceMode()">
+            <i class="fa fa-file-invoice"></i> Invoice
+        </button>
         <a class="vl-btn vl-btn-secondary" href="<?php echo dol_buildpath('/flotte/booking_list.php', 1); ?>?action=export">
             <i class="fa fa-download"></i> Export
         </a>
@@ -571,6 +673,10 @@ table.vl-table tbody td.right  { text-align: right; }
         <label>Customer</label>
         <input type="text" name="search_customer" placeholder="Name or company…" value="<?php echo dol_escape_htmltag($search_customer); ?>">
     </div>
+    <div class="vl-filter-group">
+        <label>Vendor</label>
+        <input type="text" name="search_vendor" placeholder="Vendor name…" value="<?php echo dol_escape_htmltag($search_vendor); ?>">
+    </div>
     <div class="vl-filter-group" style="max-width:120px;">
         <label>Date From</label>
         <input type="date" name="search_date_from" value="<?php echo dol_escape_htmltag($search_date_from); ?>">
@@ -588,6 +694,22 @@ table.vl-table tbody td.right  { text-align: right; }
             <option value="in_progress" <?php echo $search_status === 'in_progress' ? 'selected' : ''; ?>>In Progress</option>
             <option value="completed"   <?php echo $search_status === 'completed'   ? 'selected' : ''; ?>>Completed</option>
             <option value="cancelled"   <?php echo $search_status === 'cancelled'   ? 'selected' : ''; ?>>Cancelled</option>
+        </select>
+    </div>
+    <div class="vl-filter-group" style="max-width:155px;">
+        <label>Customer Invoiced</label>
+        <select name="search_invoiced_customer">
+            <option value="">All</option>
+            <option value="1" <?php echo $search_invoiced_customer === '1' ? 'selected' : ''; ?>>Invoiced</option>
+            <option value="0" <?php echo $search_invoiced_customer === '0' ? 'selected' : ''; ?>>Not invoiced</option>
+        </select>
+    </div>
+    <div class="vl-filter-group" style="max-width:155px;">
+        <label>Vendor Invoiced</label>
+        <select name="search_invoiced_vendor">
+            <option value="">All</option>
+            <option value="1" <?php echo $search_invoiced_vendor === '1' ? 'selected' : ''; ?>>Invoiced</option>
+            <option value="0" <?php echo $search_invoiced_vendor === '0' ? 'selected' : ''; ?>>Not invoiced</option>
         </select>
     </div>
     <div class="vl-filter-actions">
@@ -614,13 +736,19 @@ table.vl-table tbody td.right  { text-align: right; }
     <table class="vl-table">
         <thead>
             <tr>
+                <th class="vl-check-col" id="check-col-header" style="display:none;">
+                    <input type="checkbox" class="vl-select-all" id="select-all" title="Select all">
+                </th>
                 <th><a href="<?php echo bl_sortHref('t.ref', $sortfield, $sortorder, $self, $param); ?>">Ref <?php echo bl_sortArrow('t.ref', $sortfield, $sortorder); ?></a></th>
                 <th><a href="<?php echo bl_sortHref('v.ref', $sortfield, $sortorder, $self, $param); ?>">Vehicle <?php echo bl_sortArrow('v.ref', $sortfield, $sortorder); ?></a></th>
                 <th><a href="<?php echo bl_sortHref('d.lastname', $sortfield, $sortorder, $self, $param); ?>">Driver <?php echo bl_sortArrow('d.lastname', $sortfield, $sortorder); ?></a></th>
                 <th><a href="<?php echo bl_sortHref('c.lastname', $sortfield, $sortorder, $self, $param); ?>">Customer <?php echo bl_sortArrow('c.lastname', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo bl_sortHref('vn.name', $sortfield, $sortorder, $self, $param); ?>">Vendor <?php echo bl_sortArrow('vn.name', $sortfield, $sortorder); ?></a></th>
                 <th><a href="<?php echo bl_sortHref('t.booking_date', $sortfield, $sortorder, $self, $param); ?>">Date <?php echo bl_sortArrow('t.booking_date', $sortfield, $sortorder); ?></a></th>
                 <th class="right"><a href="<?php echo bl_sortHref('t.distance', $sortfield, $sortorder, $self, $param); ?>">Distance <?php echo bl_sortArrow('t.distance', $sortfield, $sortorder); ?></a></th>
-                <th class="right"><a href="<?php echo bl_sortHref('t.selling_amount', $sortfield, $sortorder, $self, $param); ?>">Amount <?php echo bl_sortArrow('t.selling_amount', $sortfield, $sortorder); ?></a></th>
+                <th class="right"><a href="<?php echo bl_sortHref('t.selling_amount', $sortfield, $sortorder, $self, $param); ?>">Selling <?php echo bl_sortArrow('t.selling_amount', $sortfield, $sortorder); ?></a></th>
+                <th class="right"><a href="<?php echo bl_sortHref('t.buying_amount', $sortfield, $sortorder, $self, $param); ?>">Buying <?php echo bl_sortArrow('t.buying_amount', $sortfield, $sortorder); ?></a></th>
+                <th class="center">Invoiced</th>
                 <th class="center"><a href="<?php echo bl_sortHref('t.status', $sortfield, $sortorder, $self, $param); ?>">Status <?php echo bl_sortArrow('t.status', $sortfield, $sortorder); ?></a></th>
                 <th class="center">Actions</th>
             </tr>
@@ -635,7 +763,16 @@ table.vl-table tbody td.right  { text-align: right; }
                 // Status css class
                 $statusClass = str_replace('_', '-', $obj->status ?: 'pending');
         ?>
-            <tr>
+            <tr data-id="<?php echo $obj->rowid; ?>"
+                data-ref="<?php echo dol_escape_htmltag($obj->ref); ?>"
+                data-customer-id="<?php echo (int)$obj->fk_customer; ?>"
+                data-vendor-id="<?php echo (int)$obj->fk_vendor; ?>"
+                data-customer-name="<?php echo dol_escape_htmltag(trim($customerName.' '.($obj->company_name ? '('.$obj->company_name.')' : ''))); ?>">
+
+                <!-- Checkbox (invoice mode) -->
+                <td class="vl-check-col" style="display:none;" data-label="">
+                    <input type="checkbox" class="vl-row-check" value="<?php echo $obj->rowid; ?>">
+                </td>
                 <!-- Ref -->
                 <td data-label="Ref">
                     <a href="<?php echo $cardUrl; ?>" class="vl-ref-link">
@@ -676,6 +813,16 @@ table.vl-table tbody td.right  { text-align: right; }
                     <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
                 </td>
 
+                <!-- Vendor -->
+                <td data-label="Vendor">
+                    <?php if (!empty($obj->vendor_name)) { ?>
+                    <div class="vl-vendor-chip">
+                        <i class="fa fa-store" style="font-size:11px;opacity:0.6;"></i>
+                        <?php echo dol_escape_htmltag($obj->vendor_name); ?>
+                    </div>
+                    <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
+                </td>
+
                 <!-- Date -->
                 <td data-label="Date">
                     <span class="vl-date-chip">
@@ -691,10 +838,30 @@ table.vl-table tbody td.right  { text-align: right; }
                     <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
                 </td>
 
-                <!-- Amount -->
-                <td class="right" data-label="Amount">
-                    <?php if ($obj->selling_amount) { ?>
-                    <span class="vl-amount"><?php echo price($obj->selling_amount); ?></span>
+                <!-- Selling Amount -->
+                <td class="right" data-label="Selling">
+                    <?php if ($obj->selling_amount_ttc) { ?>
+                    <span class="vl-amount"><?php echo price($obj->selling_amount_ttc); ?></span>
+                    <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
+                </td>
+
+                <!-- Buying Amount -->
+                <td class="right" data-label="Buying">
+                    <?php if ($obj->buying_amount_ttc) { ?>
+                    <span class="vl-amount" style="color:#0f766e;"><?php echo price($obj->buying_amount_ttc); ?></span>
+                    <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
+                </td>
+
+                <!-- Invoiced -->
+                <td class="center" data-label="Invoiced">
+                    <?php
+                    $is_inv_cust = !empty($invoiced_customer_ids[$obj->rowid]);
+                    $is_inv_vend = !empty($invoiced_vendor_ids[$obj->rowid]);
+                    if ($is_inv_cust || $is_inv_vend) { ?>
+                    <div class="vl-invoiced-wrap">
+                        <?php if ($is_inv_cust) { ?><span class="vl-inv-badge customer"><i class="fa fa-check" style="font-size:9px;"></i> Customer</span><?php } ?>
+                        <?php if ($is_inv_vend) { ?><span class="vl-inv-badge vendor"><i class="fa fa-check" style="font-size:9px;"></i> Vendor</span><?php } ?>
+                    </div>
                     <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
                 </td>
 
@@ -728,7 +895,7 @@ table.vl-table tbody td.right  { text-align: right; }
             </tr>
         <?php }} else { ?>
             <tr>
-                <td colspan="9">
+                <td colspan="10">
                     <div class="vl-empty">
                         <div class="vl-empty-icon"><i class="fa fa-calendar-check"></i></div>
                         <p>No bookings found</p>
@@ -777,6 +944,114 @@ table.vl-table tbody td.right  { text-align: right; }
 
 </form>
 </div><!-- .vl-wrap -->
+
+<!-- Sticky Invoice Action Bar -->
+<div class="vl-invoice-bar" id="invoice-bar">
+    <div class="vl-invoice-bar-info">
+        <strong id="inv-count">0</strong> booking<span id="inv-plural">s</span> selected
+    </div>
+    <button type="button" class="vl-inv-btn vl-inv-btn-customer" onclick="createInvoice('customer')">
+        <i class="fa fa-user-tie"></i> Customer Invoice
+    </button>
+    <button type="button" class="vl-inv-btn vl-inv-btn-vendor" onclick="createInvoice('vendor')">
+        <i class="fa fa-store"></i> Vendor Invoice
+    </button>
+    <button type="button" class="vl-inv-btn vl-inv-btn-cancel" onclick="toggleInvoiceMode()">
+        <i class="fa fa-times"></i> Cancel
+    </button>
+</div>
+
+<!-- Hidden form for invoice submission -->
+<form id="invoice-form" method="POST" action="<?php echo dol_buildpath('/flotte/booking_invoice.php', 1); ?>">
+    <input type="hidden" name="token" value="<?php echo newToken(); ?>">
+    <input type="hidden" name="invoice_type" id="invoice-type-input" value="">
+    <input type="hidden" name="booking_ids" id="invoice-booking-ids" value="">
+</form>
+
+<script>
+var invoiceMode = false;
+
+function toggleInvoiceMode() {
+    invoiceMode = !invoiceMode;
+    var btn     = document.getElementById('btn-invoice-mode');
+    var bar     = document.getElementById('invoice-bar');
+    var hdrCol  = document.getElementById('check-col-header');
+    var checkCells = document.querySelectorAll('.vl-check-col');
+    var checks  = document.querySelectorAll('.vl-row-check');
+
+    if (invoiceMode) {
+        btn.classList.add('active');
+        bar.classList.add('visible');
+        hdrCol.style.display = '';
+        checkCells.forEach(function(el) { el.style.display = ''; });
+    } else {
+        btn.classList.remove('active');
+        bar.classList.remove('visible');
+        hdrCol.style.display = 'none';
+        checkCells.forEach(function(el) { el.style.display = 'none'; });
+        checks.forEach(function(cb) {
+            cb.checked = false;
+            cb.closest('tr').classList.remove('vl-selected');
+        });
+        document.getElementById('select-all').checked = false;
+        updateCount();
+    }
+}
+
+function updateCount() {
+    var n = document.querySelectorAll('.vl-row-check:checked').length;
+    document.getElementById('inv-count').textContent = n;
+    document.getElementById('inv-plural').textContent = n === 1 ? '' : 's';
+}
+
+// Row checkbox toggle
+document.querySelectorAll('.vl-row-check').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+        this.closest('tr').classList.toggle('vl-selected', this.checked);
+        updateCount();
+        // update select-all indeterminate state
+        var all = document.querySelectorAll('.vl-row-check');
+        var checked = document.querySelectorAll('.vl-row-check:checked');
+        var sa = document.getElementById('select-all');
+        sa.checked = checked.length === all.length;
+        sa.indeterminate = checked.length > 0 && checked.length < all.length;
+    });
+});
+
+// Clicking a row in invoice mode selects it
+document.querySelectorAll('table.vl-table tbody tr').forEach(function(tr) {
+    tr.addEventListener('click', function(e) {
+        if (!invoiceMode) return;
+        if (e.target.tagName === 'A' || e.target.tagName === 'INPUT') return;
+        var cb = tr.querySelector('.vl-row-check');
+        if (cb) { cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); }
+    });
+});
+
+// Select all
+document.getElementById('select-all').addEventListener('change', function() {
+    document.querySelectorAll('.vl-row-check').forEach(function(cb) {
+        cb.checked = document.getElementById('select-all').checked;
+        cb.closest('tr').classList.toggle('vl-selected', cb.checked);
+    });
+    updateCount();
+});
+
+function createInvoice(type) {
+    var checked = document.querySelectorAll('.vl-row-check:checked');
+    if (checked.length === 0) {
+        alert('Please select at least one booking.');
+        return;
+    }
+    var ids = [];
+    checked.forEach(function(cb) {
+        ids.push(cb.closest('tr').dataset.id);
+    });
+    document.getElementById('invoice-type-input').value = type;
+    document.getElementById('invoice-booking-ids').value = ids.join(',');
+    document.getElementById('invoice-form').submit();
+}
+</script>
 
 <?php
 if ($resql) { $db->free($resql); }

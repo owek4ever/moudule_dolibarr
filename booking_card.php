@@ -124,6 +124,8 @@ $object->selling_unit = '';
 $object->selling_amount_ttc = '';
 $object->stops = '';
 $object->eta = '';
+$object->pickup_datetime = '';
+$object->dropoff_datetime = '';
 
 $error = 0;
 $errors = array();
@@ -204,6 +206,8 @@ if ($action == 'add') {
     $selling_amount_ttc = GETPOST('selling_amount_ttc', 'alpha');
     $stops            = GETPOST('stops', 'restricthtml');
     $eta              = GETPOST('eta', 'alpha');
+    $pickup_datetime  = GETPOST('pickup_datetime', 'alpha');
+    $dropoff_datetime = GETPOST('dropoff_datetime', 'alpha');
 
     // Auto-generate reference if empty
     if (empty($ref)) {
@@ -230,7 +234,7 @@ if ($action == 'add') {
     if (!$error) {
         $sql = "INSERT INTO ".MAIN_DB_PREFIX."flotte_booking (";
         $sql .= "ref, entity, fk_vehicle, fk_driver, fk_vendor, fk_customer, booking_date, status, distance, ";
-        $sql .= "arriving_address, departure_address, dep_lat, dep_lon, arr_lat, arr_lon, buying_amount, selling_amount, stops, eta, ";
+        $sql .= "arriving_address, departure_address, dep_lat, dep_lon, arr_lat, arr_lon, buying_amount, selling_amount, stops, eta, pickup_datetime, dropoff_datetime, ";
         $sql .= "buying_tax_rate, buying_qty, buying_price, buying_unit, buying_amount_ttc, ";
         $sql .= "selling_tax_rate, selling_qty, selling_price, selling_unit, selling_amount_ttc, fk_user_author";
         $sql .= ") VALUES (";
@@ -252,6 +256,8 @@ if ($action == 'add') {
         $sql .= ($selling_amount ? ((float) $selling_amount) : "NULL").", ";
         $sql .= (!empty($stops) ? "'".$db->escape($stops)."'" : "NULL").", ";
         $sql .= (!empty($eta) ? "'".$db->escape($eta)."'" : "NULL").", ";
+        $sql .= (!empty($pickup_datetime) ? "'".$db->escape($pickup_datetime)."'" : "NULL").", ";
+        $sql .= (!empty($dropoff_datetime) ? "'".$db->escape($dropoff_datetime)."'" : "NULL").", ";
         $sql .= (!empty($buying_tax_rate) ? "'".$db->escape($buying_tax_rate)."'" : "NULL").", ";
         $sql .= ($buying_qty ? ((float) $buying_qty) : "NULL").", ";
         $sql .= ($buying_price ? ((float) $buying_price) : "NULL").", ";
@@ -329,6 +335,8 @@ if ($action == 'update' && $id > 0) {
     $selling_amount_ttc = GETPOST('selling_amount_ttc', 'alpha');
     $stops = GETPOST('stops', 'restricthtml');
     $eta = GETPOST('eta', 'alpha');
+    $pickup_datetime  = GETPOST('pickup_datetime', 'alpha');
+    $dropoff_datetime = GETPOST('dropoff_datetime', 'alpha');
     
     // Validation
     if (empty($fk_vehicle)) {
@@ -377,6 +385,8 @@ if ($action == 'update' && $id > 0) {
         $sql .= "selling_amount_ttc = ".($selling_amount_ttc ? ((float) $selling_amount_ttc) : "NULL").", ";
         $sql .= "stops = ".(!empty($stops) ? "'".$db->escape($stops)."'" : "NULL").", ";
         $sql .= "eta = ".(!empty($eta) ? "'".$db->escape($eta)."'" : "NULL").", ";
+        $sql .= "pickup_datetime = ".(!empty($pickup_datetime) ? "'".$db->escape($pickup_datetime)."'" : "NULL").", ";
+        $sql .= "dropoff_datetime = ".(!empty($dropoff_datetime) ? "'".$db->escape($dropoff_datetime)."'" : "NULL").", ";
         $sql .= "buying_tax_rate = ".(!empty($buying_tax_rate) ? "'".$db->escape($buying_tax_rate)."'" : "NULL").", ";
         $sql .= "selling_tax_rate = ".(!empty($selling_tax_rate) ? "'".$db->escape($selling_tax_rate)."'" : "NULL").", ";
         $sql .= "fk_user_modif = ".((int) $user->id).", ";
@@ -399,6 +409,10 @@ if ($action == 'update' && $id > 0) {
         $db->rollback();
     }
 }
+
+// Ensure pickup/dropoff columns exist
+$db->query("ALTER TABLE ".MAIN_DB_PREFIX."flotte_booking ADD COLUMN IF NOT EXISTS pickup_datetime DATETIME DEFAULT NULL");
+$db->query("ALTER TABLE ".MAIN_DB_PREFIX."flotte_booking ADD COLUMN IF NOT EXISTS dropoff_datetime DATETIME DEFAULT NULL");
 
 // Load object data
 if ($id > 0) {
@@ -598,6 +612,10 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
 .dc-inline-tax-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #8b92a9; white-space: nowrap; }
 select.dc-tax-select { width: auto !important; min-width: 70px !important; max-width: 80px !important; padding: 8px 8px !important; color: #6d28d9 !important; border-color: rgba(109,40,217,0.25) !important; background: rgba(109,40,217,0.04) !important; font-weight: 600 !important; }
 select.dc-tax-select:focus { border-color: #6d28d9 !important; box-shadow: 0 0 0 3px rgba(109,40,217,0.1) !important; }
+.dc-tax-input-wrap { display: inline-flex; align-items: center; gap: 3px; }
+input.dc-tax-input { width: 54px !important; max-width: 54px !important; min-width: 0 !important; padding: 8px 6px !important; text-align: center !important; color: #6d28d9 !important; border-color: rgba(109,40,217,0.25) !important; background: rgba(109,40,217,0.04) !important; font-weight: 600 !important; }
+input.dc-tax-input:focus { border-color: #6d28d9 !important; box-shadow: 0 0 0 3px rgba(109,40,217,0.1) !important; background: #fff !important; }
+.dc-tax-pct-symbol { font-size: 12px; font-weight: 700; color: #6d28d9; }
 .dc-pricing-header .dc-field-value { flex-direction: column; gap: 0; }
 .dc-pricing-grid { width: 100%; display: flex; flex-direction: column; gap: 10px; }
 .dc-pricing-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
@@ -987,10 +1005,8 @@ if ($isCreate || $isEdit) {
     $btr = isset($object->buying_tax_rate) ? $object->buying_tax_rate : '';
     print '<div class="dc-inline-tax">';
     print '<label class="dc-inline-tax-label">'.$langs->trans('Tax').'</label>';
-    print '<select name="buying_tax_rate" id="buying_tax_rate" class="dc-tax-select">';
-    print '<option value="">—</option>';
-    foreach (array('0','7','14') as $r) { $s=($btr===$r)?' selected':''; print '<option value="'.$r.'"'.$s.'>'.$r.'%</option>'; }
-    print '</select></div>';
+    print '<div class="dc-tax-input-wrap"><input type="number" name="buying_tax_rate" id="buying_tax_rate" class="dc-tax-input" value="'.dol_escape_htmltag($btr).'" min="0" max="100" step="any" placeholder="0"><span class="dc-tax-pct-symbol">%</span></div>';
+    print '</div>';
 } else {
     if (!empty($object->fk_vendor)) {
         $sql = "SELECT name FROM ".MAIN_DB_PREFIX."flotte_vendor WHERE rowid = ".((int) $object->fk_vendor);
@@ -1029,10 +1045,8 @@ if ($isCreate || $isEdit) {
     $str = isset($object->selling_tax_rate) ? $object->selling_tax_rate : '';
     print '<div class="dc-inline-tax">';
     print '<label class="dc-inline-tax-label">'.$langs->trans('Tax').'</label>';
-    print '<select name="selling_tax_rate" id="selling_tax_rate" class="dc-tax-select">';
-    print '<option value="">—</option>';
-    foreach (array('0','7','14') as $r) { $s=($str===$r)?' selected':''; print '<option value="'.$r.'"'.$s.'>'.$r.'%</option>'; }
-    print '</select></div>';
+    print '<div class="dc-tax-input-wrap"><input type="number" name="selling_tax_rate" id="selling_tax_rate" class="dc-tax-input" value="'.dol_escape_htmltag($str).'" min="0" max="100" step="any" placeholder="0"><span class="dc-tax-pct-symbol">%</span></div>';
+    print '</div>';
 } else {
     if (!empty($object->fk_customer)) {
         $sql = "SELECT firstname, lastname, company_name FROM ".MAIN_DB_PREFIX."flotte_customer WHERE rowid = ".((int) $object->fk_customer);
@@ -1278,6 +1292,31 @@ if ($isCreate || $isEdit) {
 }
 print '    </div></div>';
 
+// Pickup DateTime
+$pickup_val  = (!empty($object->pickup_datetime)  ? date('Y-m-d\TH:i', strtotime($object->pickup_datetime))  : '');
+$dropoff_val = (!empty($object->dropoff_datetime) ? date('Y-m-d\TH:i', strtotime($object->dropoff_datetime)) : '');
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">Pick-up Date &amp; Time</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) {
+    print '<input type="datetime-local" id="pickup_datetime" name="pickup_datetime" value="'.dol_escape_htmltag($pickup_val).'" style="max-width:220px;">';
+} else {
+    print (!empty($object->pickup_datetime) ? '<span class="dc-chip"><i class="fa fa-calendar-check" style="font-size:11px;opacity:0.6;"></i>'.dol_print_date($db->jdate($object->pickup_datetime), 'dayhour').'</span>' : '&mdash;');
+}
+print '    </div></div>';
+
+// Dropoff DateTime
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">Drop-off Date &amp; Time</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) {
+    print '<input type="datetime-local" id="dropoff_datetime" name="dropoff_datetime" value="'.dol_escape_htmltag($dropoff_val).'" style="max-width:220px;" readonly>';
+    print '<span style="font-size:11px;color:#9aa0b4;margin-top:4px;display:block;">Auto-calculated from pick-up + ETA</span>';
+} else {
+    print (!empty($object->dropoff_datetime) ? '<span class="dc-chip"><i class="fa fa-map-marker-alt" style="font-size:11px;opacity:0.6;"></i>'.dol_print_date($db->jdate($object->dropoff_datetime), 'dayhour').'</span>' : '&mdash;');
+}
+print '    </div></div>';
+
 // Map preview
 if ($isCreate || $isEdit) {
     print '  <div class="dc-field" style="flex-direction:column;gap:10px;">';
@@ -1359,7 +1398,7 @@ document.addEventListener("DOMContentLoaded", function(){
         var el = document.getElementById(id); if(el) el.addEventListener("input", calcPricing);
     });
     ["buying_tax_rate","selling_tax_rate"].forEach(function(id){
-        var el = document.getElementById(id); if(el) el.addEventListener("change", calcPricing);
+        var el = document.getElementById(id); if(el) el.addEventListener("input", calcPricing);
     });
     calcPricing();
 });
@@ -1525,7 +1564,7 @@ function recalcRoute() {
             var route=data.routes[0];
             var dInp=document.getElementById("distance"); if(dInp) dInp.value=Math.round(route.distance/1000);
             var eInp=document.getElementById("eta");
-            if(eInp){var h=Math.floor(route.duration/3600),m=Math.round((route.duration%3600)/60);eInp.value=(h>0?h+"h ":"")+m+"min";}
+            if(eInp){var h=Math.floor(route.duration/3600),m=Math.round((route.duration%3600)/60);eInp.value=(h>0?h+"h ":"")+m+"min"; calcDropoff(route.duration);}
             drawRouteGeoJSON(route.geometry,wps);
         }).catch(function(){showLoaders(false);});
     });
@@ -1551,6 +1590,35 @@ function drawRouteGeoJSON(geometry, wps) {
     wps.forEach(function(c,i){var ic=(i===0)?iDep:(i===wps.length-1?iArr:iStp);markers.push(L.marker([c.lat,c.lon],{icon:ic}).addTo(map));});
     map.fitBounds(routeLayer.getBounds(),{padding:[24,24]});
 }
+
+// ── Pickup / Dropoff auto-calculation ────────────────────────────
+function calcDropoff(etaSeconds) {
+    var pickup  = document.getElementById("pickup_datetime");
+    var dropoff = document.getElementById("dropoff_datetime");
+    if (!pickup || !dropoff || !pickup.value) return;
+    var pickupMs = new Date(pickup.value).getTime();
+    if (isNaN(pickupMs)) return;
+    var d = new Date(pickupMs + etaSeconds * 1000);
+    var pad = function(n){ return n < 10 ? "0"+n : n; };
+    dropoff.value = d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes());
+}
+// When pickup changes, recalculate if ETA already known
+document.addEventListener("DOMContentLoaded", function() {
+    var pickup = document.getElementById("pickup_datetime");
+    if (!pickup) return;
+    pickup.addEventListener("change", function() {
+        var etaInp = document.getElementById("eta");
+        if (!etaInp || !etaInp.value) return;
+        var etaStr = etaInp.value, hours = 0, mins = 0;
+        var hm = etaStr.match(/(\d+)h/);
+        var mm = etaStr.match(/(\d+)min/);
+        if (hm) hours = parseInt(hm[1]);
+        if (mm) mins  = parseInt(mm[1]);
+        var secs = hours * 3600 + mins * 60;
+        if (secs > 0) calcDropoff(secs);
+    });
+});
+// ─────────────────────────────────────────────────────────────────
 
 function showLoaders(s) {
     var dl=document.getElementById("distance-loader"); if(dl) dl.style.display=s?"inline-flex":"none";
