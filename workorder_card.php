@@ -618,7 +618,7 @@ print '<div class="dc-grid">';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon blue"><i class="fa fa-clipboard-list"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('WorkOrderInformation').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('WorkOrder Information').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
@@ -680,7 +680,7 @@ print '</div>';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon green"><i class="fa fa-user-cog"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('AssignmentAndStatus').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Assignment And Status').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
@@ -702,7 +702,7 @@ print '    </div></div>';
 
 // Responsible Person
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('ResponsiblePerson').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Responsible Person').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="text" name="responsible_person" value="'.dol_escape_htmltag($object->responsible_person).'" placeholder="'.$langs->trans('SupervisorOrApprover').'">';
 else print dol_escape_htmltag($object->responsible_person ?: '&mdash;');
@@ -746,7 +746,7 @@ print '  <div class="dc-card-body">';
 
 // Start Date
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('StartDate').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Start Date').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $sdVal = !empty($object->start_date) ? htmlspecialchars($object->start_date) : '';
@@ -760,7 +760,7 @@ print '    </div></div>';
 
 // Due Date
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('DueDate').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Due Date').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $ddVal = !empty($object->due_date) ? htmlspecialchars($object->due_date) : '';
@@ -786,23 +786,23 @@ print '</div>';// dc-grid row2
 print '<div class="dc-card" style="margin-bottom:20px;">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon teal"><i class="fa fa-tasks"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('TaskDetails').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Task Details').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
 // Task to Perform
 print '  <div class="dc-field" style="flex-direction:column;gap:8px;">';
-print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('TaskToPerform').'</div>';
+print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('Task To Perform').'</div>';
 print '    <div class="dc-field-value" style="width:100%;">';
-if ($isCreate || $isEdit) print '<textarea name="task_to_perform" rows="3" placeholder="'.dol_escape_htmltag($langs->trans('DescribeTasksToBePerformed')).'">'.dol_escape_htmltag($object->task_to_perform).'</textarea>';
+if ($isCreate || $isEdit) print '<textarea name="task_to_perform" rows="3" placeholder="'.dol_escape_htmltag($langs->trans('DescribecTaskscTo Be Performed')).'">'.dol_escape_htmltag($object->task_to_perform).'</textarea>';
 else print '<div style="white-space:pre-wrap;">'.nl2br(dol_escape_htmltag($object->task_to_perform ?: '&mdash;')).'</div>';
 print '    </div></div>';
 
 // Problem Description
 print '  <div class="dc-field" style="flex-direction:column;gap:8px;">';
-print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('ProblemDescription').'</div>';
+print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('Problem Description').'</div>';
 print '    <div class="dc-field-value" style="width:100%;">';
-if ($isCreate || $isEdit) print '<textarea name="problem_description" rows="3" placeholder="'.dol_escape_htmltag($langs->trans('DescribeProblemOrSymptoms')).'">'.dol_escape_htmltag($object->problem_description).'</textarea>';
+if ($isCreate || $isEdit) print '<textarea name="problem_description" rows="3" placeholder="'.dol_escape_htmltag($langs->trans('Describe Problem Or Symptoms')).'">'.dol_escape_htmltag($object->problem_description).'</textarea>';
 else print '<div style="white-space:pre-wrap;">'.nl2br(dol_escape_htmltag($object->problem_description ?: '&mdash;')).'</div>';
 print '    </div></div>';
 
@@ -815,15 +815,15 @@ print '</div>';
 print '<div class="dc-card" style="margin-bottom:20px;">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon purple"><i class="fa fa-sticky-note"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('NotesAndApproval').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Notes And Approval').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
 // Technician Notes
 print '  <div class="dc-field" style="flex-direction:column;gap:8px;">';
-print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('TechnicianNotes').'</div>';
+print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('Technician Notes').'</div>';
 print '    <div class="dc-field-value" style="width:100%;">';
-if ($isCreate || $isEdit) print '<textarea name="technician_notes" rows="5" placeholder="'.dol_escape_htmltag($langs->trans('FindingsObservationsRecommendations')).'">'.dol_escape_htmltag($object->technician_notes).'</textarea>';
+if ($isCreate || $isEdit) print '<textarea name="technician_notes" rows="5" placeholder="'.dol_escape_htmltag($langs->trans('Findings Observations Recommendations')).'">'.dol_escape_htmltag($object->technician_notes).'</textarea>';
 else print '<div style="white-space:pre-wrap;">'.nl2br(dol_escape_htmltag($object->technician_notes ?: '&mdash;')).'</div>';
 print '    </div></div>';
 
