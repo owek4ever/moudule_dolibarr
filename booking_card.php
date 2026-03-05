@@ -410,9 +410,15 @@ if ($action == 'update' && $id > 0) {
     }
 }
 
-// Ensure pickup/dropoff columns exist
-$db->query("ALTER TABLE ".MAIN_DB_PREFIX."flotte_booking ADD COLUMN IF NOT EXISTS pickup_datetime DATETIME DEFAULT NULL");
-$db->query("ALTER TABLE ".MAIN_DB_PREFIX."flotte_booking ADD COLUMN IF NOT EXISTS dropoff_datetime DATETIME DEFAULT NULL");
+// Ensure pickup/dropoff columns exist (safe for all MySQL versions)
+$_chk = $db->query("SHOW COLUMNS FROM ".MAIN_DB_PREFIX."flotte_booking LIKE 'pickup_datetime'");
+if ($_chk && $db->num_rows($_chk) == 0) {
+    $db->query("ALTER TABLE ".MAIN_DB_PREFIX."flotte_booking ADD COLUMN pickup_datetime DATETIME DEFAULT NULL");
+}
+$_chk = $db->query("SHOW COLUMNS FROM ".MAIN_DB_PREFIX."flotte_booking LIKE 'dropoff_datetime'");
+if ($_chk && $db->num_rows($_chk) == 0) {
+    $db->query("ALTER TABLE ".MAIN_DB_PREFIX."flotte_booking ADD COLUMN dropoff_datetime DATETIME DEFAULT NULL");
+}
 
 // Load object data
 if ($id > 0) {
@@ -453,6 +459,29 @@ if ($action == 'create') {
 llxHeader('', $title);
 
 ?>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<style>
+
+.dc-fp-input { cursor: pointer !important; }
+.dc-fp-readonly { background: #f5f6fa !important; color: #5a6482 !important; }
+.flatpickr-calendar { font-family: "DM Sans", sans-serif !important; border: 1.5px solid #e2e5f0 !important; border-radius: 12px !important; box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important; overflow: hidden; }
+.flatpickr-months { background: #3c4758 !important; padding: 4px 0; }
+.flatpickr-months .flatpickr-month, .flatpickr-months .flatpickr-prev-month, .flatpickr-months .flatpickr-next-month { color: #fff !important; fill: #fff !important; }
+.flatpickr-current-month { font-size: 13px !important; font-weight: 600 !important; color: #fff !important; }
+.flatpickr-current-month select, .flatpickr-current-month .numInputWrapper input { color: #fff !important; background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 2px !important; font-weight: 600 !important; }
+.flatpickr-weekdays { background: #f7f8fc !important; }
+span.flatpickr-weekday { color: #8b92a9 !important; font-weight: 700 !important; font-size: 10.5px !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; }
+.flatpickr-day { border-radius: 8px !important; font-size: 13px !important; color: #2d3748 !important; }
+.flatpickr-day:hover { background: #f0f2fa !important; border-color: transparent !important; }
+.flatpickr-day.selected, .flatpickr-day.selected:hover { background: #3c4758 !important; border-color: #3c4758 !important; color: #fff !important; }
+.flatpickr-day.today { border-color: #3c4758 !important; font-weight: 700 !important; }
+.flatpickr-time { border-top: 1.5px solid #f0f2f8 !important; }
+.flatpickr-time input { font-family: "DM Mono", monospace !important; font-size: 15px !important; font-weight: 600 !important; color: #3c4758 !important; width: 100% !important; max-width: 100% !important; }
+.flatpickr-time .flatpickr-time-separator { color: #8b92a9 !important; }
+.numInputWrapper:hover { background: #f7f8fc !important; }
+</style>
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
@@ -1293,13 +1322,13 @@ if ($isCreate || $isEdit) {
 print '    </div></div>';
 
 // Pickup DateTime
-$pickup_val  = (!empty($object->pickup_datetime)  ? date('Y-m-d\TH:i', strtotime($object->pickup_datetime))  : '');
-$dropoff_val = (!empty($object->dropoff_datetime) ? date('Y-m-d\TH:i', strtotime($object->dropoff_datetime)) : '');
+$pickup_val  = (!empty($object->pickup_datetime)  ? date('Y-m-d H:i:s', strtotime($object->pickup_datetime))  : '');
+$dropoff_val = (!empty($object->dropoff_datetime) ? date('Y-m-d H:i:s', strtotime($object->dropoff_datetime)) : '');
 print '  <div class="dc-field">';
 print '    <div class="dc-field-label">Pick-up Date &amp; Time</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="datetime-local" id="pickup_datetime" name="pickup_datetime" value="'.dol_escape_htmltag($pickup_val).'" style="max-width:220px;">';
+    print '<input type="text" id="pickup_datetime" name="pickup_datetime" class="dc-fp-input" value="'.dol_escape_htmltag($pickup_val).'" placeholder="Pick-up date &amp; time" autocomplete="off">';
 } else {
     print (!empty($object->pickup_datetime) ? '<span class="dc-chip"><i class="fa fa-calendar-check" style="font-size:11px;opacity:0.6;"></i>'.dol_print_date($db->jdate($object->pickup_datetime), 'dayhour').'</span>' : '&mdash;');
 }
@@ -1310,8 +1339,8 @@ print '  <div class="dc-field">';
 print '    <div class="dc-field-label">Drop-off Date &amp; Time</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="datetime-local" id="dropoff_datetime" name="dropoff_datetime" value="'.dol_escape_htmltag($dropoff_val).'" style="max-width:220px;" readonly>';
-    print '<span style="font-size:11px;color:#9aa0b4;margin-top:4px;display:block;">Auto-calculated from pick-up + ETA</span>';
+    print '<input type="text" id="dropoff_datetime" name="dropoff_datetime" class="dc-fp-input" value="'.dol_escape_htmltag($dropoff_val).'" placeholder="Pick-up + ETA, or set manually" autocomplete="off">';
+    print '<span style="font-size:11px;color:#9aa0b4;margin-top:5px;display:block;"><i class="fa fa-info-circle" style="font-size:10px;"></i> Auto-calculated from pick-up + ETA, or set manually</span>';
 } else {
     print (!empty($object->dropoff_datetime) ? '<span class="dc-chip"><i class="fa fa-map-marker-alt" style="font-size:11px;opacity:0.6;"></i>'.dol_print_date($db->jdate($object->dropoff_datetime), 'dayhour').'</span>' : '&mdash;');
 }
@@ -1591,34 +1620,37 @@ function drawRouteGeoJSON(geometry, wps) {
     map.fitBounds(routeLayer.getBounds(),{padding:[24,24]});
 }
 
-// ── Pickup / Dropoff auto-calculation ────────────────────────────
-function calcDropoff(etaSeconds) {
-    var pickup  = document.getElementById("pickup_datetime");
-    var dropoff = document.getElementById("dropoff_datetime");
-    if (!pickup || !dropoff || !pickup.value) return;
-    var pickupMs = new Date(pickup.value).getTime();
-    if (isNaN(pickupMs)) return;
-    var d = new Date(pickupMs + etaSeconds * 1000);
-    var pad = function(n){ return n < 10 ? "0"+n : n; };
-    dropoff.value = d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())+"T"+pad(d.getHours())+":"+pad(d.getMinutes());
-}
-// When pickup changes, recalculate if ETA already known
+var _fpPickup = null, _fpDropoff = null;
 document.addEventListener("DOMContentLoaded", function() {
-    var pickup = document.getElementById("pickup_datetime");
-    if (!pickup) return;
-    pickup.addEventListener("change", function() {
-        var etaInp = document.getElementById("eta");
-        if (!etaInp || !etaInp.value) return;
-        var etaStr = etaInp.value, hours = 0, mins = 0;
-        var hm = etaStr.match(/(\d+)h/);
-        var mm = etaStr.match(/(\d+)min/);
-        if (hm) hours = parseInt(hm[1]);
-        if (mm) mins  = parseInt(mm[1]);
-        var secs = hours * 3600 + mins * 60;
-        if (secs > 0) calcDropoff(secs);
+    var pEl = document.getElementById("pickup_datetime");
+    var dEl = document.getElementById("dropoff_datetime");
+    if (!pEl) return;
+    _fpDropoff = flatpickr(dEl, {
+        enableTime: true, time_24hr: true, minuteIncrement: 5,
+        dateFormat: "Y-m-d H:i:S",
+        disableMobile: true
+    });
+    _fpPickup = flatpickr(pEl, {
+        enableTime: true, time_24hr: true, minuteIncrement: 5,
+        dateFormat: "Y-m-d H:i:S",
+        disableMobile: true,
+        onChange: function(sel) {
+            if (!sel.length) return;
+            var etaEl = document.getElementById("eta");
+            if (!etaEl || !etaEl.value) return;
+            var s = etaEl.value, hh = 0, mm = 0;
+            var mh = s.match(/([0-9]+)h/); var mn = s.match(/([0-9]+)min/);
+            if (mh) hh = parseInt(mh[1]);
+            if (mn) mm = parseInt(mn[1]);
+            var secs = hh * 3600 + mm * 60;
+            if (secs > 0 && _fpDropoff) _fpDropoff.setDate(new Date(sel[0].getTime() + secs * 1000), true);
+        }
     });
 });
-// ─────────────────────────────────────────────────────────────────
+function calcDropoff(etaSeconds) {
+    if (!_fpPickup || !_fpPickup.selectedDates.length) return;
+    if (_fpDropoff) _fpDropoff.setDate(new Date(_fpPickup.selectedDates[0].getTime() + etaSeconds * 1000), true);
+}
 
 function showLoaders(s) {
     var dl=document.getElementById("distance-loader"); if(dl) dl.style.display=s?"inline-flex":"none";

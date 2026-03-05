@@ -115,25 +115,44 @@ CREATE TABLE IF NOT EXISTS llx_flotte_vendor (
   PRIMARY KEY (rowid)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE IF NOT EXISTS llx_flotte_booking (
-  rowid               int NOT NULL AUTO_INCREMENT,
-  ref                 varchar(128) NOT NULL,
-  entity              int DEFAULT 1,
-  fk_vehicle          int DEFAULT NULL,
-  fk_driver           int DEFAULT NULL,
-  fk_customer         int DEFAULT NULL,
-  booking_date        date DEFAULT NULL,
-  status              varchar(50) DEFAULT NULL,
-  distance            int DEFAULT NULL,
-  arriving_address    varchar(255) DEFAULT NULL,
-  departure_address   varchar(255) DEFAULT NULL,
-  buying_amount       decimal(10,2) DEFAULT NULL,
-  selling_amount      decimal(10,2) DEFAULT NULL,
-  fk_user_author      int DEFAULT NULL,
-  fk_user_modif       int DEFAULT NULL,
-  tms                 timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (rowid)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+CREATE TABLE `llx_flotte_booking` (
+  `rowid` int NOT NULL AUTO_INCREMENT,
+  `ref` varchar(128) NOT NULL,
+  `entity` int DEFAULT '1',
+  `fk_vehicle` int DEFAULT NULL,
+  `fk_driver` int DEFAULT NULL,
+  `fk_customer` int DEFAULT NULL,
+  `booking_date` date DEFAULT NULL,
+  `status` varchar(50) DEFAULT NULL,
+  `distance` int DEFAULT NULL,
+  `arriving_address` varchar(255) DEFAULT NULL,
+  `departure_address` varchar(255) DEFAULT NULL,
+  `buying_amount` decimal(10,2) DEFAULT NULL,
+  `selling_amount` decimal(10,2) DEFAULT NULL,
+  `fk_user_author` int DEFAULT NULL,
+  `fk_user_modif` int DEFAULT NULL,
+  `tms` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `eta` varchar(20) DEFAULT NULL,
+  `stops` text,
+  `fk_vendor` int DEFAULT NULL,
+  `buying_tax_rate` varchar(5) DEFAULT NULL,
+  `selling_tax_rate` varchar(5) DEFAULT NULL,
+  `buying_price` decimal(15,4) DEFAULT NULL,
+  `buying_unit` varchar(50) DEFAULT NULL,
+  `buying_amount_ttc` decimal(15,4) DEFAULT NULL,
+  `selling_qty` decimal(10,3) DEFAULT NULL,
+  `selling_price` decimal(15,4) DEFAULT NULL,
+  `selling_unit` varchar(50) DEFAULT NULL,
+  `selling_amount_ttc` decimal(15,4) DEFAULT NULL,
+  `buying_qty` decimal(10,3) DEFAULT NULL,
+  `dep_lat` decimal(10,7) DEFAULT NULL,
+  `dep_lon` decimal(10,7) DEFAULT NULL,
+  `arr_lat` decimal(10,7) DEFAULT NULL,
+  `arr_lon` decimal(10,7) DEFAULT NULL,
+  `pickup_datetime` datetime DEFAULT NULL,
+  `dropoff_datetime` datetime DEFAULT NULL,
+  PRIMARY KEY (`rowid`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 CREATE TABLE IF NOT EXISTS llx_flotte_fuel (
   rowid               int NOT NULL AUTO_INCREMENT,
