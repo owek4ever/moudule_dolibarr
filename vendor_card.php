@@ -326,7 +326,7 @@ if ($id > 0) {
 
 $title = $langs->trans('Vendor');
 if ($action == 'create') {
-    $title = $langs->trans('NewVendor');
+    $title = $langs->trans('New Vendor');
 } elseif ($action == 'edit') {
     $title = $langs->trans('EditVendor');
 } elseif ($id > 0) {
@@ -560,7 +560,7 @@ $isEdit   = ($action == 'edit');
 $isCreate = ($action == 'create');
 $isView   = (!$isEdit && !$isCreate);
 
-$pageTitle = $isCreate ? $langs->trans('NewVendor') : ($isEdit ? $langs->trans('EditVendor') : $langs->trans('Vendor'));
+$pageTitle = $isCreate ? $langs->trans('New Vendor') : ($isEdit ? $langs->trans('Edit Vendor') : $langs->trans('Vendor'));
 $pageSub   = $isCreate ? '' : (isset($object->ref) ? $object->ref : '');
 
 // Type badge class

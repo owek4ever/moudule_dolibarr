@@ -877,8 +877,8 @@ $isEdit   = ($action == 'edit');
 $isCreate = ($action == 'create');
 $isView   = (!$isEdit && !$isCreate);
 
-$pageTitle = $isCreate ? $langs->trans('NewBooking') : ($isEdit ? $langs->trans('EditBooking') : $langs->trans('Booking'));
-$pageSub   = $isCreate ? $langs->trans('FillInBookingDetails') : (isset($object->ref) ? $object->ref : '');
+$pageTitle = $isCreate ? $langs->trans('New Booking') : ($isEdit ? $langs->trans('Edit Booking') : $langs->trans('Booking'));
+$pageSub   = $isCreate ? $langs->trans('Fill In Booking Details') : (isset($object->ref) ? $object->ref : '');
 
 // Determine status class for badge
 $statusClass = '';
@@ -931,7 +931,7 @@ print '<div class="dc-grid">';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon blue"><i class="fa fa-calendar-check"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('BookingInformation').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Booking Information').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
@@ -971,10 +971,10 @@ if ($isCreate || $isEdit) {
             $obj = $db->fetch_object($resql);
             print '<span class="dc-chip"><i class="fa fa-car" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($obj->ref.' - '.$obj->maker.' '.$obj->model).'</span>';
         } else {
-            print '<span style="color:#c4c9d8;">'.$langs->trans('VehicleNotFound').'</span>';
+            print '<span style="color:#c4c9d8;">'.$langs->trans('Vehicle Not Found').'</span>';
         }
     } else {
-        print '<span style="color:#c4c9d8;">'.$langs->trans('NotAssigned').'</span>';
+        print '<span style="color:#c4c9d8;">'.$langs->trans('Not Assigned').'</span>';
     }
 }
 print '    </div></div>';
@@ -1001,10 +1001,10 @@ if ($isCreate || $isEdit) {
             $obj = $db->fetch_object($resql);
             print '<span class="dc-chip"><i class="fa fa-user" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($obj->firstname.' '.$obj->lastname).'</span>';
         } else {
-            print '<span style="color:#c4c9d8;">'.$langs->trans('DriverNotFound').'</span>';
+            print '<span style="color:#c4c9d8;">'.$langs->trans('Driver Not Found').'</span>';
         }
     } else {
-        print '<span style="color:#c4c9d8;">'.$langs->trans('NotAssigned').'</span>';
+        print '<span style="color:#c4c9d8;">'.$langs->trans('Not Assigned').'</span>';
     }
 }
 print '    </div></div>';
@@ -1036,10 +1036,10 @@ if ($isCreate || $isEdit) {
             $obj = $db->fetch_object($resql);
             print '<span class="dc-chip"><i class="fa fa-store" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($obj->name).'</span>';
         } else {
-            print '<span style="color:#c4c9d8;">'.$langs->trans('VendorNotFound').'</span>';
+            print '<span style="color:#c4c9d8;">'.$langs->trans('Vendor Not Found').'</span>';
         }
     } else {
-        print '<span style="color:#c4c9d8;">'.$langs->trans('NotAssigned').'</span>';
+        print '<span style="color:#c4c9d8;">'.$langs->trans('Not Assigned').'</span>';
     }
     if (isset($object->buying_tax_rate) && $object->buying_tax_rate !== '') {
         print '<span class="dc-chip dc-tax-badge" style="margin-left:8px;"><i class="fa fa-percent" style="font-size:10px;opacity:0.6;"></i>'.$object->buying_tax_rate.'%</span>';
@@ -1078,10 +1078,10 @@ if ($isCreate || $isEdit) {
             if (!empty($obj->company_name)) $name .= ' (' . $obj->company_name . ')';
             print '<span class="dc-chip"><i class="fa fa-user-circle" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($name).'</span>';
         } else {
-            print '<span style="color:#c4c9d8;">'.$langs->trans('CustomerNotFound').'</span>';
+            print '<span style="color:#c4c9d8;">'.$langs->trans('Customer Not Found').'</span>';
         }
     } else {
-        print '<span style="color:#c4c9d8;">'.$langs->trans('NotAssigned').'</span>';
+        print '<span style="color:#c4c9d8;">'.$langs->trans('Not Assigned').'</span>';
     }
     if (isset($object->selling_tax_rate) && $object->selling_tax_rate !== '') {
         print '<span class="dc-chip dc-tax-badge" style="margin-left:8px;"><i class="fa fa-percent" style="font-size:10px;opacity:0.6;"></i>'.$object->selling_tax_rate.'%</span>';
@@ -1092,7 +1092,7 @@ print '    </div></div>';
 
 // ── Buying Section ──
 print '  <div class="dc-field dc-pricing-header">';
-print '    <div class="dc-field-label">'.$langs->trans('BuyingAmount').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Buying Amount').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $bq = isset($object->buying_qty)   ? dol_escape_htmltag($object->buying_qty)   : '';
@@ -1111,14 +1111,14 @@ if ($isCreate || $isEdit) {
         print '<option value="'.dol_escape_htmltag($u).'"'.$sel.'>'.dol_escape_htmltag($u).'</option>';
     }
     print '</select></div>';
-    print '    <div class="dc-pricing-col"><label class="dc-pricing-label">'.$langs->trans('UnitPrice').'</label>';
+    print '    <div class="dc-pricing-col"><label class="dc-pricing-label">'.$langs->trans('Unit Price').'</label>';
     print '    <input type="number" id="buying_price" name="buying_price" value="'.$bp.'" min="0" step="any" placeholder="0.00"></div>';
     print '  </div>';
     print '  <div class="dc-pricing-row dc-pricing-results">';
-    print '    <div class="dc-pricing-result-item"><span class="dc-pricing-result-label">'.$langs->trans('ExclTax').'</span>';
+    print '    <div class="dc-pricing-result-item"><span class="dc-pricing-result-label">'.$langs->trans('Excl Tax').'</span>';
     print '    <input type="number" id="buying_amount" name="buying_amount" value="'.$ba.'" step="any" readonly placeholder="0.00" class="dc-calc-result"></div>';
     print '    <div class="dc-pricing-result-sep"><i class="fa fa-plus dc-tax-icon"></i><span class="dc-tax-pct" id="buying_tax_pct">0%</span></div>';
-    print '    <div class="dc-pricing-result-item dc-incl"><span class="dc-pricing-result-label">'.$langs->trans('InclTax').'</span>';
+    print '    <div class="dc-pricing-result-item dc-incl"><span class="dc-pricing-result-label">'.$langs->trans('Incl Tax').'</span>';
     print '    <input type="number" id="buying_amount_ttc" name="buying_amount_ttc" value="'.$bt.'" step="any" readonly placeholder="0.00" class="dc-calc-result dc-incl-val"></div>';
     print '  </div>';
     print '</div>';
@@ -1139,7 +1139,7 @@ print '    </div></div>';
 
 // ── Selling Section ──
 print '  <div class="dc-field dc-pricing-header">';
-print '    <div class="dc-field-label">'.$langs->trans('SellingAmount').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Selling Amount').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $sq = isset($object->selling_qty)   ? dol_escape_htmltag($object->selling_qty)   : '';
@@ -1158,14 +1158,14 @@ if ($isCreate || $isEdit) {
         print '<option value="'.dol_escape_htmltag($u).'"'.$sel.'>'.dol_escape_htmltag($u).'</option>';
     }
     print '</select></div>';
-    print '    <div class="dc-pricing-col"><label class="dc-pricing-label">'.$langs->trans('UnitPrice').'</label>';
+    print '    <div class="dc-pricing-col"><label class="dc-pricing-label">'.$langs->trans('Unit Price').'</label>';
     print '    <input type="number" id="selling_price" name="selling_price" value="'.$sp.'" min="0" step="any" placeholder="0.00"></div>';
     print '  </div>';
     print '  <div class="dc-pricing-row dc-pricing-results">';
-    print '    <div class="dc-pricing-result-item"><span class="dc-pricing-result-label">'.$langs->trans('ExclTax').'</span>';
+    print '    <div class="dc-pricing-result-item"><span class="dc-pricing-result-label">'.$langs->trans('Excl Tax').'</span>';
     print '    <input type="number" id="selling_amount" name="selling_amount" value="'.$sa.'" step="any" readonly placeholder="0.00" class="dc-calc-result"></div>';
     print '    <div class="dc-pricing-result-sep"><i class="fa fa-plus dc-tax-icon"></i><span class="dc-tax-pct" id="selling_tax_pct">0%</span></div>';
-    print '    <div class="dc-pricing-result-item dc-incl"><span class="dc-pricing-result-label">'.$langs->trans('InclTax').'</span>';
+    print '    <div class="dc-pricing-result-item dc-incl"><span class="dc-pricing-result-label">'.$langs->trans('Incl Tax').'</span>';
     print '    <input type="number" id="selling_amount_ttc" name="selling_amount_ttc" value="'.$st.'" step="any" readonly placeholder="0.00" class="dc-calc-result dc-incl-val"></div>';
     print '  </div>';
     print '</div>';
@@ -1188,7 +1188,7 @@ print '    </div></div>';
 
 // Booking Date
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label required">'.$langs->trans('BookingDate').'</div>';
+print '    <div class="dc-field-label required">'.$langs->trans('Booking Date').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $selected_date = (!empty($object->booking_date)) ? $object->booking_date : '';
@@ -1227,13 +1227,13 @@ print '</div>';  // dc-card
 print '<div class="dc-card" id="trip-details-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon green"><i class="fa fa-route"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('TripDetails').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('Trip Details').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
 // Departure Address
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('DepartureAddress').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Departure Address').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<div class="osm-autocomplete-wrap">';
@@ -1255,7 +1255,7 @@ if ($isCreate || $isEdit) {
     $stopsJson = isset($object->stops) ? dol_escape_htmltag($object->stops) : '[]';
     print '<div id="stops-container"></div>';
     print '<input type="hidden" id="stops" name="stops" value="'.$stopsJson.'">';
-    print '<button type="button" class="dc-btn dc-btn-ghost osm-add-stop" onclick="addStop()"><i class="fa fa-plus"></i> '.$langs->trans('AddStop').'</button>';
+    print '<button type="button" class="dc-btn dc-btn-ghost osm-add-stop" onclick="addStop()"><i class="fa fa-plus"></i> '.$langs->trans('Add Stop').'</button>';
 } else {
     if (!empty($object->stops) && $object->stops !== '[]') {
         $stops_arr = json_decode($object->stops, true);
@@ -1272,7 +1272,7 @@ print '    </div></div>';
 
 // Arriving Address
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('ArrivingAddress').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Arriving Address').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<div class="osm-autocomplete-wrap">';
@@ -1306,7 +1306,7 @@ print '    <div class="dc-field-label">'.$langs->trans('ETA').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<div style="display:flex;gap:8px;align-items:center;">';
-    print '<input type="text" id="eta" name="eta" value="'.dol_escape_htmltag(isset($object->eta) ? $object->eta : '').'" placeholder="'.$langs->trans('AutoCalculated').'" readonly style="background:#f5f6fa!important;color:#5a6482!important;">';
+    print '<input type="text" id="eta" name="eta" value="'.dol_escape_htmltag(isset($object->eta) ? $object->eta : '').'" placeholder="'.$langs->trans('Auto Calculated').'" readonly style="background:#f5f6fa!important;color:#5a6482!important;">';
     print '</div>';
 } else {
     print (!empty($object->eta) ? '<span class="dc-chip"><i class="fa fa-clock" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($object->eta).'</span>' : '&mdash;');
@@ -1341,16 +1341,16 @@ print '    </div></div>';
 // Map preview
 if ($isCreate || $isEdit) {
     print '  <div class="dc-field" style="flex-direction:column;gap:10px;">';
-    print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('RoutePreview').'</div>';
+    print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('Route Preview').'</div>';
     print '    <div id="osm-map-wrap">';
     print '      <div id="osm-map"></div>';
-    print '      <div id="osm-map-empty"><i class="fa fa-map-marked-alt"></i><span>'.$langs->trans('EnterAddressesToSeeRoute').'</span></div>';
+    print '      <div id="osm-map-empty"><i class="fa fa-map-marked-alt"></i><span>'.$langs->trans('Enter Addresses To See Route').'</span></div>';
     print '    </div>';
     print '  </div>';
 } else {
     if (!empty($object->departure_address) && !empty($object->arriving_address)) {
         print '  <div class="dc-field" style="flex-direction:column;gap:10px;">';
-        print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('RoutePreview').'</div>';
+        print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('Route Preview').'</div>';
         print '    <div id="osm-map-wrap"><div id="osm-map"></div></div>';
         print '  </div>';
     }
@@ -1366,14 +1366,14 @@ print '</div>';// dc-grid
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 if ($isCreate || $isEdit) {
     print '<div class="dc-action-bar">';
-    print '<a class="dc-btn dc-btn-ghost dc-action-bar-left" href="'.dol_buildpath('/flotte/booking_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('BackToList').'</a>';
+    print '<a class="dc-btn dc-btn-ghost dc-action-bar-left" href="'.dol_buildpath('/flotte/booking_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('Back To List').'</a>';
     print '<a class="dc-btn dc-btn-ghost" href="'.($id > 0 ? $_SERVER['PHP_SELF'].'?id='.$id : dol_buildpath('/flotte/booking_list.php', 1)).'"><i class="fa fa-times"></i> '.$langs->trans('Cancel').'</a>';
     print '<button type="submit" class="dc-btn dc-btn-primary"><i class="fa fa-check"></i> '.($isCreate ? $langs->trans('Create') : $langs->trans('Save')).'</button>';
     print '</div>';
     print '</form>';
 } elseif ($id > 0) {
     print '<div class="dc-action-bar">';
-    print '<a class="dc-btn dc-btn-ghost dc-action-bar-left" href="'.dol_buildpath('/flotte/booking_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('BackToList').'</a>';
+    print '<a class="dc-btn dc-btn-ghost dc-action-bar-left" href="'.dol_buildpath('/flotte/booking_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('Back To List').'</a>';
     if (!empty($user->rights->flotte->write)) {
         print '<a class="dc-btn dc-btn-ghost" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=edit"><i class="fa fa-pen"></i> '.$langs->trans('Modify').'</a>';
     }

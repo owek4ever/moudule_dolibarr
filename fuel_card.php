@@ -387,11 +387,11 @@ $hookmanager->initHooks(array('fuelcard'));
 
 $title = $langs->trans('FuelRecord');
 if ($action == 'create') {
-    $title = $langs->trans('NewFuelRecord');
+    $title = $langs->trans('New Fuel Record');
 } elseif ($action == 'edit') {
-    $title = $langs->trans('EditFuelRecord');
+    $title = $langs->trans('Edit Fuel Record');
 } elseif ($id > 0) {
-    $title = $langs->trans('FuelRecord') . " " . $object->ref;
+    $title = $langs->trans('Fuel Record') . " " . $object->ref;
 }
 
 llxHeader('', $title);
@@ -767,8 +767,8 @@ $isEdit   = ($action == 'edit');
 $isCreate = ($action == 'create');
 $isView   = (!$isEdit && !$isCreate);
 
-$pageTitle = $isCreate ? $langs->trans('NewFuelRecord') : ($isEdit ? $langs->trans('EditFuelRecord') : $langs->trans('FuelRecord'));
-$pageSub   = $isCreate ? $langs->trans('FillInFuelDetails') : (isset($object->ref) ? $object->ref : '');
+$pageTitle = $isCreate ? $langs->trans('New Fuel Record') : ($isEdit ? $langs->trans('Edit Fuel Record') : $langs->trans('Fuel Record'));
+$pageSub   = $isCreate ? $langs->trans('Fill In Fuel Details') : (isset($object->ref) ? $object->ref : '');
 
 // Precompute totals
 $total_cost = 0;
