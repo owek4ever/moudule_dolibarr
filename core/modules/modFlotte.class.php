@@ -404,6 +404,23 @@ class modFlotte extends DolibarrModules
 		$r++;
 
 
+		// Tracking submenu
+		$this->menu[$r] = array(
+			'fk_menu' => 'fk_mainmenu=flotte',
+			'type' => 'left',
+			'titre' => 'Tracking',
+			'mainmenu' => 'flotte',
+			'leftmenu' => 'flotte_tracking',
+			'url' => '/flotte/tracking_list.php',
+			'langs' => 'flotte@flotte',
+			'position' => 1100,
+			'enabled' => 'isModEnabled("flotte")',
+			'perms' => '$user->hasRight("flotte", "read")',
+			'target' => '',
+			'user' => 2
+		);
+		$r++;
+
 		// Setup submenu
 		$this->menu[$r] = array(
 			'fk_menu' => 'fk_mainmenu=flotte',

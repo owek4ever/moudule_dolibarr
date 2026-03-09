@@ -206,8 +206,10 @@ if ($action == 'add') {
     $selling_amount_ttc = GETPOST('selling_amount_ttc', 'alpha');
     $stops            = GETPOST('stops', 'restricthtml');
     $eta              = GETPOST('eta', 'alpha');
-    $pickup_datetime  = GETPOST('pickup_datetime', 'alpha');
-    $dropoff_datetime = GETPOST('dropoff_datetime', 'alpha');
+    $pickup_ts  = dol_mktime(GETPOST('pickup_datetimehour','int'), GETPOST('pickup_datetimemin','int'), 0, GETPOST('pickup_datetimemonth','int'), GETPOST('pickup_datetimeday','int'), GETPOST('pickup_datetimeyear','int'));
+    $pickup_datetime  = ($pickup_ts > 0) ? date('Y-m-d H:i:s', $pickup_ts) : '';
+    $dropoff_ts = dol_mktime(GETPOST('dropoff_datetimehour','int'), GETPOST('dropoff_datetimemin','int'), 0, GETPOST('dropoff_datetimemonth','int'), GETPOST('dropoff_datetimeday','int'), GETPOST('dropoff_datetimeyear','int'));
+    $dropoff_datetime = ($dropoff_ts > 0) ? date('Y-m-d H:i:s', $dropoff_ts) : '';
 
     // Auto-generate reference if empty
     if (empty($ref)) {
@@ -335,8 +337,10 @@ if ($action == 'update' && $id > 0) {
     $selling_amount_ttc = GETPOST('selling_amount_ttc', 'alpha');
     $stops = GETPOST('stops', 'restricthtml');
     $eta = GETPOST('eta', 'alpha');
-    $pickup_datetime  = GETPOST('pickup_datetime', 'alpha');
-    $dropoff_datetime = GETPOST('dropoff_datetime', 'alpha');
+    $pickup_ts  = dol_mktime(GETPOST('pickup_datetimehour','int'), GETPOST('pickup_datetimemin','int'), 0, GETPOST('pickup_datetimemonth','int'), GETPOST('pickup_datetimeday','int'), GETPOST('pickup_datetimeyear','int'));
+    $pickup_datetime  = ($pickup_ts > 0) ? date('Y-m-d H:i:s', $pickup_ts) : '';
+    $dropoff_ts = dol_mktime(GETPOST('dropoff_datetimehour','int'), GETPOST('dropoff_datetimemin','int'), 0, GETPOST('dropoff_datetimemonth','int'), GETPOST('dropoff_datetimeday','int'), GETPOST('dropoff_datetimeyear','int'));
+    $dropoff_datetime = ($dropoff_ts > 0) ? date('Y-m-d H:i:s', $dropoff_ts) : '';
     
     // Validation
     if (empty($fk_vehicle)) {
@@ -459,27 +463,9 @@ if ($action == 'create') {
 llxHeader('', $title);
 
 ?>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <style>
 
-.dc-fp-input { cursor: pointer !important; }
-.dc-fp-readonly { background: #f5f6fa !important; color: #5a6482 !important; }
-.flatpickr-calendar { font-family: "DM Sans", sans-serif !important; border: 1.5px solid #e2e5f0 !important; border-radius: 12px !important; box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important; overflow: hidden; }
-.flatpickr-months { background: #3c4758 !important; padding: 4px 0; }
-.flatpickr-months .flatpickr-month, .flatpickr-months .flatpickr-prev-month, .flatpickr-months .flatpickr-next-month { color: #fff !important; fill: #fff !important; }
-.flatpickr-current-month { font-size: 13px !important; font-weight: 600 !important; color: #fff !important; }
-.flatpickr-current-month select, .flatpickr-current-month .numInputWrapper input { color: #fff !important; background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 2px !important; font-weight: 600 !important; }
-.flatpickr-weekdays { background: #f7f8fc !important; }
-span.flatpickr-weekday { color: #8b92a9 !important; font-weight: 700 !important; font-size: 10.5px !important; text-transform: uppercase !important; letter-spacing: 0.5px !important; }
-.flatpickr-day { border-radius: 8px !important; font-size: 13px !important; color: #2d3748 !important; }
-.flatpickr-day:hover { background: #f0f2fa !important; border-color: transparent !important; }
-.flatpickr-day.selected, .flatpickr-day.selected:hover { background: #3c4758 !important; border-color: #3c4758 !important; color: #fff !important; }
-.flatpickr-day.today { border-color: #3c4758 !important; font-weight: 700 !important; }
-.flatpickr-time { border-top: 1.5px solid #f0f2f8 !important; }
-.flatpickr-time input { font-family: "DM Mono", monospace !important; font-size: 15px !important; font-weight: 600 !important; color: #3c4758 !important; width: 100% !important; max-width: 100% !important; }
-.flatpickr-time .flatpickr-time-separator { color: #8b92a9 !important; }
-.numInputWrapper:hover { background: #f7f8fc !important; }
+
 </style>
 
 <style>
@@ -691,12 +677,18 @@ input.dc-incl-val { background: #edfaf3 !important; color: #16a34a !important; f
 .dc-page .inputdate,
 .dc-page input[id$="day"],
 .dc-page input[id$="month"],
-.dc-page input[id$="year"] {
-    width: auto !important;
-    max-width: none !important;
+.dc-page input[id$="year"],
+.dc-page select[id$="hour"],
+.dc-page select[id$="min"] {
+    width: 75px !important;
+    max-width: 75px !important;
+    min-width: 75px !important;
     display: inline-block !important;
+    box-sizing: border-box !important;
 }
-.dc-page .blockdatepicker { display: inline-flex !important; align-items: center !important; gap: 4px !important; flex-wrap: nowrap !important; }
+.dc-page select.maxwidth50 { max-width: 75px !important; }
+.dc-page input.maxwidthdate { width: 110px !important; max-width: 110px !important; }
+.dc-page .blockdatepicker { display: inline-flex !important; align-items: center !important; gap: 4px !important; flex-wrap: wrap !important; }
 .dc-page .blockdatepicker a,
 .dc-page .blockdatepicker img { flex-shrink: 0 !important; }
 .dc-page input[type="text"]:focus,
@@ -1322,13 +1314,13 @@ if ($isCreate || $isEdit) {
 print '    </div></div>';
 
 // Pickup DateTime
-$pickup_val  = (!empty($object->pickup_datetime)  ? date('Y-m-d H:i:s', strtotime($object->pickup_datetime))  : '');
-$dropoff_val = (!empty($object->dropoff_datetime) ? date('Y-m-d H:i:s', strtotime($object->dropoff_datetime)) : '');
+$pickup_ts_val  = (!empty($object->pickup_datetime)  ? $db->jdate($object->pickup_datetime)  : '');
+$dropoff_ts_val = (!empty($object->dropoff_datetime) ? $db->jdate($object->dropoff_datetime) : '');
 print '  <div class="dc-field">';
 print '    <div class="dc-field-label">Pick-up Date &amp; Time</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="text" id="pickup_datetime" name="pickup_datetime" class="dc-fp-input" value="'.dol_escape_htmltag($pickup_val).'" placeholder="Pick-up date &amp; time" autocomplete="off">';
+    print $form->selectDate($pickup_ts_val, 'pickup_datetime', 1, 1, 0, '', 1, 1);
 } else {
     print (!empty($object->pickup_datetime) ? '<span class="dc-chip"><i class="fa fa-calendar-check" style="font-size:11px;opacity:0.6;"></i>'.dol_print_date($db->jdate($object->pickup_datetime), 'dayhour').'</span>' : '&mdash;');
 }
@@ -1339,7 +1331,7 @@ print '  <div class="dc-field">';
 print '    <div class="dc-field-label">Drop-off Date &amp; Time</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="text" id="dropoff_datetime" name="dropoff_datetime" class="dc-fp-input" value="'.dol_escape_htmltag($dropoff_val).'" placeholder="Pick-up + ETA, or set manually" autocomplete="off">';
+    print $form->selectDate($dropoff_ts_val, 'dropoff_datetime', 1, 1, 0, '', 1, 1);
     print '<span style="font-size:11px;color:#9aa0b4;margin-top:5px;display:block;"><i class="fa fa-info-circle" style="font-size:10px;"></i> Auto-calculated from pick-up + ETA, or set manually</span>';
 } else {
     print (!empty($object->dropoff_datetime) ? '<span class="dc-chip"><i class="fa fa-map-marker-alt" style="font-size:11px;opacity:0.6;"></i>'.dol_print_date($db->jdate($object->dropoff_datetime), 'dayhour').'</span>' : '&mdash;');
@@ -1620,36 +1612,36 @@ function drawRouteGeoJSON(geometry, wps) {
     map.fitBounds(routeLayer.getBounds(),{padding:[24,24]});
 }
 
-var _fpPickup = null, _fpDropoff = null;
 document.addEventListener("DOMContentLoaded", function() {
-    var pEl = document.getElementById("pickup_datetime");
-    var dEl = document.getElementById("dropoff_datetime");
-    if (!pEl) return;
-    _fpDropoff = flatpickr(dEl, {
-        enableTime: true, time_24hr: true, minuteIncrement: 5,
-        dateFormat: "Y-m-d H:i:S",
-        disableMobile: true
-    });
-    _fpPickup = flatpickr(pEl, {
-        enableTime: true, time_24hr: true, minuteIncrement: 5,
-        dateFormat: "Y-m-d H:i:S",
-        disableMobile: true,
-        onChange: function(sel) {
-            if (!sel.length) return;
-            var etaEl = document.getElementById("eta");
-            if (!etaEl || !etaEl.value) return;
-            var s = etaEl.value, hh = 0, mm = 0;
-            var mh = s.match(/([0-9]+)h/); var mn = s.match(/([0-9]+)min/);
-            if (mh) hh = parseInt(mh[1]);
-            if (mn) mm = parseInt(mn[1]);
-            var secs = hh * 3600 + mm * 60;
-            if (secs > 0 && _fpDropoff) _fpDropoff.setDate(new Date(sel[0].getTime() + secs * 1000), true);
+    document.querySelectorAll("select").forEach(function(el) {
+        if (el.id && (el.id.slice(-4) === "hour" || el.id.slice(-3) === "min")) {
+            el.style.setProperty("width", "75px", "important");
+            el.style.setProperty("max-width", "75px", "important");
+            el.style.setProperty("min-width", "75px", "important");
         }
     });
 });
 function calcDropoff(etaSeconds) {
-    if (!_fpPickup || !_fpPickup.selectedDates.length) return;
-    if (_fpDropoff) _fpDropoff.setDate(new Date(_fpPickup.selectedDates[0].getTime() + etaSeconds * 1000), true);
+    var pd = document.getElementById("pickup_datetimeday");
+    var pm = document.getElementById("pickup_datetimemonth");
+    var py = document.getElementById("pickup_datetimeyear");
+    var ph = document.getElementById("pickup_datetimehour");
+    var pmin = document.getElementById("pickup_datetimemin");
+    if (!pd || !pd.value || !pm || !py) return;
+    var pDate = new Date(parseInt(py.value), parseInt(pm.value)-1, parseInt(pd.value),
+        ph ? parseInt(ph.value) : 0, pmin ? parseInt(pmin.value) : 0, 0);
+    if (isNaN(pDate.getTime())) return;
+    var d = new Date(pDate.getTime() + etaSeconds * 1000);
+    var dd = document.getElementById("dropoff_datetimeday");
+    var dm = document.getElementById("dropoff_datetimemonth");
+    var dy = document.getElementById("dropoff_datetimeyear");
+    var dh = document.getElementById("dropoff_datetimehour");
+    var dmin = document.getElementById("dropoff_datetimemin");
+    if (dd) dd.value = d.getDate();
+    if (dm) { for (var i=0;i<dm.options.length;i++) { if (parseInt(dm.options[i].value)===(d.getMonth()+1)) { dm.selectedIndex=i; break; } } }
+    if (dy) dy.value = d.getFullYear();
+    if (dh) { for (var i=0;i<dh.options.length;i++) { if (parseInt(dh.options[i].value)===d.getHours()) { dh.selectedIndex=i; break; } } }
+    if (dmin) { var rm=Math.round(d.getMinutes()/5)*5; if(rm>=60)rm=55; for (var i=0;i<dmin.options.length;i++) { if (parseInt(dmin.options[i].value)===rm) { dmin.selectedIndex=i; break; } } }
 }
 
 function showLoaders(s) {

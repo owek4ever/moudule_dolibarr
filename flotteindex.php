@@ -1025,6 +1025,7 @@ a.stat-card:hover::after {
                 array('icon' => 'cog', 'label' => 'Parts', 'url' => 'part_list.php'),
                 array('icon' => 'tools', 'label' => 'Work Orders', 'url' => 'workorder_list.php'),
                 array('icon' => 'clipboard-check', 'label' => 'Inspections', 'url' => 'inspection_list.php'),
+                array('icon' => 'map-marker-alt', 'label' => 'Tracking', 'url' => 'tracking_list.php'),
                 array('icon' => 'chart-line', 'label' => 'Reports', 'url' => 'flotteindex.php')
             );
             
