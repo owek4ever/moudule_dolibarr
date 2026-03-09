@@ -717,3 +717,69 @@ In Progress = En cours
 #
 Station = Station
 Tank = Réservoir
+
+#
+# Liste des véhicules - nouvelles clés
+#
+VehiclesFound = véhicule(s) trouvé(s)
+AllStatuses = Tous les statuts
+SearchRef = Rechercher la référence...
+SearchMaker = ex. Toyota...
+SearchModel = ex. Corolla...
+SearchPlate = Rechercher la plaque...
+Search = Rechercher
+Reset = Réinitialiser
+Total = Total
+NoVehiclesFound = Aucun véhicule trouvé
+AddFirstVehicle = Ajouter le premier véhicule
+ShowingVehicles = Affichage de %s à %s sur %s véhicule(s)
+RecordNotFound = Enregistrement introuvable
+
+#
+# Vehicle card - unités et divers
+#
+HP = CV
+cm = cm
+kg = kg
+AcceptedFormats = Formats acceptés : JPG, PNG, PDF
+FillInVehicleDetails = Remplir les informations du véhicule
+DocumentsAndPhotos = Documents et photos
+
+#
+# Clients - liste et fiche
+#
+CustomersFound = client(s) trouvé(s)
+NewCustomer = Nouveau client
+EditCustomer = Modifier le client
+CustomerInformation = Informations client
+FillInCustomerDetails = Remplir les informations du client
+AdditionalInformation = Informations complémentaires
+CompanyName = Nom de la société
+TaxNumber = Numéro fiscal
+TaxNo = N° fiscal
+PaymentDelay = Délai de paiement
+SelectThirdPartyHint = Sélectionner un tiers pour remplir automatiquement les champs ci-dessous.
+FirstName = Prénom
+LastName = Nom
+WithCompany = Avec société
+NoCustomersFound = Aucun client trouvé
+AddFirstCustomer = Ajouter le premier client
+ShowingCustomers = Affichage de %s à %s sur %s client(s)
+SearchFirstName = Prénom...
+SearchLastName = Nom...
+SearchPhone = Téléphone...
+SearchEmail = Email...
+SearchCompany = Société...
+SearchTaxNo = N° fiscal...
+
+#
+# Chauffeur - liste (clés manquantes)
+#
+DriversFound = chauffeur(s) trouvé(s)
+NoDriversFound = Aucun chauffeur trouvé
+AddFirstDriver = Ajouter le premier chauffeur
+ShowingDrivers = Affichage de %s à %s sur %s chauffeur(s)
+SearchEmployeeId = ID employé...
+SearchLicenseNo = Permis...
+PleaseSelectEmployee = Veuillez sélectionner un employé depuis les RH
+EmployeeAlreadyDriver = Cet employé est déjà enregistré comme chauffeur

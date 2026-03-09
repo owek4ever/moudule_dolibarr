@@ -268,9 +268,9 @@ $hookmanager->initHooks(array('customer card'));
 
 $title = $langs->trans('Customer');
 if ($action == 'create') {
-    $title = $langs->trans('New Customer');
+    $title = $langs->trans('NewCustomer');
 } elseif ($action == 'edit') {
-    $title = $langs->trans('Edit Customer');
+    $title = $langs->trans('EditCustomer');
 } elseif ($id > 0) {
     $title = $langs->trans('Customer') . " " . $object->ref;
 }
@@ -593,8 +593,8 @@ $isEdit   = ($action == 'edit');
 $isCreate = ($action == 'create');
 $isView   = (!$isEdit && !$isCreate);
 
-$pageTitle = $isCreate ? $langs->trans('New Customer') : ($isEdit ? $langs->trans('EditCustomer') : $langs->trans('Customer'));
-$pageSub   = $isCreate ? $langs->trans('Fill In Customer Details') : (isset($object->ref) ? $object->ref : '');
+$pageTitle = $isCreate ? $langs->trans('NewCustomer') : ($isEdit ? $langs->trans('EditCustomer') : $langs->trans('Customer'));
+$pageSub   = $isCreate ? $langs->trans('FillInCustomerDetails') : (isset($object->ref) ? $object->ref : '');
 
 // Form start
 if ($isCreate || $isEdit) {
@@ -636,7 +636,7 @@ print '<div class="dc-grid">';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon blue"><i class="fa fa-id-card"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('Customer Information').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('CustomerInformation').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
@@ -646,7 +646,7 @@ if ($isCreate) {
     print '    <div class="dc-field-label">'.$langs->trans('Customer').'</div>';
     print '    <div class="dc-field-value">';
     print $form->select_company('', 'fk_soc', 's.client = 1 AND s.fournisseur = 0', '-- '.$langs->trans('SelectThirdParty').' --', 0, 0, array(), 0, 'minwidth300');
-    print '      <div style="font-size:11.5px;color:#9aa0b4;margin-top:5px;"><i class="fa fa-info-circle"></i> '.$langs->trans('Selecting a third party will auto-fill the fields below.').'</div>';
+    print '      <div style="font-size:11.5px;color:#9aa0b4;margin-top:5px;"><i class="fa fa-info-circle"></i> '.$langs->trans($langs->trans('SelectThirdPartyHint')).'</div>';
     print '    </div></div>';
 }
 
@@ -666,7 +666,7 @@ print '    </div></div>';
 
 // First Name
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('First Name').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('FirstName').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="text" name="firstname" value="'.(isset($object->firstname) ? dol_escape_htmltag($object->firstname) : '').'">';
 else print dol_escape_htmltag($object->firstname);
@@ -674,7 +674,7 @@ print '    </div></div>';
 
 // Last Name
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Last Name').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('LastName').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="text" name="lastname" value="'.(isset($object->lastname) ? dol_escape_htmltag($object->lastname) : '').'">';
 else print dol_escape_htmltag($object->lastname);
@@ -703,13 +703,13 @@ print '</div>';  // dc-card
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon green"><i class="fa fa-building"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('Additional Information').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('AdditionalInformation').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
 // Company Name
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Company Name').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('CompanyName').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="text" name="company_name" value="'.(isset($object->company_name) ? dol_escape_htmltag($object->company_name) : '').'">';
 else print (!empty($object->company_name) ? dol_escape_htmltag($object->company_name) : '&mdash;');
@@ -717,7 +717,7 @@ print '    </div></div>';
 
 // Tax Number
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Tax Number').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('TaxNumber').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="text" name="tax_no" value="'.(isset($object->tax_no) ? dol_escape_htmltag($object->tax_no) : '').'">';
 else print (!empty($object->tax_no) ? '<span class="dc-mono">'.dol_escape_htmltag($object->tax_no).'</span>' : '&mdash;');
@@ -725,7 +725,7 @@ print '    </div></div>';
 
 // Payment Delay
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Payment Delay').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('PaymentDelay').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="number" name="payment_delay" value="'.(isset($object->payment_delay) ? dol_escape_htmltag($object->payment_delay) : '').'" min="0" placeholder="0">';
 else print (!empty($object->payment_delay) ? dol_escape_htmltag($object->payment_delay).' '.$langs->trans('Days') : '&mdash;');
