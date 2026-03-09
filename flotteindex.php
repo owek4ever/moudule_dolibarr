@@ -788,7 +788,7 @@ a.stat-card:hover::after {
 <div class="section">
     <div class="section-header">
         <h2 class="section-title">
-            <i class="fa fa-chart-line"></i> Fleet Overview
+            <i class="fa fa-chart-line"></i> <?php echo $langs->trans("FleetOverview"); ?>
         </h2>
     </div>
     <div class="stats-grid">
@@ -797,10 +797,10 @@ a.stat-card:hover::after {
             <div class="stat-icon"><i class="fa fa-car"></i></div>
             <div class="stat-content">
                 <div class="stat-value"><?php echo $stats['total_vehicles']; ?></div>
-                <div class="stat-label">Total Vehicles</div>
+                <div class="stat-label"><?php echo $langs->trans("TotalVehicles"); ?></div>
                 <div class="stat-detail">
                     <i class="fa fa-check-circle"></i> 
-                    <?php echo $stats['available_vehicles']; ?> Available
+                    <?php echo $stats['available_vehicles']; ?> <?php echo $langs->trans("Available"); ?>
                 </div>
             </div>
         </a>
@@ -810,9 +810,9 @@ a.stat-card:hover::after {
             <div class="stat-icon"><i class="fa fa-users"></i></div>
             <div class="stat-content">
                 <div class="stat-value"><?php echo $stats['total_drivers']; ?></div>
-                <div class="stat-label">Total Drivers</div>
+                <div class="stat-label"><?php echo $langs->trans("TotalDrivers"); ?></div>
                 <div class="stat-detail">
-                    <i class="fa fa-user-check"></i> Active Personnel
+                    <i class="fa fa-user-check"></i> <?php echo $langs->trans("ActivePersonnel"); ?>
                 </div>
             </div>
         </a>
@@ -822,10 +822,10 @@ a.stat-card:hover::after {
             <div class="stat-icon"><i class="fa fa-calendar-check"></i></div>
             <div class="stat-content">
                 <div class="stat-value"><?php echo $stats['active_bookings']; ?></div>
-                <div class="stat-label">Active Bookings</div>
+                <div class="stat-label"><?php echo $langs->trans("ActiveBookings"); ?></div>
                 <div class="stat-detail">
                     <i class="fa fa-calendar"></i> 
-                    <?php echo $stats['monthly_bookings']; ?> This Month
+                    <?php echo $stats['monthly_bookings']; ?> <?php echo $langs->trans("ThisMonth"); ?>
                 </div>
             </div>
         </a>
@@ -835,9 +835,9 @@ a.stat-card:hover::after {
             <div class="stat-icon"><i class="fa fa-dollar-sign"></i></div>
             <div class="stat-content">
                 <div class="stat-value"><?php echo price($stats['monthly_revenue'], 0, '', 1, -1, -1, $conf->currency); ?></div>
-                <div class="stat-label">Monthly Revenue</div>
+                <div class="stat-label"><?php echo $langs->trans("MonthlyRevenue"); ?></div>
                 <div class="stat-detail">
-                    <i class="fa fa-trending-up"></i> Current Month
+                    <i class="fa fa-trending-up"></i> <?php echo $langs->trans("CurrentMonth"); ?>
                 </div>
             </div>
         </div>
@@ -848,37 +848,37 @@ a.stat-card:hover::after {
 <div class="section">
     <div class="section-header">
         <h2 class="section-title">
-            <i class="fa fa-chart-bar"></i> Performance Analytics
+            <i class="fa fa-chart-bar"></i> <?php echo $langs->trans("PerformanceAnalytics"); ?>
         </h2>
     </div>
     <div class="two-col">
         <!-- Chart -->
         <div class="card">
             <h3 class="card-title">
-                <i class="fa fa-chart-pie"></i> Fleet Utilization
+                <i class="fa fa-chart-pie"></i> <?php echo $langs->trans("FleetUtilization"); ?>
             </h3>
             <div class="chart-wrapper">
                 <canvas id="utilizationChart" class="chart-canvas"></canvas>
                 <div class="chart-center-text" id="chartCenterText">
                     <div class="chart-center-rate"><?php echo $utilization_rate; ?>%</div>
-                    <div class="chart-center-label">Utilization</div>
+                    <div class="chart-center-label"><?php echo $langs->trans("Utilization"); ?></div>
                 </div>
             </div>
             <div class="chart-pills">
                 <div class="chart-pill pill-inuse">
                     <span class="pill-dot"></span>
-                    <span class="pill-label">In Use Today</span>
+                    <span class="pill-label"><?php echo $langs->trans("InUseToday"); ?></span>
                     <strong><?php echo $vehicles_in_use; ?></strong>
                 </div>
                 <div class="chart-pill pill-available">
                     <span class="pill-dot"></span>
-                    <span class="pill-label">Available</span>
+                    <span class="pill-label"><?php echo $langs->trans("Available"); ?></span>
                     <strong><?php echo $stats['available_vehicles']; ?></strong>
                 </div>
                 <?php if ($stats['outofservice_vehicles'] > 0) { ?>
                 <div class="chart-pill pill-outofservice">
                     <span class="pill-dot"></span>
-                    <span class="pill-label">Out of Service</span>
+                    <span class="pill-label"><?php echo $langs->trans("OutOfService"); ?></span>
                     <strong><?php echo $stats['outofservice_vehicles']; ?></strong>
                 </div>
                 <?php } ?>
@@ -888,7 +888,7 @@ a.stat-card:hover::after {
         <!-- Alerts & Notifications -->
         <div class="card">
             <h3 class="card-title">
-                <i class="fa fa-bell"></i> Alerts &amp; Notifications
+                <i class="fa fa-bell"></i> <?php echo $langs->trans("AlertsNotifications"); ?>
             </h3>
             <?php
             // Build dynamic alerts based on fleet data
@@ -899,17 +899,17 @@ a.stat-card:hover::after {
                 $alerts[] = array(
                     'type'  => 'danger',
                     'icon'  => 'exclamation-triangle',
-                    'title' => 'Fleet Critically Overloaded',
-                    'desc'  => 'Utilization is at ' . $utilization_rate . '%. Only ' . $stats['available_vehicles'] . ' vehicle(s) remain available.',
-                    'badge' => 'Critical',
+                    'title' => $langs->trans('FleetCriticallyOverloaded'),
+                    'desc'  => sprintf($langs->trans('AlertDescOverloaded'), $utilization_rate, $stats['available_vehicles']),
+                    'badge' => $langs->trans('Critical'),
                 );
             } elseif ($utilization_rate >= 75) {
                 $alerts[] = array(
                     'type'  => 'warning',
                     'icon'  => 'exclamation-circle',
-                    'title' => 'High Fleet Utilization',
-                    'desc'  => 'Utilization is at ' . $utilization_rate . '%. Consider scheduling maintenance windows carefully.',
-                    'badge' => 'Warning',
+                    'title' => $langs->trans('HighFleetUtilization'),
+                    'desc'  => sprintf($langs->trans('AlertDescHighUtil'), $utilization_rate),
+                    'badge' => $langs->trans('Warning'),
                 );
             }
 
@@ -918,9 +918,9 @@ a.stat-card:hover::after {
                 $alerts[] = array(
                     'type'  => 'danger',
                     'icon'  => 'car-crash',
-                    'title' => 'No Vehicles Available',
-                    'desc'  => 'All ' . $stats['total_vehicles'] . ' vehicles are currently in use. No fleet capacity remaining.',
-                    'badge' => 'Urgent',
+                    'title' => $langs->trans('NoVehiclesAvailable'),
+                    'desc'  => sprintf($langs->trans('AlertDescNoVehicles'), $stats['total_vehicles']),
+                    'badge' => $langs->trans('Urgent'),
                 );
             }
 
@@ -929,8 +929,8 @@ a.stat-card:hover::after {
                 $alerts[] = array(
                     'type'  => 'warning',
                     'icon'  => 'tools',
-                    'title' => 'Pending Work Orders',
-                    'desc'  => $stats['pending_workorders'] . ' work order(s) are awaiting action. Review and assign technicians.',
+                    'title' => $langs->trans('PendingWorkOrders'),
+                    'desc'  => sprintf($langs->trans('AlertDescPendingWO'), $stats['pending_workorders']),
                     'badge' => $stats['pending_workorders'],
                 );
             }
@@ -940,9 +940,9 @@ a.stat-card:hover::after {
                 $alerts[] = array(
                     'type'  => 'info',
                     'icon'  => 'calendar-check',
-                    'title' => 'Active Bookings Today',
-                    'desc'  => $stats['active_bookings'] . ' booking(s) are active right now. Ensure vehicles and drivers are ready.',
-                    'badge' => 'Today',
+                    'title' => $langs->trans('ActiveBookingsToday'),
+                    'desc'  => sprintf($langs->trans('AlertDescActiveBookings'), $stats['active_bookings']),
+                    'badge' => $langs->trans('Today'),
                 );
             }
 
@@ -951,9 +951,9 @@ a.stat-card:hover::after {
                 $alerts[] = array(
                     'type'  => 'success',
                     'icon'  => 'check-circle',
-                    'title' => 'Work Order Completion Rate',
-                    'desc'  => $completion_rate . '% of work orders completed. Maintenance team is performing well.',
-                    'badge' => 'Good',
+                    'title' => $langs->trans('WorkOrderCompletionRate'),
+                    'desc'  => sprintf($langs->trans('AlertDescCompletionRate'), $completion_rate),
+                    'badge' => $langs->trans('Good'),
                 );
             }
 
@@ -962,9 +962,9 @@ a.stat-card:hover::after {
                 $alerts[] = array(
                     'type'  => 'warning',
                     'icon'  => 'clipboard-list',
-                    'title' => 'No Inspections Recorded',
-                    'desc'  => 'No vehicle inspections have been logged yet. Schedule routine checks for your fleet.',
-                    'badge' => 'Action',
+                    'title' => $langs->trans('NoInspectionsRecorded'),
+                    'desc'  => $langs->trans('AlertDescNoInspections'),
+                    'badge' => $langs->trans('Action'),
                 );
             }
 
@@ -973,9 +973,9 @@ a.stat-card:hover::after {
                 $alerts[] = array(
                     'type'  => 'success',
                     'icon'  => 'chart-line',
-                    'title' => 'Monthly Revenue On Track',
-                    'desc'  => 'This month\'s revenue stands at ' . price($stats['monthly_revenue'], 0, '', 1, -1, -1, $conf->currency) . ' from ' . $stats['monthly_bookings'] . ' booking(s).',
-                    'badge' => 'Info',
+                    'title' => $langs->trans('MonthlyRevenueOnTrack'),
+                    'desc'  => sprintf($langs->trans('AlertDescRevenue'), price($stats['monthly_revenue'], 0, '', 1, -1, -1, $conf->currency), $stats['monthly_bookings']),
+                    'badge' => $langs->trans('Info'),
                 );
             }
             ?>
@@ -998,7 +998,7 @@ a.stat-card:hover::after {
             <?php } else { ?>
             <div class="no-alerts">
                 <i class="fa fa-check-circle" style="font-size:40px; color:#16a34a; display:block; margin-bottom:10px;"></i>
-                All systems are running smoothly. No alerts at this time.
+                <?php echo $langs->trans("NoAlertsMessage"); ?>
             </div>
             <?php } ?>
         </div>
@@ -1009,24 +1009,24 @@ a.stat-card:hover::after {
 <div class="section">
     <div class="section-header">
         <h2 class="section-title">
-            <i class="fa fa-bolt"></i> Quick Actions
+            <i class="fa fa-bolt"></i> <?php echo $langs->trans("QuickActions"); ?>
         </h2>
     </div>
     <div class="card">
         <div class="actions-grid">
             <?php
             $actions = array(
-                array('icon' => 'car', 'label' => 'Vehicles', 'url' => 'vehicle_list.php'),
-                array('icon' => 'user', 'label' => 'Drivers', 'url' => 'driver_list.php'),
-                array('icon' => 'users', 'label' => 'Customers', 'url' => 'customer_list.php'),
-                array('icon' => 'calendar', 'label' => 'Bookings', 'url' => 'booking_list.php'),
-                array('icon' => 'gas-pump', 'label' => 'Fuel', 'url' => 'fuel_list.php'),
-                array('icon' => 'store', 'label' => 'Vendors', 'url' => 'vendor_list.php'),
-                array('icon' => 'cog', 'label' => 'Parts', 'url' => 'part_list.php'),
-                array('icon' => 'tools', 'label' => 'Work Orders', 'url' => 'workorder_list.php'),
-                array('icon' => 'clipboard-check', 'label' => 'Inspections', 'url' => 'inspection_list.php'),
-                array('icon' => 'map-marker-alt', 'label' => 'Tracking', 'url' => 'tracking_list.php'),
-                array('icon' => 'chart-line', 'label' => 'Reports', 'url' => 'flotteindex.php')
+                array('icon' => 'car', 'label' => $langs->trans('Vehicles'), 'url' => 'vehicle_list.php'),
+                array('icon' => 'user', 'label' => $langs->trans('Drivers'), 'url' => 'driver_list.php'),
+                array('icon' => 'users', 'label' => $langs->trans('Customers'), 'url' => 'customer_list.php'),
+                array('icon' => 'calendar', 'label' => $langs->trans('Bookings'), 'url' => 'booking_list.php'),
+                array('icon' => 'gas-pump', 'label' => $langs->trans('Fuel'), 'url' => 'fuel_list.php'),
+                array('icon' => 'store', 'label' => $langs->trans('Vendors'), 'url' => 'vendor_list.php'),
+                array('icon' => 'cog', 'label' => $langs->trans('Parts'), 'url' => 'part_list.php'),
+                array('icon' => 'tools', 'label' => $langs->trans('WorkOrders'), 'url' => 'workorder_list.php'),
+                array('icon' => 'clipboard-check', 'label' => $langs->trans('Inspections'), 'url' => 'inspection_list.php'),
+                array('icon' => 'map-marker-alt', 'label' => $langs->trans('Tracking'), 'url' => 'tracking_list.php'),
+                array('icon' => 'chart-line', 'label' => $langs->trans('Reports'), 'url' => 'flotteindex.php')
             );
             
             foreach ($actions as $action) {
@@ -1044,7 +1044,7 @@ a.stat-card:hover::after {
 <div class="section">
     <div class="section-header">
         <h2 class="section-title">
-            <i class="fa fa-history"></i> Recent Activity
+            <i class="fa fa-history"></i> <?php echo $langs->trans("RecentActivity"); ?>
         </h2>
     </div>
     <div class="card">
@@ -1080,7 +1080,7 @@ a.stat-card:hover::after {
                         </div>
                         <div class="activity-meta">
                             <span class="status-badge <?php echo $status_class; ?>">
-                                <?php echo ucfirst($status_class); ?>
+                                <?php echo $langs->trans(ucfirst($status_class)); ?>
                             </span>
                             <span class="activity-date">
                                 <i class="fa fa-calendar"></i> 
@@ -1091,12 +1091,12 @@ a.stat-card:hover::after {
                 <?php } ?>
             </div>
             <a href="<?php echo dol_buildpath('/flotte/booking_list.php', 1); ?>" class="view-all">
-                View All Bookings
+                <?php echo $langs->trans("ViewAllBookings"); ?>
             </a>
         <?php } else { ?>
             <div class="empty">
                 <i class="fa fa-inbox"></i>
-                <p>No recent bookings found</p>
+                <p><?php echo $langs->trans("NoRecentBookingsFound"); ?></p>
             </div>
         <?php } ?>
     </div>
@@ -1139,14 +1139,14 @@ document.addEventListener("DOMContentLoaded", function() {
     // Build segments dynamically (skip zeros)
     var labels = [], data = [], colors = [], hoverColors = [];
     var palette = {
-        'In Use Today':  { bg: 'rgba(102,126,234,0.92)', hover: 'rgba(102,126,234,1)' },
-        'Available':     { bg: 'rgba(67,233,123,0.92)',  hover: 'rgba(67,233,123,1)'  },
-        'Out of Service':{ bg: 'rgba(231,76,60,0.92)',   hover: 'rgba(231,76,60,1)'   }
+        '<?php echo $langs->trans("InUseToday"); ?>':  { bg: 'rgba(102,126,234,0.92)', hover: 'rgba(102,126,234,1)' },
+        '<?php echo $langs->trans("Available"); ?>':     { bg: 'rgba(67,233,123,0.92)',  hover: 'rgba(67,233,123,1)'  },
+        '<?php echo $langs->trans("OutOfService"); ?>':{ bg: 'rgba(231,76,60,0.92)',   hover: 'rgba(231,76,60,1)'   }
     };
     var raw = [
-        { label: 'In Use Today',   value: inUse        },
-        { label: 'Available',      value: available     },
-        { label: 'Out of Service', value: outOfService  }
+        { label: '<?php echo $langs->trans("InUseToday"); ?>',   value: inUse        },
+        { label: '<?php echo $langs->trans("Available"); ?>',      value: available     },
+        { label: '<?php echo $langs->trans("OutOfService"); ?>', value: outOfService  }
     ];
     raw.forEach(function(seg) {
         if (seg.value > 0) {
@@ -1238,7 +1238,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     labelEl.textContent = labels[idx];
                 } else {
                     rateEl.textContent  = utilRate + '%';
-                    labelEl.textContent = 'Utilization';
+                    labelEl.textContent = '<?php echo $langs->trans("Utilization"); ?>';
                 }
             }
         },
