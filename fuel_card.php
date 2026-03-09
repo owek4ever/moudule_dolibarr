@@ -387,11 +387,11 @@ $hookmanager->initHooks(array('fuelcard'));
 
 $title = $langs->trans('FuelRecord');
 if ($action == 'create') {
-    $title = $langs->trans('NewFuelRecord');
+    $title = $langs->trans('New Fuel Record');
 } elseif ($action == 'edit') {
-    $title = $langs->trans('EditFuelRecord');
+    $title = $langs->trans('Edit Fuel Record');
 } elseif ($id > 0) {
-    $title = $langs->trans('FuelRecord') . " " . $object->ref;
+    $title = $langs->trans('Fuel Record') . " " . $object->ref;
 }
 
 llxHeader('', $title);
