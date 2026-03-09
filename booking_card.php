@@ -985,7 +985,7 @@ print '    <div class="dc-field-label">'.$langs->trans('Driver').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $drivers = array();
-    $sql = "SELECT rowid, firstname, lastname FROM ".MAIN_DB_PREFIX."flotte_driver WHERE entity IN (".getEntity('flotte').")";
+    $sql = "SELECT rowid, firsError: Registration failed - push service errotname, lastname FROM ".MAIN_DB_PREFIX."flotte_driver WHERE entity IN (".getEntity('flotte').")";
     $resql = $db->query($sql);
     if ($resql) {
         while ($obj = $db->fetch_object($resql)) {
