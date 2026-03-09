@@ -767,8 +767,8 @@ $isEdit   = ($action == 'edit');
 $isCreate = ($action == 'create');
 $isView   = (!$isEdit && !$isCreate);
 
-$pageTitle = $isCreate ? $langs->trans('NewFuelRecord') : ($isEdit ? $langs->trans('EditFuelRecord') : $langs->trans('FuelRecord'));
-$pageSub   = $isCreate ? $langs->trans('FillInFuelDetails') : (isset($object->ref) ? $object->ref : '');
+$pageTitle = $isCreate ? $langs->trans('New Fuel Record') : ($isEdit ? $langs->trans('Edit Fuel Record') : $langs->trans('Fuel Record'));
+$pageSub   = $isCreate ? $langs->trans('Fill In Fuel Details') : (isset($object->ref) ? $object->ref : '');
 
 // Precompute totals
 $total_cost = 0;
