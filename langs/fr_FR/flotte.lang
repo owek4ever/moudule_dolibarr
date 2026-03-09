@@ -783,3 +783,117 @@ SearchEmployeeId = ID employé...
 SearchLicenseNo = Permis...
 PleaseSelectEmployee = Veuillez sélectionner un employé depuis les RH
 EmployeeAlreadyDriver = Cet employé est déjà enregistré comme chauffeur
+
+#
+# Réservations - liste
+#
+BookingsFound = réservation(s) trouvée(s)
+NoBookingsFound = Aucune réservation trouvée
+AddFirstBooking = Ajouter la première réservation
+ShowingBookings = Affichage de %s à %s sur %s réservation(s)
+BookingsSelected = réservation(s) sélectionnée(s)
+Invoice = Facture
+NewBooking = Nouvelle réservation
+SearchRef = Rech. réf...
+SearchVehicle = Réf, marque, modèle...
+SearchDriver = Prénom ou nom...
+SearchCustomer = Nom ou société...
+SearchVendor = Nom du fournisseur...
+DateFrom = Date du
+DateTo = Date au
+AllStatuses = Tous les statuts
+CustomerInvoiced = Fact. client
+VendorInvoiced = Fact. fournisseur
+All = Tous
+Invoiced = Facturé
+NotInvoiced = Non facturé
+Pending = En attente
+Confirmed = Confirmé
+InProgress = En cours
+Completed = Terminé
+Cancelled = Annulé
+Total = Total
+Ref = Réf.
+Vehicle = Véhicule
+Driver = Chauffeur
+Customer = Client
+Vendor = Fournisseur
+Date = Date
+Distance = Distance
+Selling = Vente
+Buying = Achat
+Status = Statut
+Actions = Actions
+View = Voir
+Edit = Modifier
+Delete = Supprimer
+CustomerInvoice = Facture client
+VendorInvoice = Facture fournisseur
+
+#
+# Réservations - fiche
+#
+BookingInformation = Informations réservation
+TripDetails = Détails du trajet
+BookingDate = Date de réservation
+PickupDateTime = Date et heure de prise en charge
+DropoffDateTime = Date et heure de dépose
+DropoffAutoCalculated = Calculé automatiquement à partir de la prise en charge + ETA, ou saisir manuellement
+BuyingAmount = Montant achat
+SellingAmount = Montant vente
+VehicleNotFound = Véhicule introuvable
+DriverNotFound = Chauffeur introuvable
+CustomerNotFound = Client introuvable
+FillInBookingDetails = Remplir les détails de la réservation
+NewBooking = Nouvelle réservation
+EditBooking = Modifier la réservation
+
+#
+# Carburant - liste
+#
+RecordsFound = enregistrement(s) trouvé(s)
+NoFuelRecordsFound = Aucun enregistrement trouvé
+AddFirstRecord = Ajouter le premier enregistrement
+ShowingRecords = Affichage de %s à %s sur %s enregistrement(s)
+NewFuelRecord = Nouvel enregistrement carburant
+MeterReading = Relevé kilométrique
+ReceiptRef = Réf. reçu
+SearchVehiclePlate = Marque, modèle, immat...
+SearchReceiptRef = Réf. reçu...
+FuelSource = Source carburant
+State = État
+Station = Station
+Tank = Réservoir
+Other = Autre
+Approved = Approuvé
+Rejected = Rejeté
+CostUnit = Coût/unité
+TotalCost = Coût total
+Quantity = Quantité
+
+#
+# Carburant - fiche
+#
+FuelRecord = Enregistrement carburant
+NewFuelRecord = Nouvel enregistrement carburant
+EditFuelRecord = Modifier l'enregistrement carburant
+FillInFuelDetails = Remplir les détails carburant
+FuelRecordInformation = Informations carburant
+FuelDetails = Détails carburant
+ReferenceNumber = Numéro de référence
+FuelSource = Source carburant
+CostUnit = Coût unitaire
+CompleteFillup = Plein complet
+TotalCost = Coût total
+FuelPhoto = Photo du reçu
+
+#
+# Facture réservation (booking_invoice.php)
+#
+NoBookingsSelected = Aucune réservation sélectionnée
+InvalidInvoiceType = Type de facture invalide
+DbError = Erreur base de données
+BookingNoPartyAssigned = La réservation %s n'a pas de %s assigné
+ErrorCreatingInvoice = Erreur lors de la création de la facture
+ErrorCreatingSupplierInvoice = Erreur lors de la création de la facture fournisseur
+ErrorAddingInvoiceLine = Erreur lors de l'ajout de la ligne pour %s

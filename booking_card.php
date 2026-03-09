@@ -877,8 +877,8 @@ $isEdit   = ($action == 'edit');
 $isCreate = ($action == 'create');
 $isView   = (!$isEdit && !$isCreate);
 
-$pageTitle = $isCreate ? $langs->trans('New Booking') : ($isEdit ? $langs->trans('Edit Booking') : $langs->trans('Booking'));
-$pageSub   = $isCreate ? $langs->trans('Fill In Booking Details') : (isset($object->ref) ? $object->ref : '');
+$pageTitle = $isCreate ? $langs->trans('NewBooking') : ($isEdit ? $langs->trans('EditBooking') : $langs->trans('Booking'));
+$pageSub   = $isCreate ? $langs->trans('FillInBookingDetails') : (isset($object->ref) ? $object->ref : '');
 
 // Determine status class for badge
 $statusClass = '';
@@ -931,7 +931,7 @@ print '<div class="dc-grid">';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon blue"><i class="fa fa-calendar-check"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('Booking Information').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('BookingInformation').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
@@ -971,7 +971,7 @@ if ($isCreate || $isEdit) {
             $obj = $db->fetch_object($resql);
             print '<span class="dc-chip"><i class="fa fa-car" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($obj->ref.' - '.$obj->maker.' '.$obj->model).'</span>';
         } else {
-            print '<span style="color:#c4c9d8;">'.$langs->trans('Vehicle Not Found').'</span>';
+            print '<span style="color:#c4c9d8;">'.$langs->trans('VehicleNotFound').'</span>';
         }
     } else {
         print '<span style="color:#c4c9d8;">'.$langs->trans('Not Assigned').'</span>';
@@ -1001,7 +1001,7 @@ if ($isCreate || $isEdit) {
             $obj = $db->fetch_object($resql);
             print '<span class="dc-chip"><i class="fa fa-user" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($obj->firstname.' '.$obj->lastname).'</span>';
         } else {
-            print '<span style="color:#c4c9d8;">'.$langs->trans('Driver Not Found').'</span>';
+            print '<span style="color:#c4c9d8;">'.$langs->trans('DriverNotFound').'</span>';
         }
     } else {
         print '<span style="color:#c4c9d8;">'.$langs->trans('Not Assigned').'</span>';
@@ -1078,7 +1078,7 @@ if ($isCreate || $isEdit) {
             if (!empty($obj->company_name)) $name .= ' (' . $obj->company_name . ')';
             print '<span class="dc-chip"><i class="fa fa-user-circle" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($name).'</span>';
         } else {
-            print '<span style="color:#c4c9d8;">'.$langs->trans('Customer Not Found').'</span>';
+            print '<span style="color:#c4c9d8;">'.$langs->trans('CustomerNotFound').'</span>';
         }
     } else {
         print '<span style="color:#c4c9d8;">'.$langs->trans('Not Assigned').'</span>';
@@ -1092,7 +1092,7 @@ print '    </div></div>';
 
 // ── Buying Section ──
 print '  <div class="dc-field dc-pricing-header">';
-print '    <div class="dc-field-label">'.$langs->trans('Buying Amount').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('BuyingAmount').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $bq = isset($object->buying_qty)   ? dol_escape_htmltag($object->buying_qty)   : '';
@@ -1139,7 +1139,7 @@ print '    </div></div>';
 
 // ── Selling Section ──
 print '  <div class="dc-field dc-pricing-header">';
-print '    <div class="dc-field-label">'.$langs->trans('Selling Amount').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('SellingAmount').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $sq = isset($object->selling_qty)   ? dol_escape_htmltag($object->selling_qty)   : '';
@@ -1188,7 +1188,7 @@ print '    </div></div>';
 
 // Booking Date
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label required">'.$langs->trans('Booking Date').'</div>';
+print '    <div class="dc-field-label required">'.$langs->trans('BookingDate').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $selected_date = (!empty($object->booking_date)) ? $object->booking_date : '';
@@ -1227,7 +1227,7 @@ print '</div>';  // dc-card
 print '<div class="dc-card" id="trip-details-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon green"><i class="fa fa-route"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('Trip Details').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('TripDetails').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
@@ -1306,7 +1306,7 @@ print '    <div class="dc-field-label">'.$langs->trans('ETA').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<div style="display:flex;gap:8px;align-items:center;">';
-    print '<input type="text" id="eta" name="eta" value="'.dol_escape_htmltag(isset($object->eta) ? $object->eta : '').'" placeholder="'.$langs->trans('Auto Calculated').'" readonly style="background:#f5f6fa!important;color:#5a6482!important;">';
+    print '<input type="text" id="eta" name="eta" value="'.dol_escape_htmltag(isset($object->eta) ? $object->eta : '').'" placeholder="'.$langs->trans('AutoCalculated').'" readonly style="background:#f5f6fa!important;color:#5a6482!important;">';
     print '</div>';
 } else {
     print (!empty($object->eta) ? '<span class="dc-chip"><i class="fa fa-clock" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($object->eta).'</span>' : '&mdash;');
@@ -1317,7 +1317,7 @@ print '    </div></div>';
 $pickup_ts_val  = (!empty($object->pickup_datetime)  ? $db->jdate($object->pickup_datetime)  : '');
 $dropoff_ts_val = (!empty($object->dropoff_datetime) ? $db->jdate($object->dropoff_datetime) : '');
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">Pick-up Date &amp; Time</div>';
+print '    <div class="dc-field-label">'.($langs->trans('PickupDateTime')).'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print $form->selectDate($pickup_ts_val, 'pickup_datetime', 1, 1, 0, '', 1, 1);
@@ -1328,11 +1328,11 @@ print '    </div></div>';
 
 // Dropoff DateTime
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">Drop-off Date &amp; Time</div>';
+print '    <div class="dc-field-label">'.($langs->trans('DropoffDateTime')).'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print $form->selectDate($dropoff_ts_val, 'dropoff_datetime', 1, 1, 0, '', 1, 1);
-    print '<span style="font-size:11px;color:#9aa0b4;margin-top:5px;display:block;"><i class="fa fa-info-circle" style="font-size:10px;"></i> Auto-calculated from pick-up + ETA, or set manually</span>';
+    print '<span style="font-size:11px;color:#9aa0b4;margin-top:5px;display:block;"><i class="fa fa-info-circle" style="font-size:10px;"></i> '.$langs->trans('DropoffAutoCalculated').'</span>';
 } else {
     print (!empty($object->dropoff_datetime) ? '<span class="dc-chip"><i class="fa fa-map-marker-alt" style="font-size:11px;opacity:0.6;"></i>'.dol_print_date($db->jdate($object->dropoff_datetime), 'dayhour').'</span>' : '&mdash;');
 }
@@ -1366,14 +1366,14 @@ print '</div>';// dc-grid
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 if ($isCreate || $isEdit) {
     print '<div class="dc-action-bar">';
-    print '<a class="dc-btn dc-btn-ghost dc-action-bar-left" href="'.dol_buildpath('/flotte/booking_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('Back To List').'</a>';
+    print '<a class="dc-btn dc-btn-ghost dc-action-bar-left" href="'.dol_buildpath('/flotte/booking_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('BackToList').'</a>';
     print '<a class="dc-btn dc-btn-ghost" href="'.($id > 0 ? $_SERVER['PHP_SELF'].'?id='.$id : dol_buildpath('/flotte/booking_list.php', 1)).'"><i class="fa fa-times"></i> '.$langs->trans('Cancel').'</a>';
     print '<button type="submit" class="dc-btn dc-btn-primary"><i class="fa fa-check"></i> '.($isCreate ? $langs->trans('Create') : $langs->trans('Save')).'</button>';
     print '</div>';
     print '</form>';
 } elseif ($id > 0) {
     print '<div class="dc-action-bar">';
-    print '<a class="dc-btn dc-btn-ghost dc-action-bar-left" href="'.dol_buildpath('/flotte/booking_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('Back To List').'</a>';
+    print '<a class="dc-btn dc-btn-ghost dc-action-bar-left" href="'.dol_buildpath('/flotte/booking_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('BackToList').'</a>';
     if (!empty($user->rights->flotte->write)) {
         print '<a class="dc-btn dc-btn-ghost" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=edit"><i class="fa fa-pen"></i> '.$langs->trans('Modify').'</a>';
     }

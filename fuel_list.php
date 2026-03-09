@@ -528,17 +528,17 @@ table.vl-table tbody td.center { text-align: center; }
 <div class="vl-header">
     <div class="vl-header-left">
         <h1><i class="fa fa-gas-pump" style="color:#3c4758;margin-right:10px;"></i><?php echo $langs->trans("Fuel Records List"); ?></h1>
-        <div class="vl-subtitle"><?php echo $nbtotalofrecords; ?> record<?php echo $nbtotalofrecords != 1 ? 's' : ''; ?> found</div>
+        <div class="vl-subtitle"><?php echo $nbtotalofrecords; ?> <?php echo $langs->trans('RecordsFound'); ?></div>
     </div>
     <div class="vl-header-actions">
         <?php if ($user->rights->flotte->read) { ?>
         <a class="vl-btn vl-btn-secondary" href="<?php echo dol_buildpath('/flotte/fuel_list.php', 1); ?>?action=export">
-            <i class="fa fa-download"></i> Export
+            <i class="fa fa-download"></i> <?php echo $langs->trans('Export'); ?>
         </a>
         <?php } ?>
         <?php if ($user->rights->flotte->write) { ?>
         <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/fuel_card.php', 1); ?>?action=create">
-            <i class="fa fa-plus"></i> New Fuel Record
+            <i class="fa fa-plus"></i> <?php echo $langs->trans('NewFuelRecord'); ?>
         </a>
         <?php } ?>
     </div>
@@ -555,69 +555,69 @@ table.vl-table tbody td.center { text-align: center; }
 
 <div class="vl-filters">
     <div class="vl-filter-group">
-        <label>Reference</label>
-        <input type="text" name="search_ref" placeholder="Search ref…" value="<?php echo dol_escape_htmltag($search_ref); ?>">
+        <label><?php echo $langs->trans('Reference'); ?></label>
+        <input type="text" name="search_ref" placeholder="<?php echo $langs->trans('SearchRef'); ?>" value="<?php echo dol_escape_htmltag($search_ref); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Vehicle</label>
-        <input type="text" name="search_vehicle" placeholder="Maker, model, plate…" value="<?php echo dol_escape_htmltag($search_vehicle); ?>">
+        <label><?php echo $langs->trans('Vehicle'); ?></label>
+        <input type="text" name="search_vehicle" placeholder="<?php echo $langs->trans('SearchVehiclePlate'); ?>" value="<?php echo dol_escape_htmltag($search_vehicle); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Date</label>
+        <label><?php echo $langs->trans('Date'); ?></label>
         <input type="date" name="search_date" value="<?php echo dol_escape_htmltag($search_date); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Receipt Ref.</label>
-        <input type="text" name="search_reference" placeholder="Receipt ref…" value="<?php echo dol_escape_htmltag($search_reference); ?>">
+        <label><?php echo $langs->trans('ReceiptRef'); ?></label>
+        <input type="text" name="search_reference" placeholder="<?php echo $langs->trans('SearchReceiptRef'); ?>" value="<?php echo dol_escape_htmltag($search_reference); ?>">
     </div>
     <div class="vl-filter-group" style="max-width:160px;">
-        <label>Fuel Source</label>
+        <label><?php echo $langs->trans('FuelSource'); ?></label>
         <select name="search_fuel_source">
-            <option value="">All</option>
-            <option value="Station" <?php echo $search_fuel_source === 'Station' ? 'selected' : ''; ?>>Station</option>
-            <option value="Tank"    <?php echo $search_fuel_source === 'Tank'    ? 'selected' : ''; ?>>Tank</option>
-            <option value="Other"   <?php echo $search_fuel_source === 'Other'   ? 'selected' : ''; ?>>Other</option>
+            <option value=""><?php echo $langs->trans('All'); ?></option>
+            <option value="Station" <?php echo $search_fuel_source === 'Station' ? 'selected' : ''; ?>><?php echo $langs->trans('Station'); ?></option>
+            <option value="Tank"    <?php echo $search_fuel_source === 'Tank'    ? 'selected' : ''; ?>><?php echo $langs->trans('Tank'); ?></option>
+            <option value="Other"   <?php echo $search_fuel_source === 'Other'   ? 'selected' : ''; ?>><?php echo $langs->trans('Other'); ?></option>
         </select>
     </div>
     <div class="vl-filter-group" style="max-width:160px;">
-        <label>State</label>
+        <label><?php echo $langs->trans('State'); ?></label>
         <select name="search_state">
-            <option value="">All</option>
-            <option value="pending"   <?php echo $search_state === 'pending'   ? 'selected' : ''; ?>>Pending</option>
-            <option value="approved"  <?php echo $search_state === 'approved'  ? 'selected' : ''; ?>>Approved</option>
-            <option value="completed" <?php echo $search_state === 'completed' ? 'selected' : ''; ?>>Completed</option>
-            <option value="rejected"  <?php echo $search_state === 'rejected'  ? 'selected' : ''; ?>>Rejected</option>
+            <option value=""><?php echo $langs->trans('All'); ?></option>
+            <option value="pending"   <?php echo $search_state === 'pending'   ? 'selected' : ''; ?>><?php echo $langs->trans('Pending'); ?></option>
+            <option value="approved"  <?php echo $search_state === 'approved'  ? 'selected' : ''; ?>><?php echo $langs->trans('Approved'); ?></option>
+            <option value="completed" <?php echo $search_state === 'completed' ? 'selected' : ''; ?>><?php echo $langs->trans('Completed'); ?></option>
+            <option value="rejected"  <?php echo $search_state === 'rejected'  ? 'selected' : ''; ?>><?php echo $langs->trans('Rejected'); ?></option>
         </select>
     </div>
     <div class="vl-filter-actions">
-        <button type="submit" class="vl-btn-filter apply"><i class="fa fa-search"></i> Search</button>
-        <button type="submit" name="button_removefilter" value="1" class="vl-btn-filter reset"><i class="fa fa-times"></i> Reset</button>
+        <button type="submit" class="vl-btn-filter apply"><i class="fa fa-search"></i> <?php echo $langs->trans('Search'); ?></button>
+        <button type="submit" name="button_removefilter" value="1" class="vl-btn-filter reset"><i class="fa fa-times"></i> <?php echo $langs->trans('Reset'); ?></button>
     </div>
 </div>
 
 <!-- Stats chips -->
 <div class="vl-stats">
     <div class="vl-stat-chip">
-        <span class="vl-stat-num"><?php echo $nbtotalofrecords; ?></span> Total
+        <span class="vl-stat-num"><?php echo $nbtotalofrecords; ?></span> <?php echo $langs->trans('Total'); ?>
     </div>
     <?php if ($cnt_pending > 0) { ?>
     <div class="vl-stat-chip" style="background:#fffbeb;color:#92400e;">
-        <span class="vl-stat-num" style="color:#92400e;"><?php echo $cnt_pending; ?></span> Pending
+        <span class="vl-stat-num" style="color:#92400e;"><?php echo $cnt_pending; ?></span> <?php echo $langs->trans('Pending'); ?>
     </div>
     <?php } ?>
     <?php if ($cnt_approved > 0) { ?>
     <div class="vl-stat-chip approved">
-        <span class="vl-stat-num"><?php echo $cnt_approved; ?></span> Approved
+        <span class="vl-stat-num"><?php echo $cnt_approved; ?></span> <?php echo $langs->trans('Approved'); ?>
     </div>
     <?php } ?>
     <?php if ($cnt_completed > 0) { ?>
     <div class="vl-stat-chip completed">
-        <span class="vl-stat-num"><?php echo $cnt_completed; ?></span> Completed
+        <span class="vl-stat-num"><?php echo $cnt_completed; ?></span> <?php echo $langs->trans('Completed'); ?>
     </div>
     <?php } ?>
     <?php if ($cnt_rejected > 0) { ?>
     <div class="vl-stat-chip rejected">
-        <span class="vl-stat-num"><?php echo $cnt_rejected; ?></span> Rejected
+        <span class="vl-stat-num"><?php echo $cnt_rejected; ?></span> <?php echo $langs->trans('Rejected'); ?>
     </div>
     <?php } ?>
 </div>
@@ -628,17 +628,17 @@ table.vl-table tbody td.center { text-align: center; }
     <table class="vl-table">
         <thead>
             <tr>
-                <th><a href="<?php echo fl_sortHref('t.ref', $sortfield, $sortorder, $self, $param); ?>">Ref <?php echo fl_sortArrow('t.ref', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo fl_sortHref('v.license_plate', $sortfield, $sortorder, $self, $param); ?>">Vehicle <?php echo fl_sortArrow('v.license_plate', $sortfield, $sortorder); ?></a></th>
-                <th class="center"><a href="<?php echo fl_sortHref('t.date', $sortfield, $sortorder, $self, $param); ?>">Date <?php echo fl_sortArrow('t.date', $sortfield, $sortorder); ?></a></th>
-                <th class="center"><a href="<?php echo fl_sortHref('t.start_meter', $sortfield, $sortorder, $self, $param); ?>">Meter Reading <?php echo fl_sortArrow('t.start_meter', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo fl_sortHref('t.reference', $sortfield, $sortorder, $self, $param); ?>">Receipt Ref. <?php echo fl_sortArrow('t.reference', $sortfield, $sortorder); ?></a></th>
-                <th class="center"><a href="<?php echo fl_sortHref('t.qty', $sortfield, $sortorder, $self, $param); ?>">Quantity <?php echo fl_sortArrow('t.qty', $sortfield, $sortorder); ?></a></th>
-                <th class="center"><a href="<?php echo fl_sortHref('t.cost_unit', $sortfield, $sortorder, $self, $param); ?>">Cost/Unit <?php echo fl_sortArrow('t.cost_unit', $sortfield, $sortorder); ?></a></th>
-                <th class="center"><a href="<?php echo fl_sortHref('total_cost', $sortfield, $sortorder, $self, $param); ?>">Total Cost <?php echo fl_sortArrow('total_cost', $sortfield, $sortorder); ?></a></th>
-                <th class="center"><a href="<?php echo fl_sortHref('t.fuel_source', $sortfield, $sortorder, $self, $param); ?>">Fuel Source <?php echo fl_sortArrow('t.fuel_source', $sortfield, $sortorder); ?></a></th>
-                <th class="center"><a href="<?php echo fl_sortHref('t.state', $sortfield, $sortorder, $self, $param); ?>">State <?php echo fl_sortArrow('t.state', $sortfield, $sortorder); ?></a></th>
-                <th class="center">Actions</th>
+                <th><a href="<?php echo fl_sortHref('t.ref', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('Ref'); ?> <?php echo fl_sortArrow('t.ref', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo fl_sortHref('v.license_plate', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('Vehicle'); ?> <?php echo fl_sortArrow('v.license_plate', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><a href="<?php echo fl_sortHref('t.date', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('Date'); ?> <?php echo fl_sortArrow('t.date', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><a href="<?php echo fl_sortHref('t.start_meter', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('MeterReading'); ?> <?php echo fl_sortArrow('t.start_meter', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo fl_sortHref('t.reference', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('ReceiptRef'); ?> <?php echo fl_sortArrow('t.reference', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><a href="<?php echo fl_sortHref('t.qty', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('Quantity'); ?> <?php echo fl_sortArrow('t.qty', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><a href="<?php echo fl_sortHref('t.cost_unit', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('CostUnit'); ?> <?php echo fl_sortArrow('t.cost_unit', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><a href="<?php echo fl_sortHref('total_cost', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('TotalCost'); ?> <?php echo fl_sortArrow('total_cost', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><a href="<?php echo fl_sortHref('t.fuel_source', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('FuelSource'); ?> <?php echo fl_sortArrow('t.fuel_source', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><a href="<?php echo fl_sortHref('t.state', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('State'); ?> <?php echo fl_sortArrow('t.state', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><?php echo $langs->trans('Actions'); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -652,7 +652,7 @@ table.vl-table tbody td.center { text-align: center; }
         ?>
             <tr>
                 <!-- Ref -->
-                <td data-label="Ref">
+                <td data-label="<?php echo $langs->trans('Ref'); ?>">
                     <a href="<?php echo $cardUrl; ?>" class="vl-ref-link">
                         <span class="vl-ref-icon"><i class="fa fa-gas-pump"></i></span>
                         <?php echo dol_escape_htmltag($obj->ref); ?>
@@ -660,7 +660,7 @@ table.vl-table tbody td.center { text-align: center; }
                 </td>
 
                 <!-- Vehicle -->
-                <td data-label="Vehicle">
+                <td data-label="<?php echo $langs->trans('Vehicle'); ?>">
                     <div class="vl-vehicle-name"><?php echo dol_escape_htmltag($vehicleName ?: '—'); ?></div>
                     <?php if (!empty($obj->license_plate)) { ?>
                     <div class="vl-vehicle-sub"><?php echo dol_escape_htmltag($obj->license_plate); ?></div>
@@ -668,71 +668,71 @@ table.vl-table tbody td.center { text-align: center; }
                 </td>
 
                 <!-- Date -->
-                <td class="center" data-label="Date"><?php echo dol_print_date($db->jdate($obj->date), 'day') ?: '—'; ?></td>
+                <td class="center" data-label="<?php echo $langs->trans('Date'); ?>"><?php echo dol_print_date($db->jdate($obj->date), 'day') ?: '—'; ?></td>
 
                 <!-- Meter Reading -->
-                <td class="center" data-label="Meter">
+                <td class="center" data-label="<?php echo $langs->trans('MeterReading'); ?>">
                     <?php if (!empty($obj->start_meter)) { ?>
                     <span class="vl-mono"><?php echo number_format($obj->start_meter); ?> km</span>
                     <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
                 </td>
 
                 <!-- Receipt Ref -->
-                <td data-label="Receipt Ref.">
+                <td data-label="<?php echo $langs->trans('ReceiptRef'); ?>">
                     <?php if (!empty($obj->reference)) { ?>
                     <span class="vl-mono"><?php echo dol_escape_htmltag($obj->reference); ?></span>
                     <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
                 </td>
 
                 <!-- Quantity -->
-                <td class="center" data-label="Quantity">
+                <td class="center" data-label="<?php echo $langs->trans('Quantity'); ?>">
                     <?php if (!empty($obj->qty)) { ?>
                     <span style="font-weight:600;"><?php echo number_format($obj->qty, 2); ?></span><span style="font-size:11px;color:#9aa0b4;margin-left:3px;">L</span>
                     <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
                 </td>
 
                 <!-- Cost/Unit -->
-                <td class="center" data-label="Cost/Unit"><?php echo !empty($obj->cost_unit) ? price($obj->cost_unit) : '<span style="color:#c4c9d8;">—</span>'; ?></td>
+                <td class="center" data-label="<?php echo $langs->trans('CostUnit'); ?>"><?php echo !empty($obj->cost_unit) ? price($obj->cost_unit) : '<span style="color:#c4c9d8;">—</span>'; ?></td>
 
                 <!-- Total Cost -->
-                <td class="center" data-label="Total Cost">
+                <td class="center" data-label="<?php echo $langs->trans('TotalCost'); ?>">
                     <?php if (!empty($obj->total_cost)) { ?>
                     <span style="font-weight:700;"><?php echo price($obj->total_cost); ?></span>
                     <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
                 </td>
 
                 <!-- Fuel Source -->
-                <td class="center" data-label="Fuel Source">
+                <td class="center" data-label="<?php echo $langs->trans('FuelSource'); ?>">
                     <?php
                     $fs = $obj->fuel_source;
-                    if ($fs == 'Station')     echo '<span class="vl-badge station">Station</span>';
-                    elseif ($fs == 'Tank')    echo '<span class="vl-badge tank">Tank</span>';
-                    elseif ($fs == 'Other')   echo '<span class="vl-badge other">Other</span>';
+                    if ($fs == 'Station')     echo '<span class="vl-badge station">'.$langs->trans('Station').'</span>';
+                    elseif ($fs == 'Tank')    echo '<span class="vl-badge tank">'.$langs->trans('Tank').'</span>';
+                    elseif ($fs == 'Other')   echo '<span class="vl-badge other">'.$langs->trans('Other').'</span>';
                     else                      echo '<span style="color:#c4c9d8;font-size:13px;">—</span>';
                     ?>
                 </td>
 
                 <!-- State -->
-                <td class="center" data-label="State">
+                <td class="center" data-label="<?php echo $langs->trans('State'); ?>">
                     <?php
                     $st = $obj->state;
-                    if ($st == 'pending')        echo '<span class="vl-badge pending">Pending</span>';
-                    elseif ($st == 'approved')   echo '<span class="vl-badge approved">Approved</span>';
-                    elseif ($st == 'completed')  echo '<span class="vl-badge completed">Completed</span>';
-                    elseif ($st == 'rejected')   echo '<span class="vl-badge rejected">Rejected</span>';
+                    if ($st == 'pending')        echo '<span class="vl-badge pending">'.$langs->trans('Pending').'</span>';
+                    elseif ($st == 'approved')   echo '<span class="vl-badge approved">'.$langs->trans('Approved').'</span>';
+                    elseif ($st == 'completed')  echo '<span class="vl-badge completed">'.$langs->trans('Completed').'</span>';
+                    elseif ($st == 'rejected')   echo '<span class="vl-badge rejected">'.$langs->trans('Rejected').'</span>';
                     else                         echo '<span style="color:#c4c9d8;font-size:13px;">—</span>';
                     ?>
                 </td>
 
                 <!-- Actions -->
-                <td data-label="Actions">
+                <td data-label="<?php echo $langs->trans('Actions'); ?>">
                     <div class="vl-actions">
-                        <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="View"><i class="fa fa-eye"></i></a>
+                        <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="<?php echo $langs->trans('View'); ?>"><i class="fa fa-eye"></i></a>
                         <?php if ($user->rights->flotte->write) { ?>
-                        <a href="<?php echo $cardUrl; ?>&action=edit" class="vl-action-btn edit" title="Edit"><i class="fa fa-pen"></i></a>
+                        <a href="<?php echo $cardUrl; ?>&action=edit" class="vl-action-btn edit" title="<?php echo $langs->trans('Edit'); ?>"><i class="fa fa-pen"></i></a>
                         <?php } ?>
                         <?php if ($user->rights->flotte->delete) { ?>
-                        <a href="<?php echo dol_buildpath('/flotte/fuel_list.php', 1); ?>?action=delete&id=<?php echo $obj->rowid; ?>&token=<?php echo newToken(); ?>" class="vl-action-btn del" title="Delete"><i class="fa fa-trash"></i></a>
+                        <a href="<?php echo dol_buildpath('/flotte/fuel_list.php', 1); ?>?action=delete&id=<?php echo $obj->rowid; ?>&token=<?php echo newToken(); ?>" class="vl-action-btn del" title="<?php echo $langs->trans('Delete'); ?>"><i class="fa fa-trash"></i></a>
                         <?php } ?>
                     </div>
                 </td>
@@ -742,10 +742,10 @@ table.vl-table tbody td.center { text-align: center; }
                 <td colspan="11">
                     <div class="vl-empty">
                         <div class="vl-empty-icon"><i class="fa fa-gas-pump"></i></div>
-                        <p>No fuel records found</p>
+                        <p><?php echo $langs->trans('NoFuelRecordsFound'); ?></p>
                         <?php if ($user->rights->flotte->write) { ?>
                         <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/fuel_card.php', 1); ?>?action=create">
-                            <i class="fa fa-plus"></i> Add First Record
+                            <i class="fa fa-plus"></i> <?php echo $langs->trans('AddFirstRecord'); ?>
                         </a>
                         <?php } ?>
                     </div>
@@ -766,7 +766,7 @@ table.vl-table tbody td.center { text-align: center; }
     ?>
     <div class="vl-pagination">
         <div class="vl-pagination-info">
-            Showing <strong><?php echo $showing_from; ?></strong>–<strong><?php echo $showing_to; ?></strong> of <strong><?php echo $nbtotalofrecords; ?></strong> records
+            <?php echo $langs->trans('ShowingRecords', $showing_from, $showing_to, $nbtotalofrecords); ?>
         </div>
         <div class="vl-page-btns">
             <a class="vl-page-btn <?php echo $page == 0 ? 'disabled' : ''; ?>" href="<?php echo $self; ?>?page=0&sortfield=<?php echo $sortfield; ?>&sortorder=<?php echo $sortorder; ?>&<?php echo $param; ?>">«</a>

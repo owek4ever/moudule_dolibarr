@@ -387,11 +387,11 @@ $hookmanager->initHooks(array('fuelcard'));
 
 $title = $langs->trans('FuelRecord');
 if ($action == 'create') {
-    $title = $langs->trans('New Fuel Record');
+    $title = $langs->trans('NewFuelRecord');
 } elseif ($action == 'edit') {
-    $title = $langs->trans('Edit Fuel Record');
+    $title = $langs->trans('EditFuelRecord');
 } elseif ($id > 0) {
-    $title = $langs->trans('Fuel Record') . " " . $object->ref;
+    $title = $langs->trans('FuelRecord') . " " . $object->ref;
 }
 
 llxHeader('', $title);
@@ -767,8 +767,8 @@ $isEdit   = ($action == 'edit');
 $isCreate = ($action == 'create');
 $isView   = (!$isEdit && !$isCreate);
 
-$pageTitle = $isCreate ? $langs->trans('New Fuel Record') : ($isEdit ? $langs->trans('Edit Fuel Record') : $langs->trans('Fuel Record'));
-$pageSub   = $isCreate ? $langs->trans('Fill In Fuel Details') : (isset($object->ref) ? $object->ref : '');
+$pageTitle = $isCreate ? $langs->trans('NewFuelRecord') : ($isEdit ? $langs->trans('EditFuelRecord') : $langs->trans('FuelRecord'));
+$pageSub   = $isCreate ? $langs->trans('FillInFuelDetails') : (isset($object->ref) ? $object->ref : '');
 
 // Precompute totals
 $total_cost = 0;
@@ -819,7 +819,7 @@ print '<div class="dc-grid">';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon blue"><i class="fa fa-gas-pump"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('Fuel Record Information').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('FuelRecordInformation').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
@@ -865,7 +865,7 @@ print '    </div></div>';
 
 // Meter Reading
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Meter Reading').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('MeterReading').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="number" name="start_meter" value="'.(isset($object->start_meter) ? dol_escape_htmltag($object->start_meter) : '').'" min="0" step="1">';
@@ -876,7 +876,7 @@ print '    </div></div>';
 
 // Reference Number
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Reference Number').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('ReferenceNumber').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="text" name="reference" value="'.(isset($object->reference) ? dol_escape_htmltag($object->reference) : '').'">';
@@ -913,13 +913,13 @@ print '</div>';  // dc-card
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon amber"><i class="fa fa-tint"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('Fuel Details').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('FuelDetails').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
 // Fuel Source
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Fuel Source').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('FuelSource').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $source_options = array(
@@ -957,7 +957,7 @@ print '    </div></div>';
 
 // Cost per Unit
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Cost Unit').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('CostUnit').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="number" name="cost_unit" id="dc_cost" value="'.(isset($object->cost_unit) && $object->cost_unit > 0 ? dol_escape_htmltag($object->cost_unit) : '').'" min="0" step="0.01" placeholder="0.00">';
@@ -968,7 +968,7 @@ print '    </div></div>';
 
 // Complete Fill-up
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Complete Fill up').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('CompleteFillup').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="checkbox" name="complete_fillup" value="1"'.(isset($object->complete_fillup) && $object->complete_fillup ? ' checked' : '').'>';
@@ -981,7 +981,7 @@ print '    </div></div>';
 
 // Total Cost — editable input in edit/create, static in view
 print '  <div class="dc-live-total">';
-print '    <span class="dc-live-total-label">'.$langs->trans('Total Cost').'</span>';
+print '    <span class="dc-live-total-label">'.$langs->trans('TotalCost').'</span>';
 if ($isCreate || $isEdit) {
     print '    <input type="number" id="dc_total" min="0" step="0.01" placeholder="0.00" style="font-family:\'DM Mono\',monospace;font-size:15px;font-weight:600;color:#1a1f2e;border:1.5px solid #d1d5e0;border-radius:6px;padding:5px 10px;width:160px;background:#fff;" value="'.($total_cost > 0 ? $total_cost : '').'">';
 } else {
@@ -1002,7 +1002,7 @@ if ($isCreate || $isEdit || !empty($fuel_photo_val)) {
     print '<div class="dc-card" style="margin-bottom:20px;">';
     print '  <div class="dc-card-header">';
     print '    <div class="dc-card-header-icon amber"><i class="fa fa-camera"></i></div>';
-    print '    <span class="dc-card-title">'.$langs->trans('Fuel Photo').'</span>';
+    print '    <span class="dc-card-title">'.$langs->trans('FuelPhoto').'</span>';
     print '  </div>';
     print '  <div class="dc-card-body">';
     print '  <div class="dc-field" style="flex-direction:column;gap:12px;">';

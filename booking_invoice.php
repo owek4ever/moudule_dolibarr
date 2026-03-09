@@ -21,6 +21,8 @@ if (!$res && file_exists("../../main.inc.php"))    { $res = @include "../../main
 if (!$res && file_exists("../../../main.inc.php")) { $res = @include "../../../main.inc.php"; }
 if (!$res) { die("Include of main fails"); }
 
+$langs->loadLangs(array("flotte@flotte", "other"));
+
 // Security
 restrictedArea($user, 'flotte');
 if (!$user->rights->flotte->write) {
@@ -49,12 +51,12 @@ foreach (explode(',', $ids_raw) as $bid) {
 $listUrl = dol_buildpath('/flotte/booking_list.php', 1);
 
 if (empty($booking_ids)) {
-    setEventMessages('No bookings selected.', null, 'errors');
+    setEventMessages($langs->trans('NoBookingsSelected'), null, 'errors');
     header("Location: ".$listUrl);
     exit;
 }
 if (!in_array($invoice_type, array('customer', 'vendor'))) {
-    setEventMessages('Invalid invoice type.', null, 'errors');
+    setEventMessages($langs->trans('InvalidInvoiceType'), null, 'errors');
     header("Location: ".$listUrl);
     exit;
 }
@@ -89,7 +91,7 @@ $sql = "SELECT t.rowid, t.ref, t.booking_date, t.departure_address, t.arriving_a
 
 $resql = $db->query($sql);
 if (!$resql) {
-    setEventMessages('DB error: '.$db->lasterror(), null, 'errors');
+    setEventMessages($langs->trans('DbError').': '.$db->lasterror(), null, 'errors');
     header("Location: ".$listUrl);
     exit;
 }
@@ -100,7 +102,7 @@ while ($row = $db->fetch_object($resql)) {
 }
 
 if (empty($bookings)) {
-    setEventMessages('No bookings found.', null, 'errors');
+    setEventMessages($langs->trans('NoBookingsFound'), null, 'errors');
     header("Location: ".$listUrl);
     exit;
 }
@@ -111,7 +113,7 @@ foreach ($bookings as $b) {
     $soc = ($invoice_type === 'customer') ? (int)$b->fk_customer : (int)$b->fk_vendor;
     if ($soc <= 0) {
         $party = ($invoice_type === 'customer') ? 'customer' : 'vendor';
-        setEventMessages('Booking '.$b->ref.' has no '.$party.' assigned.', null, 'errors');
+        setEventMessages($langs->trans('BookingNoPartyAssigned', $b->ref, $party), null, 'errors');
         header("Location: ".$listUrl);
         exit;
     }
@@ -138,7 +140,7 @@ if ($invoice_type === 'customer') {
     $facid = $facture->create($user);
     if ($facid <= 0) {
         $db->rollback();
-        setEventMessages('Error creating invoice: '.$facture->error, null, 'errors');
+        setEventMessages($langs->trans('ErrorCreatingInvoice').': '.$facture->error, null, 'errors');
         header("Location: ".$listUrl);
         exit;
     }
@@ -169,7 +171,7 @@ if ($invoice_type === 'customer') {
 
         if ($result < 0) {
             $db->rollback();
-            setEventMessages('Error adding line for '.$b->ref.': '.$facture->error, null, 'errors');
+            setEventMessages($langs->trans('ErrorAddingInvoiceLine', $b->ref).': '.$facture->error, null, 'errors');
             header("Location: ".$listUrl);
             exit;
         }
@@ -195,7 +197,7 @@ if ($invoice_type === 'customer') {
     $facid = $facture->create($user);
     if ($facid <= 0) {
         $db->rollback();
-        setEventMessages('Error creating supplier invoice: '.$facture->error, null, 'errors');
+        setEventMessages($langs->trans('ErrorCreatingSupplierInvoice').': '.$facture->error, null, 'errors');
         header("Location: ".$listUrl);
         exit;
     }
@@ -230,7 +232,7 @@ if ($invoice_type === 'customer') {
 
         if ($result < 0) {
             $db->rollback();
-            setEventMessages('Error adding line for '.$b->ref.': '.$facture->error, null, 'errors');
+            setEventMessages($langs->trans('ErrorAddingInvoiceLine', $b->ref).': '.$facture->error, null, 'errors');
             header("Location: ".$listUrl);
             exit;
         }

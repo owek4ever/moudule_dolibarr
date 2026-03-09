@@ -628,20 +628,20 @@ table.vl-table tbody tr.vl-selected td { border-bottom-color: #e9d5ff !important
 <div class="vl-header">
     <div class="vl-header-left">
         <h1><i class="fa fa-calendar-check" style="color:#3c4758;margin-right:10px;"></i><?php echo $langs->trans("Bookings List"); ?></h1>
-        <div class="vl-subtitle"><?php echo $nbtotalofrecords; ?> booking<?php echo $nbtotalofrecords != 1 ? 's' : ''; ?> found</div>
+        <div class="vl-subtitle"><?php echo $nbtotalofrecords; ?> <?php echo $langs->trans('BookingsFound'); ?></div>
     </div>
     <div class="vl-header-actions">
         <?php if ($user->rights->flotte->read) { ?>
         <button type="button" class="vl-btn vl-btn-invoice" id="btn-invoice-mode" onclick="toggleInvoiceMode()">
-            <i class="fa fa-file-invoice"></i> Invoice
+            <i class="fa fa-file-invoice"></i> <?php echo $langs->trans('Invoice'); ?>
         </button>
         <a class="vl-btn vl-btn-secondary" href="<?php echo dol_buildpath('/flotte/booking_list.php', 1); ?>?action=export">
-            <i class="fa fa-download"></i> Export
+            <i class="fa fa-download"></i> <?php echo $langs->trans('Export'); ?>
         </a>
         <?php } ?>
         <?php if ($user->rights->flotte->write) { ?>
         <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/booking_card.php', 1); ?>?action=create">
-            <i class="fa fa-plus"></i> New Booking
+            <i class="fa fa-plus"></i> <?php echo $langs->trans('NewBooking'); ?>
         </a>
         <?php } ?>
     </div>
@@ -658,76 +658,76 @@ table.vl-table tbody tr.vl-selected td { border-bottom-color: #e9d5ff !important
 
 <div class="vl-filters">
     <div class="vl-filter-group">
-        <label>Reference</label>
-        <input type="text" name="search_ref" placeholder="Search ref…" value="<?php echo dol_escape_htmltag($search_ref); ?>">
+        <label><?php echo $langs->trans('Reference'); ?></label>
+        <input type="text" name="search_ref" placeholder="<?php echo $langs->trans('SearchRef'); ?>" value="<?php echo dol_escape_htmltag($search_ref); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Vehicle</label>
-        <input type="text" name="search_vehicle" placeholder="Ref, maker, model…" value="<?php echo dol_escape_htmltag($search_vehicle); ?>">
+        <label><?php echo $langs->trans('Vehicle'); ?></label>
+        <input type="text" name="search_vehicle" placeholder="<?php echo $langs->trans('SearchVehicle'); ?>" value="<?php echo dol_escape_htmltag($search_vehicle); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Driver</label>
-        <input type="text" name="search_driver" placeholder="First or last name…" value="<?php echo dol_escape_htmltag($search_driver); ?>">
+        <label><?php echo $langs->trans('Driver'); ?></label>
+        <input type="text" name="search_driver" placeholder="<?php echo $langs->trans('SearchDriver'); ?>" value="<?php echo dol_escape_htmltag($search_driver); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Customer</label>
-        <input type="text" name="search_customer" placeholder="Name or company…" value="<?php echo dol_escape_htmltag($search_customer); ?>">
+        <label><?php echo $langs->trans('Customer'); ?></label>
+        <input type="text" name="search_customer" placeholder="<?php echo $langs->trans('SearchCustomer'); ?>" value="<?php echo dol_escape_htmltag($search_customer); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Vendor</label>
-        <input type="text" name="search_vendor" placeholder="Vendor name…" value="<?php echo dol_escape_htmltag($search_vendor); ?>">
+        <label><?php echo $langs->trans('Vendor'); ?></label>
+        <input type="text" name="search_vendor" placeholder="<?php echo $langs->trans('SearchVendor'); ?>" value="<?php echo dol_escape_htmltag($search_vendor); ?>">
     </div>
     <div class="vl-filter-group" style="max-width:120px;">
-        <label>Date From</label>
+        <label><?php echo $langs->trans('DateFrom'); ?></label>
         <input type="date" name="search_date_from" value="<?php echo dol_escape_htmltag($search_date_from); ?>">
     </div>
     <div class="vl-filter-group" style="max-width:120px;">
-        <label>Date To</label>
+        <label><?php echo $langs->trans('DateTo'); ?></label>
         <input type="date" name="search_date_to" value="<?php echo dol_escape_htmltag($search_date_to); ?>">
     </div>
     <div class="vl-filter-group" style="max-width:150px;">
-        <label>Status</label>
+        <label><?php echo $langs->trans('Status'); ?></label>
         <select name="search_status">
-            <option value="">All statuses</option>
-            <option value="pending"     <?php echo $search_status === 'pending'     ? 'selected' : ''; ?>>Pending</option>
-            <option value="confirmed"   <?php echo $search_status === 'confirmed'   ? 'selected' : ''; ?>>Confirmed</option>
-            <option value="in_progress" <?php echo $search_status === 'in_progress' ? 'selected' : ''; ?>>In Progress</option>
-            <option value="completed"   <?php echo $search_status === 'completed'   ? 'selected' : ''; ?>>Completed</option>
-            <option value="cancelled"   <?php echo $search_status === 'cancelled'   ? 'selected' : ''; ?>>Cancelled</option>
+            <option value=""><?php echo $langs->trans('AllStatuses'); ?></option>
+            <option value="pending"     <?php echo $search_status === 'pending'     ? 'selected' : ''; ?>><?php echo $langs->trans('Pending'); ?></option>
+            <option value="confirmed"   <?php echo $search_status === 'confirmed'   ? 'selected' : ''; ?>><?php echo $langs->trans('Confirmed'); ?></option>
+            <option value="in_progress" <?php echo $search_status === 'in_progress' ? 'selected' : ''; ?>><?php echo $langs->trans('InProgress'); ?></option>
+            <option value="completed"   <?php echo $search_status === 'completed'   ? 'selected' : ''; ?>><?php echo $langs->trans('Completed'); ?></option>
+            <option value="cancelled"   <?php echo $search_status === 'cancelled'   ? 'selected' : ''; ?>><?php echo $langs->trans('Cancelled'); ?></option>
         </select>
     </div>
     <div class="vl-filter-group" style="max-width:155px;">
-        <label>Customer Invoiced</label>
+        <label><?php echo $langs->trans('CustomerInvoiced'); ?></label>
         <select name="search_invoiced_customer">
-            <option value="">All</option>
-            <option value="1" <?php echo $search_invoiced_customer === '1' ? 'selected' : ''; ?>>Invoiced</option>
-            <option value="0" <?php echo $search_invoiced_customer === '0' ? 'selected' : ''; ?>>Not invoiced</option>
+            <option value=""><?php echo $langs->trans('All'); ?></option>
+            <option value="1" <?php echo $search_invoiced_customer === '1' ? 'selected' : ''; ?>><?php echo $langs->trans('Invoiced'); ?></option>
+            <option value="0" <?php echo $search_invoiced_customer === '0' ? 'selected' : ''; ?>><?php echo $langs->trans('NotInvoiced'); ?></option>
         </select>
     </div>
     <div class="vl-filter-group" style="max-width:155px;">
-        <label>Vendor Invoiced</label>
+        <label><?php echo $langs->trans('VendorInvoiced'); ?></label>
         <select name="search_invoiced_vendor">
-            <option value="">All</option>
-            <option value="1" <?php echo $search_invoiced_vendor === '1' ? 'selected' : ''; ?>>Invoiced</option>
-            <option value="0" <?php echo $search_invoiced_vendor === '0' ? 'selected' : ''; ?>>Not invoiced</option>
+            <option value=""><?php echo $langs->trans('All'); ?></option>
+            <option value="1" <?php echo $search_invoiced_vendor === '1' ? 'selected' : ''; ?>><?php echo $langs->trans('Invoiced'); ?></option>
+            <option value="0" <?php echo $search_invoiced_vendor === '0' ? 'selected' : ''; ?>><?php echo $langs->trans('NotInvoiced'); ?></option>
         </select>
     </div>
     <div class="vl-filter-actions">
-        <button type="submit" class="vl-btn-filter apply"><i class="fa fa-search"></i> Search</button>
-        <button type="submit" name="button_removefilter" value="1" class="vl-btn-filter reset"><i class="fa fa-times"></i> Reset</button>
+        <button type="submit" class="vl-btn-filter apply"><i class="fa fa-search"></i> <?php echo $langs->trans('Search'); ?></button>
+        <button type="submit" name="button_removefilter" value="1" class="vl-btn-filter reset"><i class="fa fa-times"></i> <?php echo $langs->trans('Reset'); ?></button>
     </div>
 </div>
 
 <!-- Stats chips -->
 <div class="vl-stats">
     <div class="vl-stat-chip">
-        <span class="vl-stat-num"><?php echo $nbtotalofrecords; ?></span> Total
+        <span class="vl-stat-num"><?php echo $nbtotalofrecords; ?></span> <?php echo $langs->trans('Total'); ?>
     </div>
-    <?php if ($cnt_pending > 0) { ?><div class="vl-stat-chip pending"><span class="vl-stat-num"><?php echo $cnt_pending; ?></span> Pending</div><?php } ?>
-    <?php if ($cnt_confirmed > 0) { ?><div class="vl-stat-chip confirmed"><span class="vl-stat-num"><?php echo $cnt_confirmed; ?></span> Confirmed</div><?php } ?>
-    <?php if ($cnt_inprogress > 0) { ?><div class="vl-stat-chip inprogress"><span class="vl-stat-num"><?php echo $cnt_inprogress; ?></span> In Progress</div><?php } ?>
-    <?php if ($cnt_completed > 0) { ?><div class="vl-stat-chip completed"><span class="vl-stat-num"><?php echo $cnt_completed; ?></span> Completed</div><?php } ?>
-    <?php if ($cnt_cancelled > 0) { ?><div class="vl-stat-chip cancelled"><span class="vl-stat-num"><?php echo $cnt_cancelled; ?></span> Cancelled</div><?php } ?>
+    <?php if ($cnt_pending > 0) { ?><div class="vl-stat-chip pending"><span class="vl-stat-num"><?php echo $cnt_pending; ?></span> <?php echo $langs->trans('Pending'); ?></div><?php } ?>
+    <?php if ($cnt_confirmed > 0) { ?><div class="vl-stat-chip confirmed"><span class="vl-stat-num"><?php echo $cnt_confirmed; ?></span> <?php echo $langs->trans('Confirmed'); ?></div><?php } ?>
+    <?php if ($cnt_inprogress > 0) { ?><div class="vl-stat-chip inprogress"><span class="vl-stat-num"><?php echo $cnt_inprogress; ?></span> <?php echo $langs->trans('InProgress'); ?></div><?php } ?>
+    <?php if ($cnt_completed > 0) { ?><div class="vl-stat-chip completed"><span class="vl-stat-num"><?php echo $cnt_completed; ?></span> <?php echo $langs->trans('Completed'); ?></div><?php } ?>
+    <?php if ($cnt_cancelled > 0) { ?><div class="vl-stat-chip cancelled"><span class="vl-stat-num"><?php echo $cnt_cancelled; ?></span> <?php echo $langs->trans('Cancelled'); ?></div><?php } ?>
 </div>
 
 <!-- Table -->
@@ -739,18 +739,18 @@ table.vl-table tbody tr.vl-selected td { border-bottom-color: #e9d5ff !important
                 <th class="vl-check-col" id="check-col-header" style="display:none;">
                     <input type="checkbox" class="vl-select-all" id="select-all" title="Select all">
                 </th>
-                <th><a href="<?php echo bl_sortHref('t.ref', $sortfield, $sortorder, $self, $param); ?>">Ref <?php echo bl_sortArrow('t.ref', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo bl_sortHref('v.ref', $sortfield, $sortorder, $self, $param); ?>">Vehicle <?php echo bl_sortArrow('v.ref', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo bl_sortHref('d.lastname', $sortfield, $sortorder, $self, $param); ?>">Driver <?php echo bl_sortArrow('d.lastname', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo bl_sortHref('c.lastname', $sortfield, $sortorder, $self, $param); ?>">Customer <?php echo bl_sortArrow('c.lastname', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo bl_sortHref('vn.name', $sortfield, $sortorder, $self, $param); ?>">Vendor <?php echo bl_sortArrow('vn.name', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo bl_sortHref('t.booking_date', $sortfield, $sortorder, $self, $param); ?>">Date <?php echo bl_sortArrow('t.booking_date', $sortfield, $sortorder); ?></a></th>
-                <th class="right"><a href="<?php echo bl_sortHref('t.distance', $sortfield, $sortorder, $self, $param); ?>">Distance <?php echo bl_sortArrow('t.distance', $sortfield, $sortorder); ?></a></th>
-                <th class="right"><a href="<?php echo bl_sortHref('t.selling_amount', $sortfield, $sortorder, $self, $param); ?>">Selling <?php echo bl_sortArrow('t.selling_amount', $sortfield, $sortorder); ?></a></th>
-                <th class="right"><a href="<?php echo bl_sortHref('t.buying_amount', $sortfield, $sortorder, $self, $param); ?>">Buying <?php echo bl_sortArrow('t.buying_amount', $sortfield, $sortorder); ?></a></th>
-                <th class="center">Invoiced</th>
-                <th class="center"><a href="<?php echo bl_sortHref('t.status', $sortfield, $sortorder, $self, $param); ?>">Status <?php echo bl_sortArrow('t.status', $sortfield, $sortorder); ?></a></th>
-                <th class="center">Actions</th>
+                <th><a href="<?php echo bl_sortHref('t.ref', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('Ref'); ?> <?php echo bl_sortArrow('t.ref', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo bl_sortHref('v.ref', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('Vehicle'); ?> <?php echo bl_sortArrow('v.ref', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo bl_sortHref('d.lastname', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('Driver'); ?> <?php echo bl_sortArrow('d.lastname', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo bl_sortHref('c.lastname', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('Customer'); ?> <?php echo bl_sortArrow('c.lastname', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo bl_sortHref('vn.name', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('Vendor'); ?> <?php echo bl_sortArrow('vn.name', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo bl_sortHref('t.booking_date', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('Date'); ?> <?php echo bl_sortArrow('t.booking_date', $sortfield, $sortorder); ?></a></th>
+                <th class="right"><a href="<?php echo bl_sortHref('t.distance', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('Distance'); ?> <?php echo bl_sortArrow('t.distance', $sortfield, $sortorder); ?></a></th>
+                <th class="right"><a href="<?php echo bl_sortHref('t.selling_amount', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('Selling'); ?> <?php echo bl_sortArrow('t.selling_amount', $sortfield, $sortorder); ?></a></th>
+                <th class="right"><a href="<?php echo bl_sortHref('t.buying_amount', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('Buying'); ?> <?php echo bl_sortArrow('t.buying_amount', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><?php echo $langs->trans('Invoiced'); ?></th>
+                <th class="center"><a href="<?php echo bl_sortHref('t.status', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('Status'); ?> <?php echo bl_sortArrow('t.status', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><?php echo $langs->trans('Actions'); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -774,7 +774,7 @@ table.vl-table tbody tr.vl-selected td { border-bottom-color: #e9d5ff !important
                     <input type="checkbox" class="vl-row-check" value="<?php echo $obj->rowid; ?>">
                 </td>
                 <!-- Ref -->
-                <td data-label="Ref">
+                <td data-label="<?php echo $langs->trans('Ref'); ?>">
                     <a href="<?php echo $cardUrl; ?>" class="vl-ref-link">
                         <span class="vl-ref-icon"><i class="fa fa-calendar"></i></span>
                         <?php echo dol_escape_htmltag($obj->ref); ?>
@@ -782,7 +782,7 @@ table.vl-table tbody tr.vl-selected td { border-bottom-color: #e9d5ff !important
                 </td>
 
                 <!-- Vehicle -->
-                <td data-label="Vehicle">
+                <td data-label="<?php echo $langs->trans('Vehicle'); ?>">
                     <?php if (!empty($obj->vehicle_ref)) { ?>
                     <div class="vl-vehicle-chip">
                         <i class="fa fa-car" style="font-size:11px;opacity:0.6;"></i>
@@ -795,14 +795,14 @@ table.vl-table tbody tr.vl-selected td { border-bottom-color: #e9d5ff !important
                 </td>
 
                 <!-- Driver -->
-                <td data-label="Driver">
+                <td data-label="<?php echo $langs->trans('Driver'); ?>">
                     <?php if (!empty($driverName)) { ?>
                     <div style="font-weight:500;"><?php echo dol_escape_htmltag($driverName); ?></div>
                     <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
                 </td>
 
                 <!-- Customer -->
-                <td data-label="Customer">
+                <td data-label="<?php echo $langs->trans('Customer'); ?>">
                     <?php if (!empty($customerName) || !empty($obj->company_name)) { ?>
                     <?php if (!empty($customerName)) { ?>
                     <div style="font-weight:500;"><?php echo dol_escape_htmltag($customerName); ?></div>
@@ -814,7 +814,7 @@ table.vl-table tbody tr.vl-selected td { border-bottom-color: #e9d5ff !important
                 </td>
 
                 <!-- Vendor -->
-                <td data-label="Vendor">
+                <td data-label="<?php echo $langs->trans('Vendor'); ?>">
                     <?php if (!empty($obj->vendor_name)) { ?>
                     <div class="vl-vendor-chip">
                         <i class="fa fa-store" style="font-size:11px;opacity:0.6;"></i>
@@ -824,7 +824,7 @@ table.vl-table tbody tr.vl-selected td { border-bottom-color: #e9d5ff !important
                 </td>
 
                 <!-- Date -->
-                <td data-label="Date">
+                <td data-label="<?php echo $langs->trans('Date'); ?>">
                     <span class="vl-date-chip">
                         <i class="fa fa-calendar-day" style="font-size:11px;opacity:0.6;"></i>
                         <?php echo dol_print_date($db->jdate($obj->booking_date), 'day'); ?>
@@ -832,48 +832,48 @@ table.vl-table tbody tr.vl-selected td { border-bottom-color: #e9d5ff !important
                 </td>
 
                 <!-- Distance -->
-                <td class="right" data-label="Distance">
+                <td class="right" data-label="<?php echo $langs->trans('Distance'); ?>">
                     <?php if ($obj->distance) { ?>
                     <span class="vl-distance"><?php echo number_format((int)$obj->distance, 0, '.', ' '); ?><span class="vl-distance-unit">km</span></span>
                     <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
                 </td>
 
                 <!-- Selling Amount -->
-                <td class="right" data-label="Selling">
+                <td class="right" data-label="<?php echo $langs->trans('Selling'); ?>">
                     <?php if ($obj->selling_amount_ttc) { ?>
                     <span class="vl-amount"><?php echo price($obj->selling_amount_ttc); ?></span>
                     <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
                 </td>
 
                 <!-- Buying Amount -->
-                <td class="right" data-label="Buying">
+                <td class="right" data-label="<?php echo $langs->trans('Buying'); ?>">
                     <?php if ($obj->buying_amount_ttc) { ?>
                     <span class="vl-amount" style="color:#0f766e;"><?php echo price($obj->buying_amount_ttc); ?></span>
                     <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
                 </td>
 
                 <!-- Invoiced -->
-                <td class="center" data-label="Invoiced">
+                <td class="center" data-label="<?php echo $langs->trans('Invoiced'); ?>">
                     <?php
                     $is_inv_cust = !empty($invoiced_customer_ids[$obj->rowid]);
                     $is_inv_vend = !empty($invoiced_vendor_ids[$obj->rowid]);
                     if ($is_inv_cust || $is_inv_vend) { ?>
                     <div class="vl-invoiced-wrap">
-                        <?php if ($is_inv_cust) { ?><span class="vl-inv-badge customer"><i class="fa fa-check" style="font-size:9px;"></i> Customer</span><?php } ?>
-                        <?php if ($is_inv_vend) { ?><span class="vl-inv-badge vendor"><i class="fa fa-check" style="font-size:9px;"></i> Vendor</span><?php } ?>
+                        <?php if ($is_inv_cust) { ?><span class="vl-inv-badge customer"><i class="fa fa-check" style="font-size:9px;"></i> <?php echo $langs->trans('Customer'); ?></span><?php } ?>
+                        <?php if ($is_inv_vend) { ?><span class="vl-inv-badge vendor"><i class="fa fa-check" style="font-size:9px;"></i> <?php echo $langs->trans('Vendor'); ?></span><?php } ?>
                     </div>
                     <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
                 </td>
 
                 <!-- Status -->
-                <td class="center" data-label="Status">
+                <td class="center" data-label="<?php echo $langs->trans('Status'); ?>">
                     <?php
                     $labels = array(
-                        'pending'     => 'Pending',
-                        'confirmed'   => 'Confirmed',
-                        'in_progress' => 'In Progress',
-                        'completed'   => 'Completed',
-                        'cancelled'   => 'Cancelled',
+                        'pending'     => $langs->trans('Pending'),
+                        'confirmed'   => $langs->trans('Confirmed'),
+                        'in_progress' => $langs->trans('InProgress'),
+                        'completed'   => $langs->trans('Completed'),
+                        'cancelled'   => $langs->trans('Cancelled'),
                     );
                     $label = isset($labels[$obj->status]) ? $labels[$obj->status] : ucfirst($obj->status ?: 'Unknown');
                     echo '<span class="vl-badge '.$statusClass.'">'.$label.'</span>';
@@ -881,14 +881,14 @@ table.vl-table tbody tr.vl-selected td { border-bottom-color: #e9d5ff !important
                 </td>
 
                 <!-- Actions -->
-                <td data-label="Actions">
+                <td data-label="<?php echo $langs->trans('Actions'); ?>">
                     <div class="vl-actions">
-                        <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="View"><i class="fa fa-eye"></i></a>
+                        <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="<?php echo $langs->trans('View'); ?>"><i class="fa fa-eye"></i></a>
                         <?php if ($user->rights->flotte->write) { ?>
-                        <a href="<?php echo $cardUrl; ?>&action=edit" class="vl-action-btn edit" title="Edit"><i class="fa fa-pen"></i></a>
+                        <a href="<?php echo $cardUrl; ?>&action=edit" class="vl-action-btn edit" title="<?php echo $langs->trans('Edit'); ?>"><i class="fa fa-pen"></i></a>
                         <?php } ?>
                         <?php if ($user->rights->flotte->delete) { ?>
-                        <a href="<?php echo dol_buildpath('/flotte/booking_list.php', 1); ?>?action=delete&id=<?php echo $obj->rowid; ?>&token=<?php echo newToken(); ?>" class="vl-action-btn del" title="Delete"><i class="fa fa-trash"></i></a>
+                        <a href="<?php echo dol_buildpath('/flotte/booking_list.php', 1); ?>?action=delete&id=<?php echo $obj->rowid; ?>&token=<?php echo newToken(); ?>" class="vl-action-btn del" title="<?php echo $langs->trans('Delete'); ?>"><i class="fa fa-trash"></i></a>
                         <?php } ?>
                     </div>
                 </td>
@@ -898,10 +898,10 @@ table.vl-table tbody tr.vl-selected td { border-bottom-color: #e9d5ff !important
                 <td colspan="10">
                     <div class="vl-empty">
                         <div class="vl-empty-icon"><i class="fa fa-calendar-check"></i></div>
-                        <p>No bookings found</p>
+                        <p><?php echo $langs->trans('NoBookingsFound'); ?></p>
                         <?php if ($user->rights->flotte->write) { ?>
                         <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/booking_card.php', 1); ?>?action=create">
-                            <i class="fa fa-plus"></i> Add First Booking
+                            <i class="fa fa-plus"></i> <?php echo $langs->trans('AddFirstBooking'); ?>
                         </a>
                         <?php } ?>
                     </div>
@@ -922,7 +922,7 @@ table.vl-table tbody tr.vl-selected td { border-bottom-color: #e9d5ff !important
     ?>
     <div class="vl-pagination">
         <div class="vl-pagination-info">
-            Showing <strong><?php echo $showing_from; ?></strong>–<strong><?php echo $showing_to; ?></strong> of <strong><?php echo $nbtotalofrecords; ?></strong> bookings
+            <?php echo $langs->trans('ShowingBookings', $showing_from, $showing_to, $nbtotalofrecords); ?>
         </div>
         <div class="vl-page-btns">
             <a class="vl-page-btn <?php echo $page == 0 ? 'disabled' : ''; ?>" href="<?php echo $self; ?>?page=0&sortfield=<?php echo $sortfield; ?>&sortorder=<?php echo $sortorder; ?>&<?php echo $param; ?>">«</a>
@@ -948,16 +948,16 @@ table.vl-table tbody tr.vl-selected td { border-bottom-color: #e9d5ff !important
 <!-- Sticky Invoice Action Bar -->
 <div class="vl-invoice-bar" id="invoice-bar">
     <div class="vl-invoice-bar-info">
-        <strong id="inv-count">0</strong> booking<span id="inv-plural">s</span> selected
+        <strong id="inv-count">0</strong> <?php echo $langs->trans('BookingsSelected'); ?>
     </div>
     <button type="button" class="vl-inv-btn vl-inv-btn-customer" onclick="createInvoice('customer')">
-        <i class="fa fa-user-tie"></i> Customer Invoice
+        <i class="fa fa-user-tie"></i> <?php echo $langs->trans('CustomerInvoice'); ?>
     </button>
     <button type="button" class="vl-inv-btn vl-inv-btn-vendor" onclick="createInvoice('vendor')">
-        <i class="fa fa-store"></i> Vendor Invoice
+        <i class="fa fa-store"></i> <?php echo $langs->trans('VendorInvoice'); ?>
     </button>
     <button type="button" class="vl-inv-btn vl-inv-btn-cancel" onclick="toggleInvoiceMode()">
-        <i class="fa fa-times"></i> Cancel
+        <i class="fa fa-times"></i> <?php echo $langs->trans('Cancel'); ?>
     </button>
 </div>
 
@@ -1001,7 +1001,6 @@ function toggleInvoiceMode() {
 function updateCount() {
     var n = document.querySelectorAll('.vl-row-check:checked').length;
     document.getElementById('inv-count').textContent = n;
-    document.getElementById('inv-plural').textContent = n === 1 ? '' : 's';
 }
 
 // Row checkbox toggle
