@@ -42,9 +42,9 @@ if ($action === 'save_firebase' && $_POST) {
         'use_v1_api'           => GETPOST('use_v1_api',           'int'),
     );
     if ($svc->saveConfig($data)) {
-        setEventMessages('Firebase configuration saved successfully.', null, 'mesgs');
+        setEventMessages($langs->trans('FirebaseConfigSaved'), null, 'mesgs');
     } else {
-        setEventMessages('Failed to save configuration: ' . $db->lasterror(), null, 'errors');
+        setEventMessages($langs->trans('FailedToSaveConfig').': '.$db->lasterror(), null, 'errors');
     }
     header('Location: ' . $_SERVER['PHP_SELF']);
     exit;
@@ -85,9 +85,9 @@ if ($action === 'save_rule' && $_POST) {
     }
 
     if ($db->query($sql)) {
-        setEventMessages('Alert rule saved.', null, 'mesgs');
+        setEventMessages($langs->trans('AlertRuleSaved'), null, 'mesgs');
     } else {
-        setEventMessages('Error: ' . $db->lasterror(), null, 'errors');
+        setEventMessages($langs->trans('Error').': '.$db->lasterror(), null, 'errors');
     }
     header('Location: ' . $_SERVER['PHP_SELF']);
     exit;
@@ -97,7 +97,7 @@ if ($action === 'save_rule' && $_POST) {
 if ($action === 'delete_rule') {
     $rowid = (int) GETPOST('rowid', 'int');
     $db->query("DELETE FROM " . MAIN_DB_PREFIX . "flotte_alert_rules WHERE rowid = " . $rowid . " AND entity = " . (int) $conf->entity);
-    setEventMessages('Rule deleted.', null, 'mesgs');
+    setEventMessages($langs->trans('RuleDeleted'), null, 'mesgs');
     header('Location: ' . $_SERVER['PHP_SELF']);
     exit;
 }
@@ -121,7 +121,7 @@ if ($action === 'edit_rule') {
     }
 }
 
-llxHeader('', 'Notification Settings');
+llxHeader('', $langs->trans('NotificationSettings'));
 ?>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
@@ -197,12 +197,12 @@ textarea.ns-input{resize:vertical;min-height:90px;font-family:'DM Mono',monospac
     <div class="ns-header-left">
         <div class="ns-header-icon"><i class="fa fa-cog"></i></div>
         <div>
-            <div class="ns-header-title">Notification Settings</div>
-            <div class="ns-header-sub">Configure Firebase Cloud Messaging and alert rules</div>
+            <div class="ns-header-title"><?php echo $langs->trans('NotificationSettings'); ?></div>
+            <div class="ns-header-sub"><?php echo $langs->trans('NotificationSettingsDesc'); ?></div>
         </div>
     </div>
     <div>
-        <a href="<?php echo dol_buildpath('/flotte/notification_center.php', 1); ?>" class="ns-btn ns-btn-ghost"><i class="fa fa-arrow-left"></i> Notification Center</a>
+        <a href="<?php echo dol_buildpath('/flotte/notification_center.php', 1); ?>" class="ns-btn ns-btn-ghost"><i class="fa fa-arrow-left"></i> <?php echo $langs->trans('NotificationCenter'); ?></a>
     </div>
 </div>
 
@@ -210,12 +210,12 @@ textarea.ns-input{resize:vertical;min-height:90px;font-family:'DM Mono',monospac
 <div class="ns-card">
     <div class="ns-card-header">
         <div class="ns-card-icon orange">🔥</div>
-        <span class="ns-card-title">Firebase Cloud Messaging (FCM)</span>
+        <span class="ns-card-title"><?php echo $langs->trans('FirebaseCloudMessaging'); ?></span>
     </div>
     <div class="ns-card-body">
 
         <div class="ns-info" style="margin-bottom:20px;">
-            <strong>How to set up Firebase:</strong>
+            <strong><?php echo $langs->trans('HowToSetupFirebase'); ?></strong>
             <ol>
                 <li>Go to <a href="https://console.firebase.google.com/" target="_blank">console.firebase.google.com</a> → Create/select your project</li>
                 <li>Go to <strong>Project Settings → Service Accounts</strong> → Generate new private key → download the JSON file</li>
@@ -231,42 +231,42 @@ textarea.ns-input{resize:vertical;min-height:90px;font-family:'DM Mono',monospac
 
             <div class="ns-form-grid">
                 <div class="ns-form-group">
-                    <label class="ns-label">API Version</label>
+                    <label class="ns-label"><?php echo $langs->trans('APIVersion'); ?></label>
                     <select name="use_v1_api" class="ns-input">
-                        <option value="1" <?php echo ($cfg['use_v1_api'] ?? 1) == 1 ? 'selected' : ''; ?>>FCM v1 (Recommended — uses Service Account)</option>
-                        <option value="0" <?php echo ($cfg['use_v1_api'] ?? 1) == 0 ? 'selected' : ''; ?>>Legacy HTTP API (uses Server Key)</option>
+                        <option value="1" <?php echo ($cfg['use_v1_api'] ?? 1) == 1 ? 'selected' : ''; ?>><?php echo $langs->trans('FCMv1Recommended'); ?></option>
+                        <option value="0" <?php echo ($cfg['use_v1_api'] ?? 1) == 0 ? 'selected' : ''; ?>><?php echo $langs->trans('LegacyHTTPAPI'); ?></option>
                     </select>
                 </div>
                 <div class="ns-form-group">
-                    <label class="ns-label">Firebase Project ID</label>
+                    <label class="ns-label"><?php echo $langs->trans('FirebaseProjectID'); ?></label>
                     <input type="text" name="project_id" class="ns-input" placeholder="my-fleet-app-12345" value="<?php echo dol_escape_htmltag($cfg['project_id'] ?? ''); ?>">
                 </div>
 
                 <!-- FCM v1 fields -->
                 <div class="ns-form-group full">
-                    <label class="ns-label">Service Account JSON <small style="text-transform:none;font-weight:400;color:#9ca3af;">(for FCM v1 — paste the full JSON from Firebase)</small></label>
+                    <label class="ns-label"><?php echo $langs->trans('ServiceAccountJSON'); ?> <small style="text-transform:none;font-weight:400;color:#9ca3af;">(for FCM v1 — paste the full JSON from Firebase)</small></label>
                     <textarea name="service_account_json" class="ns-input" placeholder='{"type":"service_account","project_id":"...","private_key":"-----BEGIN PRIVATE KEY-----\n...","client_email":"...",...}'><?php echo dol_escape_htmltag($cfg['service_account_json'] ?? ''); ?></textarea>
                 </div>
 
                 <!-- Legacy fields -->
                 <div class="ns-form-group full">
-                    <label class="ns-label">Server Key <small style="text-transform:none;font-weight:400;color:#9ca3af;">(Legacy API only — from Firebase → Project Settings → Cloud Messaging)</small></label>
+                    <label class="ns-label"><?php echo $langs->trans('ServerKey'); ?> <small style="text-transform:none;font-weight:400;color:#9ca3af;">(Legacy API only — from Firebase → Project Settings → Cloud Messaging)</small></label>
                     <input type="text" name="server_key" class="ns-input" placeholder="AAAA..." value="<?php echo dol_escape_htmltag($cfg['server_key'] ?? ''); ?>">
                 </div>
 
                 <div class="ns-form-group full">
-                    <label class="ns-label">VAPID Public Key <small style="text-transform:none;font-weight:400;color:#9ca3af;">(for Web Push — from Cloud Messaging → Web configuration)</small></label>
+                    <label class="ns-label"><?php echo $langs->trans('VAPIDPublicKey'); ?> <small style="text-transform:none;font-weight:400;color:#9ca3af;">(for Web Push — from Cloud Messaging → Web configuration)</small></label>
                     <input type="text" name="vapid_key" class="ns-input" placeholder="BK..." value="<?php echo dol_escape_htmltag($cfg['vapid_key'] ?? ''); ?>">
                 </div>
             </div>
 
             <div class="ns-action-bar">
                 <?php if ($svc->isConfigured()): ?>
-                    <span style="color:#16a34a;font-size:13px;font-weight:600;align-self:center;"><i class="fa fa-check-circle"></i> Firebase is configured</span>
+                    <span style="color:#16a34a;font-size:13px;font-weight:600;align-self:center;"><i class="fa fa-check-circle"></i> <?php echo $langs->trans('FirebaseIsConfigured'); ?></span>
                 <?php else: ?>
-                    <span style="color:#dc2626;font-size:13px;font-weight:600;align-self:center;"><i class="fa fa-exclamation-circle"></i> Not configured yet</span>
+                    <span style="color:#dc2626;font-size:13px;font-weight:600;align-self:center;"><i class="fa fa-exclamation-circle"></i> <?php echo $langs->trans('NotConfiguredYet'); ?></span>
                 <?php endif; ?>
-                <button type="submit" class="ns-btn ns-btn-primary"><i class="fa fa-save"></i> Save Firebase Config</button>
+                <button type="submit" class="ns-btn ns-btn-primary"><i class="fa fa-save"></i> <?php echo $langs->trans('SaveFirebaseConfig'); ?></button>
             </div>
         </form>
     </div>
@@ -276,14 +276,14 @@ textarea.ns-input{resize:vertical;min-height:90px;font-family:'DM Mono',monospac
 <div class="ns-card">
     <div class="ns-card-header">
         <div class="ns-card-icon blue">⚡</div>
-        <span class="ns-card-title">Alert Rules</span>
+        <span class="ns-card-title"><?php echo $langs->trans('AlertRules'); ?></span>
     </div>
     <div class="ns-card-body">
 
         <!-- Add / Edit Rule Form -->
         <details <?php echo ($action === 'edit_rule' || $action === 'add_rule') ? 'open' : ''; ?> style="margin-bottom:24px;">
             <summary style="cursor:pointer;font-weight:700;font-size:14px;color:#f97316;padding:10px 0;">
-                <i class="fa fa-plus-circle"></i> <?php echo $editRule ? 'Edit Rule' : 'Add New Alert Rule'; ?>
+                <i class="fa fa-plus-circle"></i> <?php echo $editRule ? $langs->trans('EditRule') : $langs->trans('AddNewAlertRule'); ?>
             </summary>
             <form method="POST" action="<?php echo $_SERVER['PHP_SELF']; ?>" style="margin-top:16px;">
                 <input type="hidden" name="action" value="save_rule">
@@ -293,18 +293,18 @@ textarea.ns-input{resize:vertical;min-height:90px;font-family:'DM Mono',monospac
                 <?php endif; ?>
                 <div class="ns-form-grid">
                     <div class="ns-form-group">
-                        <label class="ns-label">Rule Name</label>
+                        <label class="ns-label"><?php echo $langs->trans('RuleName'); ?></label>
                         <input type="text" name="rule_name" class="ns-input" required placeholder="e.g. Registration 30-day Warning" value="<?php echo dol_escape_htmltag($editRule->rule_name ?? ''); ?>">
                     </div>
                     <div class="ns-form-group">
-                        <label class="ns-label">Alert Type</label>
+                        <label class="ns-label"><?php echo $langs->trans('AlertType'); ?></label>
                         <select name="alert_type" class="ns-input">
                             <?php
                             $typeOpts = array(
-                                'registration_expiry' => 'Vehicle Registration Expiry',
-                                'license_expiry'      => 'Driver License Expiry',
-                                'insurance_expiry'    => 'Insurance Expiry',
-                                'inspection_due'      => 'Scheduled Inspection Due',
+                                'registration_expiry' => $langs->trans('VehicleRegistrationExpiry'),
+                                'license_expiry'      => $langs->trans('DriverLicenseExpiry'),
+                                'insurance_expiry'    => $langs->trans('InsuranceExpiry'),
+                                'inspection_due'      => $langs->trans('ScheduledInspectionDue'),
                             );
                             foreach ($typeOpts as $v => $l): ?>
                                 <option value="<?php echo $v; ?>" <?php echo ($editRule->alert_type ?? '') == $v ? 'selected' : ''; ?>><?php echo $l; ?></option>
@@ -312,47 +312,47 @@ textarea.ns-input{resize:vertical;min-height:90px;font-family:'DM Mono',monospac
                         </select>
                     </div>
                     <div class="ns-form-group">
-                        <label class="ns-label">First Alert (days before)</label>
+                        <label class="ns-label"><?php echo $langs->trans('FirstAlertDaysBefore'); ?></label>
                         <input type="number" name="days_before" class="ns-input" min="1" max="365" placeholder="30" value="<?php echo dol_escape_htmltag($editRule->days_before ?? 30); ?>">
                     </div>
                     <div class="ns-form-group">
-                        <label class="ns-label">Second Reminder (days before)</label>
+                        <label class="ns-label"><?php echo $langs->trans('SecondReminderDaysBefore'); ?></label>
                         <input type="number" name="days_before_second" class="ns-input" min="1" max="365" placeholder="7" value="<?php echo dol_escape_htmltag($editRule->days_before_second ?? 7); ?>">
                     </div>
                     <div class="ns-form-group">
-                        <label class="ns-label">Notify Channel</label>
+                        <label class="ns-label"><?php echo $langs->trans('NotifyChannel'); ?></label>
                         <select name="notify_channel" class="ns-input">
-                            <option value="firebase" <?php echo ($editRule->notify_channel ?? '') == 'firebase' ? 'selected' : ''; ?>>Firebase Push Only</option>
-                            <option value="email"    <?php echo ($editRule->notify_channel ?? '') == 'email'    ? 'selected' : ''; ?>>Email Only</option>
-                            <option value="both"     <?php echo ($editRule->notify_channel ?? 'both') == 'both' ? 'selected' : ''; ?>>Both (Push + Email)</option>
+                            <option value="firebase" <?php echo ($editRule->notify_channel ?? '') == 'firebase' ? 'selected' : ''; ?>><?php echo $langs->trans('FirebasePushOnly'); ?></option>
+                            <option value="email"    <?php echo ($editRule->notify_channel ?? '') == 'email'    ? 'selected' : ''; ?>><?php echo $langs->trans('EmailOnly'); ?></option>
+                            <option value="both"     <?php echo ($editRule->notify_channel ?? 'both') == 'both' ? 'selected' : ''; ?>><?php echo $langs->trans('BothPushAndEmail'); ?></option>
                         </select>
                     </div>
                     <div class="ns-form-group">
-                        <label class="ns-label">Priority</label>
+                        <label class="ns-label"><?php echo $langs->trans('Priority'); ?></label>
                         <select name="priority" class="ns-input">
-                            <option value="1" <?php echo ($editRule->priority ?? 2) == 1 ? 'selected' : ''; ?>>Low</option>
-                            <option value="2" <?php echo ($editRule->priority ?? 2) == 2 ? 'selected' : ''; ?>>Normal</option>
-                            <option value="3" <?php echo ($editRule->priority ?? 2) == 3 ? 'selected' : ''; ?>>High</option>
-                            <option value="4" <?php echo ($editRule->priority ?? 2) == 4 ? 'selected' : ''; ?>>Critical</option>
+                            <option value="1" <?php echo ($editRule->priority ?? 2) == 1 ? 'selected' : ''; ?>><?php echo $langs->trans('Low'); ?></option>
+                            <option value="2" <?php echo ($editRule->priority ?? 2) == 2 ? 'selected' : ''; ?>><?php echo $langs->trans('Normal'); ?></option>
+                            <option value="3" <?php echo ($editRule->priority ?? 2) == 3 ? 'selected' : ''; ?>><?php echo $langs->trans('High'); ?></option>
+                            <option value="4" <?php echo ($editRule->priority ?? 2) == 4 ? 'selected' : ''; ?>><?php echo $langs->trans('Critical'); ?></option>
                         </select>
                     </div>
                     <div class="ns-form-group full">
-                        <label class="ns-label">Notify Users <small style="text-transform:none;font-weight:400;color:#9ca3af;">(comma-separated user IDs, leave blank for all admins)</small></label>
+                        <label class="ns-label"><?php echo $langs->trans('NotifyUsers'); ?> <small style="text-transform:none;font-weight:400;color:#9ca3af;">(comma-separated user IDs, leave blank for all admins)</small></label>
                         <input type="text" name="notify_users" class="ns-input" placeholder="1,2,5" value="<?php echo dol_escape_htmltag($editRule->notify_users ?? ''); ?>">
                     </div>
                     <div class="ns-form-group">
-                        <label class="ns-label">Active</label>
+                        <label class="ns-label"><?php echo $langs->trans('Active'); ?></label>
                         <label class="ns-toggle" style="padding-top:8px;">
                             <input type="checkbox" name="is_active" value="1" <?php echo ($editRule->is_active ?? 1) ? 'checked' : ''; ?>>
-                            <span style="font-size:13px;color:#374151;">Enable this rule</span>
+                            <span style="font-size:13px;color:#374151;"><?php echo $langs->trans('EnableThisRule'); ?></span>
                         </label>
                     </div>
                 </div>
                 <div class="ns-action-bar">
                     <?php if ($editRule): ?>
-                        <a href="<?php echo $_SERVER['PHP_SELF']; ?>" class="ns-btn ns-btn-ghost">Cancel</a>
+                        <a href="<?php echo $_SERVER['PHP_SELF']; ?>" class="ns-btn ns-btn-ghost"><?php echo $langs->trans('Cancel'); ?></a>
                     <?php endif; ?>
-                    <button type="submit" class="ns-btn ns-btn-primary"><i class="fa fa-save"></i> <?php echo $editRule ? 'Update Rule' : 'Add Rule'; ?></button>
+                    <button type="submit" class="ns-btn ns-btn-primary"><i class="fa fa-save"></i> <?php echo $editRule ? $langs->trans('UpdateRule') : $langs->trans('AddRule'); ?></button>
                 </div>
             </form>
         </details>
@@ -360,20 +360,20 @@ textarea.ns-input{resize:vertical;min-height:90px;font-family:'DM Mono',monospac
         <!-- Rules Table -->
         <?php if (empty($rules)): ?>
             <div style="text-align:center;padding:30px;color:#8b92a9;font-size:13px;">
-                No alert rules configured yet. Add one above.
+                <?php echo $langs->trans('NoAlertRulesConfigured'); ?>
             </div>
         <?php else: ?>
         <div style="overflow-x:auto;">
             <table class="ns-table">
                 <thead>
                     <tr>
-                        <th>Rule Name</th>
-                        <th>Type</th>
-                        <th>Alerts (days)</th>
-                        <th>Channel</th>
-                        <th>Priority</th>
-                        <th>Status</th>
-                        <th>Actions</th>
+                        <th><?php echo $langs->trans('RuleName'); ?></th>
+                        <th><?php echo $langs->trans('Type'); ?></th>
+                        <th><?php echo $langs->trans('AlertsDays'); ?></th>
+                        <th><?php echo $langs->trans('Channel'); ?></th>
+                        <th><?php echo $langs->trans('Priority'); ?></th>
+                        <th><?php echo $langs->trans('Status'); ?></th>
+                        <th><?php echo $langs->trans('Action'); ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -389,17 +389,17 @@ textarea.ns-input{resize:vertical;min-height:90px;font-family:'DM Mono',monospac
                     <td style="font-size:12px;"><?php echo dol_escape_htmltag(ucfirst($rule->notify_channel)); ?></td>
                     <td>
                         <?php
-                        $pm = array(1=>'Low',2=>'Normal',3=>'High',4=>'Critical');
+                        $pm = array(1=>$langs->trans('Low'),2=>$langs->trans('Normal'),3=>$langs->trans('High'),4=>$langs->trans('Critical'));
                         $pc = array(1=>'#6b7280',2=>'#2563eb',3=>'#d97706',4=>'#dc2626');
                         $pb = array(1=>'#f3f4f6',2=>'#eff6ff',3=>'#fff7ed',4=>'#fef2f2');
                         $p  = (int) $rule->priority;
                         ?>
                         <span style="background:<?php echo $pb[$p]??'#f3f4f6'; ?>;color:<?php echo $pc[$p]??'#6b7280'; ?>;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:700;"><?php echo $pm[$p]??'Normal'; ?></span>
                     </td>
-                    <td><span class="ns-badge <?php echo $rule->is_active ? 'nb-active' : 'nb-inactive'; ?>"><?php echo $rule->is_active ? 'Active' : 'Inactive'; ?></span></td>
+                    <td><span class="ns-badge <?php echo $rule->is_active ? 'nb-active' : 'nb-inactive'; ?>"><?php echo $rule->is_active ? $langs->trans('Active') : $langs->trans('Inactive'); ?></span></td>
                     <td>
                         <a href="?action=edit_rule&rowid=<?php echo $rule->rowid; ?>" class="ns-btn ns-btn-ghost ns-btn-sm"><i class="fa fa-pen"></i></a>
-                        <a href="?action=delete_rule&rowid=<?php echo $rule->rowid; ?>" class="ns-btn ns-btn-danger ns-btn-sm" onclick="return confirm('Delete this rule?')"><i class="fa fa-trash"></i></a>
+                        <a href="?action=delete_rule&rowid=<?php echo $rule->rowid; ?>" class="ns-btn ns-btn-danger ns-btn-sm" onclick="return confirm('<?php echo dol_escape_js($langs->trans('ConfirmDeleteRule')); ?>')"><i class="fa fa-trash"></i></a>
                     </td>
                 </tr>
                 <?php endforeach; ?>
@@ -414,14 +414,14 @@ textarea.ns-input{resize:vertical;min-height:90px;font-family:'DM Mono',monospac
 <div class="ns-card">
     <div class="ns-card-header">
         <div class="ns-card-icon green">⏰</div>
-        <span class="ns-card-title">Automated Cron Job</span>
+        <span class="ns-card-title"><?php echo $langs->trans('AutomatedCronJob'); ?></span>
     </div>
     <div class="ns-card-body">
-        <p style="font-size:13px;color:#374151;margin:0 0 12px;">To automatically send daily alerts, add a cron job to your server:</p>
+        <p style="font-size:13px;color:#374151;margin:0 0 12px;"><?php echo $langs->trans('CronJobDesc'); ?></p>
         <pre style="background:#1e293b;color:#e2e8f0;padding:16px 20px;border-radius:10px;font-family:'DM Mono',monospace;font-size:13px;overflow-x:auto;margin:0;">
 # Run every day at 7:00 AM
 0 7 * * * php <?php echo DOL_DOCUMENT_ROOT; ?>/modules/flotte/cron_alerts.php >> /var/log/flotte_alerts.log 2>&1</pre>
-        <p style="font-size:12px;color:#8b92a9;margin:10px 0 0;">Or use Dolibarr's built-in cron system: <strong>Home → Setup → Cron Jobs</strong> → add a call to <code>flotte/cron_alerts.php</code></p>
+        <p style="font-size:12px;color:#8b92a9;margin:10px 0 0;"><?php echo $langs->trans('CronJobDolibarrTip'); ?></p>
     </div>
 </div>
 

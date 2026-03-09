@@ -150,7 +150,7 @@ if ($resql) {
 }
 
 // Page header
-llxHeader('', $langs->trans("Inspections List"), '');
+llxHeader('', $langs->trans("InspectionsList"), '');
 
 // Build param string for URL
 $param = '';
@@ -425,17 +425,17 @@ table.vl-table tbody td.right  { text-align: right; }
 <div class="vl-header">
     <div class="vl-header-left">
         <h1><i class="fa fa-clipboard-list" style="color:#3c4758;margin-right:10px;"></i><?php echo $langs->trans("Inspections List"); ?></h1>
-        <div class="vl-subtitle"><?php echo $nbtotalofrecords; ?> inspection<?php echo $nbtotalofrecords != 1 ? 's' : ''; ?> found</div>
+        <div class="vl-subtitle"><?php echo $nbtotalofrecords; ?> <?php echo $langs->trans("Inspections"); ?></div>
     </div>
     <div class="vl-header-actions">
         <?php if ($user->rights->flotte->read) { ?>
         <a class="vl-btn vl-btn-secondary" href="<?php echo dol_buildpath('/flotte/inspection_list.php', 1); ?>?action=export">
-            <i class="fa fa-download"></i> Export
+            <i class="fa fa-download"></i> <?php echo $langs->trans("Export"); ?>
         </a>
         <?php } ?>
         <?php if ($user->rights->flotte->write) { ?>
         <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/inspection_card.php', 1); ?>?action=create">
-            <i class="fa fa-plus"></i> New Inspection
+            <i class="fa fa-plus"></i> <?php echo $langs->trans("NewInspection"); ?>
         </a>
         <?php } ?>
     </div>
@@ -452,44 +452,44 @@ table.vl-table tbody td.right  { text-align: right; }
 
 <div class="vl-filters">
     <div class="vl-filter-group">
-        <label>Reference</label>
-        <input type="text" name="search_ref" placeholder="Search ref…" value="<?php echo dol_escape_htmltag($search_ref); ?>">
+        <label><?php echo $langs->trans("Reference"); ?></label>
+        <input type="text" name="search_ref" placeholder="<?php echo $langs->trans('Reference'); ?>…" value="<?php echo dol_escape_htmltag($search_ref); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Vehicle</label>
-        <input type="text" name="search_vehicle" placeholder="Ref, maker, model…" value="<?php echo dol_escape_htmltag($search_vehicle); ?>">
+        <label><?php echo $langs->trans("Vehicle"); ?></label>
+        <input type="text" name="search_vehicle" placeholder="<?php echo $langs->trans('VehicleSearch'); ?>…" value="<?php echo dol_escape_htmltag($search_vehicle); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Registration</label>
-        <input type="text" name="search_registration" placeholder="Reg. number…" value="<?php echo dol_escape_htmltag($search_registration); ?>">
+        <label><?php echo $langs->trans("RegistrationNumber"); ?></label>
+        <input type="text" name="search_registration" placeholder="<?php echo $langs->trans('RegistrationNumber'); ?>…" value="<?php echo dol_escape_htmltag($search_registration); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Date Out</label>
+        <label><?php echo $langs->trans("DateOut"); ?></label>
         <input type="date" name="search_date_out" value="<?php echo dol_escape_htmltag($search_date_out); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Date In</label>
+        <label><?php echo $langs->trans("DateIn"); ?></label>
         <input type="date" name="search_date_in" value="<?php echo dol_escape_htmltag($search_date_in); ?>">
     </div>
     <div class="vl-filter-actions">
-        <button type="submit" class="vl-btn-filter apply"><i class="fa fa-search"></i> Search</button>
-        <button type="submit" name="button_removefilter" value="1" class="vl-btn-filter reset"><i class="fa fa-times"></i> Reset</button>
+        <button type="submit" class="vl-btn-filter apply"><i class="fa fa-search"></i> <?php echo $langs->trans("Search"); ?></button>
+        <button type="submit" name="button_removefilter" value="1" class="vl-btn-filter reset"><i class="fa fa-times"></i> <?php echo $langs->trans("Reset"); ?></button>
     </div>
 </div>
 
 <!-- Stats chips -->
 <div class="vl-stats">
     <div class="vl-stat-chip">
-        <span class="vl-stat-num"><?php echo $nbtotalofrecords; ?></span> Total
+        <span class="vl-stat-num"><?php echo $nbtotalofrecords; ?></span> <?php echo $langs->trans("Total"); ?>
     </div>
     <?php if ($cnt_open > 0) { ?>
     <div class="vl-stat-chip" style="background:#fffbeb;color:#92400e;">
-        <span class="vl-stat-num" style="color:#92400e;"><?php echo $cnt_open; ?></span> In Progress
+        <span class="vl-stat-num" style="color:#92400e;"><?php echo $cnt_open; ?></span> <?php echo $langs->trans("InProgress"); ?>
     </div>
     <?php } ?>
     <?php if ($cnt_completed > 0) { ?>
     <div class="vl-stat-chip" style="background:#f0fdf4;color:#166534;">
-        <span class="vl-stat-num" style="color:#166534;"><?php echo $cnt_completed; ?></span> Completed
+        <span class="vl-stat-num" style="color:#166534;"><?php echo $cnt_completed; ?></span> <?php echo $langs->trans("Completed"); ?>
     </div>
     <?php } ?>
 </div>
@@ -500,14 +500,14 @@ table.vl-table tbody td.right  { text-align: right; }
     <table class="vl-table">
         <thead>
             <tr>
-                <th><a href="<?php echo il_sortHref('i.ref', $sortfield, $sortorder, $self, $param); ?>">Ref <?php echo il_sortArrow('i.ref', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo il_sortHref('v.ref', $sortfield, $sortorder, $self, $param); ?>">Vehicle <?php echo il_sortArrow('v.ref', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo il_sortHref('i.registration_number', $sortfield, $sortorder, $self, $param); ?>">Registration <?php echo il_sortArrow('i.registration_number', $sortfield, $sortorder); ?></a></th>
-                <th class="center"><a href="<?php echo il_sortHref('i.datetime_out', $sortfield, $sortorder, $self, $param); ?>">Date Out <?php echo il_sortArrow('i.datetime_out', $sortfield, $sortorder); ?></a></th>
-                <th class="center"><a href="<?php echo il_sortHref('i.datetime_in', $sortfield, $sortorder, $self, $param); ?>">Date In <?php echo il_sortArrow('i.datetime_in', $sortfield, $sortorder); ?></a></th>
-                <th class="center">Condition</th>
-                <th class="center">Status</th>
-                <th class="center">Actions</th>
+                <th><a href="<?php echo il_sortHref('i.ref', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Ref"); ?> <?php echo il_sortArrow('i.ref', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo il_sortHref('v.ref', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Vehicle"); ?> <?php echo il_sortArrow('v.ref', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo il_sortHref('i.registration_number', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("RegistrationNumber"); ?> <?php echo il_sortArrow('i.registration_number', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><a href="<?php echo il_sortHref('i.datetime_out', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("DateOut"); ?> <?php echo il_sortArrow('i.datetime_out', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><a href="<?php echo il_sortHref('i.datetime_in', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("DateIn"); ?> <?php echo il_sortArrow('i.datetime_in', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><?php echo $langs->trans("TyresCondition"); ?></th>
+                <th class="center"><?php echo $langs->trans("Status"); ?></th>
+                <th class="center"><?php echo $langs->trans("Action"); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -583,8 +583,8 @@ table.vl-table tbody td.right  { text-align: right; }
 
                 <!-- Status -->
                 <td class="center">
-                    <?php if ($is_completed)  echo '<span class="vl-badge completed">Completed</span>';
-                    elseif ($is_open)         echo '<span class="vl-badge open">In Progress</span>';
+                    <?php if ($is_completed)  echo '<span class="vl-badge completed">'.$langs->trans('Completed').'</span>';
+                    elseif ($is_open)         echo '<span class="vl-badge open">'.$langs->trans('InProgress').'</span>';
                     else                      echo '<span style="color:#c4c9d8;font-size:13px;">—</span>';
                     ?>
                 </td>
@@ -592,12 +592,12 @@ table.vl-table tbody td.right  { text-align: right; }
                 <!-- Actions -->
                 <td>
                     <div class="vl-actions">
-                        <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="View"><i class="fa fa-eye"></i></a>
+                        <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="<?php echo $langs->trans('View'); ?>"><i class="fa fa-eye"></i></a>
                         <?php if ($user->rights->flotte->write) { ?>
-                        <a href="<?php echo $cardUrl; ?>&action=edit" class="vl-action-btn edit" title="Edit"><i class="fa fa-pen"></i></a>
+                        <a href="<?php echo $cardUrl; ?>&action=edit" class="vl-action-btn edit" title="<?php echo $langs->trans('Edit'); ?>"><i class="fa fa-pen"></i></a>
                         <?php } ?>
                         <?php if ($user->rights->flotte->write) { ?>
-                        <a href="<?php echo $self; ?>?id=<?php echo $obj->rowid; ?>&action=delete&token=<?php echo newToken(); ?>" class="vl-action-btn del" title="Delete"><i class="fa fa-trash"></i></a>
+                        <a href="<?php echo $self; ?>?id=<?php echo $obj->rowid; ?>&action=delete&token=<?php echo newToken(); ?>" class="vl-action-btn del" title="<?php echo $langs->trans('Delete'); ?>"><i class="fa fa-trash"></i></a>
                         <?php } ?>
                     </div>
                 </td>
@@ -607,10 +607,10 @@ table.vl-table tbody td.right  { text-align: right; }
                 <td colspan="8">
                     <div class="vl-empty">
                         <div class="vl-empty-icon"><i class="fa fa-clipboard-list"></i></div>
-                        <p>No inspections found</p>
+                        <p><?php echo $langs->trans("InspectionsList"); ?></p>
                         <?php if ($user->rights->flotte->write) { ?>
                         <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/inspection_card.php', 1); ?>?action=create">
-                            <i class="fa fa-plus"></i> Add First Inspection
+                            <i class="fa fa-plus"></i> <?php echo $langs->trans("NewInspection"); ?>
                         </a>
                         <?php } ?>
                     </div>
@@ -631,7 +631,7 @@ table.vl-table tbody td.right  { text-align: right; }
     ?>
     <div class="vl-pagination">
         <div class="vl-pagination-info">
-            Showing <strong><?php echo $showing_from; ?></strong>–<strong><?php echo $showing_to; ?></strong> of <strong><?php echo $nbtotalofrecords; ?></strong> inspections
+            <?php echo $langs->trans("ShowingVehicles", $showing_from, $showing_to, $nbtotalofrecords); ?>
         </div>
         <div class="vl-page-btns">
             <a class="vl-page-btn <?php echo $page == 0 ? 'disabled' : ''; ?>" href="<?php echo $self; ?>?page=0&sortfield=<?php echo $sortfield; ?>&sortorder=<?php echo $sortorder; ?>&<?php echo $param; ?>">«</a>

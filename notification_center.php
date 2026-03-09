@@ -55,7 +55,7 @@ if ($action === 'send_test' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $result = $svc->sendToUser($user->id, $title, $body, array(), 'custom', 2);
     }
-    setEventMessages($result['success'] ? 'Notification sent (' . $result['sent'] . ' device(s))' : 'Send failed: ' . ($result['error'] ?? 'No devices registered'), null, $result['success'] ? 'mesgs' : 'errors');
+    setEventMessages($result['success'] ? $langs->trans('NotificationSent', $result['sent']) : $langs->trans('SendFailed') . ': ' . ($result['error'] ?? $langs->trans('NoDevicesRegistered')), null, $result['success'] ? 'mesgs' : 'errors');
     header('Location: ' . $_SERVER['PHP_SELF']);
     exit;
 }
@@ -63,7 +63,7 @@ if ($action === 'send_test' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 // ── Handle alert scan trigger ────────────────────────────────────
 if ($action === 'run_scan') {
     $summary = $svc->runAlertScan();
-    setEventMessages('Alert scan complete. Notifications sent: ' . $summary['sent'], null, 'mesgs');
+    setEventMessages($langs->trans('AlertScanComplete', $summary['sent']), null, 'mesgs');
     header('Location: ' . $_SERVER['PHP_SELF']);
     exit;
 }
@@ -91,7 +91,7 @@ $statSent   = $svc->countNotificationLog(array('status' => 'sent'));
 $statFailed = $svc->countNotificationLog(array('status' => 'failed'));
 $statPending= $svc->countNotificationLog(array('status' => 'pending'));
 
-llxHeader('', 'Notification Center');
+llxHeader('', $langs->trans('NotificationCenter'));
 ?>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap');
@@ -190,6 +190,8 @@ llxHeader('', 'Notification Center');
 #fcm-status.error{background:#ef4444;}
 </style>
 
+<div class="nc-page">
+
 <?php
 // Show Firebase not configured warning
 if (!$svc->isConfigured()) :
@@ -197,22 +199,20 @@ if (!$svc->isConfigured()) :
 <div class="nc-setup-banner">
     <div class="nc-setup-banner-icon">🔥</div>
     <div>
-        <h3>Firebase Not Configured</h3>
-        <p>To enable push notifications, please configure your Firebase credentials.
-           <a href="<?php echo dol_buildpath('/flotte/notification_settings.php', 1); ?>" style="color:#c2410c;font-weight:600;">→ Go to Settings</a>
+        <h3><?php echo $langs->trans('FirebaseNotConfigured'); ?></h3>
+        <p><?php echo $langs->trans('FirebaseNotConfiguredDesc'); ?>
+           <a href="<?php echo dol_buildpath('/flotte/notification_settings.php', 1); ?>" style="color:#c2410c;font-weight:600;">→ <?php echo $langs->trans('GoToSettings'); ?></a>
         </p>
     </div>
 </div>
 <?php endif; ?>
-
-<div class="nc-page">
 
 <!-- ── Header ── -->
 <div class="nc-header">
     <div class="nc-header-left">
         <div class="nc-header-icon"><i class="fa fa-bell"></i></div>
         <div>
-            <div class="nc-header-title">Notification Center</div>
+            <div class="nc-header-title"><?php echo $langs->trans('NotificationCenter'); ?></div>
             <div class="nc-header-sub">
                 <span id="fcm-status"></span>
                 <span id="fcm-status-text">Checking browser push status…</span>
@@ -220,38 +220,38 @@ if (!$svc->isConfigured()) :
         </div>
     </div>
     <div class="nc-header-actions">
-        <a href="<?php echo dol_buildpath('/flotte/notification_settings.php', 1); ?>" class="nc-btn nc-btn-ghost"><i class="fa fa-cog"></i> Settings</a>
-        <button class="nc-btn nc-btn-ghost" onclick="document.getElementById('modal-register').classList.add('open')"><i class="fa fa-mobile-alt"></i> Register Device</button>
-        <button class="nc-btn nc-btn-ghost" onclick="openTestModal()"><i class="fa fa-paper-plane"></i> Send Test</button>
-        <a href="?action=run_scan" class="nc-btn nc-btn-primary" onclick="return confirm('Run alert scan now?')"><i class="fa fa-sync"></i> Run Alert Scan</a>
+        <a href="<?php echo dol_buildpath('/flotte/notification_settings.php', 1); ?>" class="nc-btn nc-btn-ghost"><i class="fa fa-cog"></i> <?php echo $langs->trans('Settings'); ?></a>
+        <button class="nc-btn nc-btn-ghost" onclick="document.getElementById('modal-register').classList.add('open')"><i class="fa fa-mobile-alt"></i> <?php echo $langs->trans('RegisterDevice'); ?></button>
+        <button class="nc-btn nc-btn-ghost" onclick="openTestModal()"><i class="fa fa-paper-plane"></i> <?php echo $langs->trans('SendTest'); ?></button>
+        <a href="?action=run_scan" class="nc-btn nc-btn-primary" onclick="return confirm('<?php echo dol_escape_js($langs->trans('ConfirmRunAlertScan')); ?>')"><i class="fa fa-sync"></i> <?php echo $langs->trans('RunAlertScan'); ?></a>
     </div>
 </div>
 
 <!-- ── Stat cards ── -->
 <div class="nc-stats">
     <div class="nc-stat blue">
-        <div class="nc-stat-label">Total Notifications</div>
+        <div class="nc-stat-label"><?php echo $langs->trans('TotalNotifications'); ?></div>
         <div class="nc-stat-value"><?php echo number_format($svc->countNotificationLog()); ?></div>
     </div>
     <div class="nc-stat green">
-        <div class="nc-stat-label">Sent</div>
+        <div class="nc-stat-label"><?php echo $langs->trans('Sent'); ?></div>
         <div class="nc-stat-value"><?php echo number_format($statSent); ?></div>
     </div>
     <div class="nc-stat red">
-        <div class="nc-stat-label">Failed</div>
+        <div class="nc-stat-label"><?php echo $langs->trans('Failed'); ?></div>
         <div class="nc-stat-value"><?php echo number_format($statFailed); ?></div>
     </div>
     <div class="nc-stat amber">
-        <div class="nc-stat-label">Pending</div>
+        <div class="nc-stat-label"><?php echo $langs->trans('Pending'); ?></div>
         <div class="nc-stat-value"><?php echo number_format($statPending); ?></div>
     </div>
     <div class="nc-stat blue">
-        <div class="nc-stat-label">Firebase Status</div>
+        <div class="nc-stat-label"><?php echo $langs->trans('FirebaseStatus'); ?></div>
         <div class="nc-stat-value" style="font-size:16px;padding-top:6px;">
             <?php if ($svc->isConfigured()): ?>
-                <span style="color:#16a34a;"><i class="fa fa-check-circle"></i> Connected</span>
+                <span style="color:#16a34a;"><i class="fa fa-check-circle"></i> <?php echo $langs->trans('Connected'); ?></span>
             <?php else: ?>
-                <span style="color:#dc2626;"><i class="fa fa-exclamation-circle"></i> Not Set</span>
+                <span style="color:#dc2626;"><i class="fa fa-exclamation-circle"></i> <?php echo $langs->trans('NotSet'); ?></span>
             <?php endif; ?>
         </div>
     </div>
@@ -261,29 +261,29 @@ if (!$svc->isConfigured()) :
 <div class="nc-card">
     <div class="nc-card-header">
         <div class="nc-card-header-left">
-            <span class="nc-card-title">Notification History</span>
+            <span class="nc-card-title"><?php echo $langs->trans('NotificationHistory'); ?></span>
             <small style="color:#8b92a9;font-size:12px;">(<?php echo number_format($total); ?> total)</small>
         </div>
         <form method="GET" class="nc-filter-bar" style="margin:0;">
             <select name="filter_type" onchange="this.form.submit()">
-                <option value="">All Types</option>
-                <option value="registration_expiry" <?php echo $filter_type == 'registration_expiry' ? 'selected' : ''; ?>>Registration Expiry</option>
-                <option value="license_expiry"      <?php echo $filter_type == 'license_expiry'      ? 'selected' : ''; ?>>License Expiry</option>
-                <option value="insurance_expiry"    <?php echo $filter_type == 'insurance_expiry'    ? 'selected' : ''; ?>>Insurance Expiry</option>
-                <option value="inspection_due"      <?php echo $filter_type == 'inspection_due'      ? 'selected' : ''; ?>>Inspection Due</option>
-                <option value="workorder_created"   <?php echo $filter_type == 'workorder_created'   ? 'selected' : ''; ?>>Work Order</option>
-                <option value="booking_created"     <?php echo $filter_type == 'booking_created'     ? 'selected' : ''; ?>>Booking</option>
-                <option value="custom"              <?php echo $filter_type == 'custom'              ? 'selected' : ''; ?>>Custom/Test</option>
+                <option value=""><?php echo $langs->trans('AllTypes'); ?></option>
+                <option value="registration_expiry" <?php echo $filter_type == 'registration_expiry' ? 'selected' : ''; ?>><?php echo $langs->trans('RegistrationExpiry'); ?></option>
+                <option value="license_expiry"      <?php echo $filter_type == 'license_expiry'      ? 'selected' : ''; ?>><?php echo $langs->trans('LicenseExpiry'); ?></option>
+                <option value="insurance_expiry"    <?php echo $filter_type == 'insurance_expiry'    ? 'selected' : ''; ?>><?php echo $langs->trans('InsuranceExpiry'); ?></option>
+                <option value="inspection_due"      <?php echo $filter_type == 'inspection_due'      ? 'selected' : ''; ?>><?php echo $langs->trans('InspectionDue'); ?></option>
+                <option value="workorder_created"   <?php echo $filter_type == 'workorder_created'   ? 'selected' : ''; ?>><?php echo $langs->trans('WorkOrder'); ?></option>
+                <option value="booking_created"     <?php echo $filter_type == 'booking_created'     ? 'selected' : ''; ?>><?php echo $langs->trans('Booking'); ?></option>
+                <option value="custom"              <?php echo $filter_type == 'custom'              ? 'selected' : ''; ?>><?php echo $langs->trans('CustomTest'); ?></option>
             </select>
             <select name="filter_status" onchange="this.form.submit()">
-                <option value="">All Statuses</option>
-                <option value="sent"      <?php echo $filter_status == 'sent'      ? 'selected' : ''; ?>>Sent</option>
-                <option value="failed"    <?php echo $filter_status == 'failed'    ? 'selected' : ''; ?>>Failed</option>
-                <option value="pending"   <?php echo $filter_status == 'pending'   ? 'selected' : ''; ?>>Pending</option>
-                <option value="cancelled" <?php echo $filter_status == 'cancelled' ? 'selected' : ''; ?>>Cancelled</option>
+                <option value=""><?php echo $langs->trans('AllStatuses'); ?></option>
+                <option value="sent"      <?php echo $filter_status == 'sent'      ? 'selected' : ''; ?>><?php echo $langs->trans('Sent'); ?></option>
+                <option value="failed"    <?php echo $filter_status == 'failed'    ? 'selected' : ''; ?>><?php echo $langs->trans('Failed'); ?></option>
+                <option value="pending"   <?php echo $filter_status == 'pending'   ? 'selected' : ''; ?>><?php echo $langs->trans('Pending'); ?></option>
+                <option value="cancelled" <?php echo $filter_status == 'cancelled' ? 'selected' : ''; ?>><?php echo $langs->trans('Cancelled'); ?></option>
             </select>
             <?php if ($filter_type || $filter_status): ?>
-                <a href="<?php echo $_SERVER['PHP_SELF']; ?>" class="nc-btn nc-btn-ghost nc-btn-sm"><i class="fa fa-times"></i> Clear</a>
+                <a href="<?php echo $_SERVER['PHP_SELF']; ?>" class="nc-btn nc-btn-ghost nc-btn-sm"><i class="fa fa-times"></i> <?php echo $langs->trans('Clear'); ?></a>
             <?php endif; ?>
         </form>
     </div>
@@ -292,17 +292,17 @@ if (!$svc->isConfigured()) :
             <thead>
                 <tr>
                     <th>#</th>
-                    <th>Type</th>
-                    <th>Title</th>
-                    <th>Vehicle</th>
-                    <th>Priority</th>
-                    <th>Status</th>
-                    <th>Sent At</th>
+                    <th><?php echo $langs->trans('Type'); ?></th>
+                    <th><?php echo $langs->trans('Title'); ?></th>
+                    <th><?php echo $langs->trans('Vehicle'); ?></th>
+                    <th><?php echo $langs->trans('Priority'); ?></th>
+                    <th><?php echo $langs->trans('Status'); ?></th>
+                    <th><?php echo $langs->trans('SentAt'); ?></th>
                 </tr>
             </thead>
             <tbody>
             <?php if (empty($logs)): ?>
-                <tr><td colspan="7" style="text-align:center;color:#8b92a9;padding:40px;">No notifications found.</td></tr>
+                <tr><td colspan="7" style="text-align:center;color:#8b92a9;padding:40px;"><?php echo $langs->trans('NoNotificationsFound'); ?></td></tr>
             <?php else: ?>
                 <?php foreach ($logs as $log):
                     $typeIcons = array(
@@ -362,13 +362,13 @@ if (!$svc->isConfigured()) :
     <?php if ($pages > 1): ?>
     <div class="nc-pagination">
         <?php if ($page > 0): ?>
-            <a href="?page=<?php echo $page-1; ?>&filter_type=<?php echo urlencode($filter_type); ?>&filter_status=<?php echo urlencode($filter_status); ?>" class="nc-page-btn">‹ Prev</a>
+            <a href="?page=<?php echo $page-1; ?>&filter_type=<?php echo urlencode($filter_type); ?>&filter_status=<?php echo urlencode($filter_status); ?>" class="nc-page-btn"><?php echo $langs->trans('Prev'); ?></a>
         <?php endif; ?>
         <?php for ($p = max(0, $page-2); $p <= min($pages-1, $page+2); $p++): ?>
             <a href="?page=<?php echo $p; ?>&filter_type=<?php echo urlencode($filter_type); ?>&filter_status=<?php echo urlencode($filter_status); ?>" class="nc-page-btn <?php echo $p === $page ? 'active' : ''; ?>"><?php echo $p+1; ?></a>
         <?php endfor; ?>
         <?php if ($page < $pages-1): ?>
-            <a href="?page=<?php echo $page+1; ?>&filter_type=<?php echo urlencode($filter_type); ?>&filter_status=<?php echo urlencode($filter_status); ?>" class="nc-page-btn">Next ›</a>
+            <a href="?page=<?php echo $page+1; ?>&filter_type=<?php echo urlencode($filter_type); ?>&filter_status=<?php echo urlencode($filter_status); ?>" class="nc-page-btn"><?php echo $langs->trans('Next'); ?></a>
         <?php endif; ?>
     </div>
     <?php endif; ?>
@@ -379,13 +379,13 @@ if (!$svc->isConfigured()) :
 <!-- ── Modal: Register Device ── -->
 <div class="nc-modal-backdrop" id="modal-register">
     <div class="nc-modal">
-        <h2>🔔 Register This Device</h2>
-        <p style="font-size:13px;color:#6b7280;margin:0 0 16px;">Allow your browser to receive push notifications from Flotte.</p>
-        <label>Device Label (optional)</label>
-        <input type="text" id="device-label" placeholder="e.g. My Work Computer" />
+        <h2>🔔 <?php echo $langs->trans('RegisterThisDevice'); ?></h2>
+        <p style="font-size:13px;color:#6b7280;margin:0 0 16px;"><?php echo $langs->trans('AllowBrowserPush'); ?></p>
+        <label><?php echo $langs->trans('DeviceLabelOptional'); ?></label>
+        <input type="text" id="device-label" placeholder="<?php echo $langs->trans('DeviceLabelPlaceholder'); ?>" />
         <div class="nc-modal-footer">
-            <button class="nc-btn nc-btn-ghost" onclick="document.getElementById('modal-register').classList.remove('open')">Cancel</button>
-            <button class="nc-btn nc-btn-primary" onclick="requestFcmPermission()"><i class="fa fa-bell"></i> Enable Notifications</button>
+            <button class="nc-btn nc-btn-ghost" onclick="document.getElementById('modal-register').classList.remove('open')"><?php echo $langs->trans('Cancel'); ?></button>
+            <button class="nc-btn nc-btn-primary" onclick="requestFcmPermission()"><i class="fa fa-bell"></i> <?php echo $langs->trans('EnableNotifications'); ?></button>
         </div>
         <div id="register-result" style="margin-top:12px;font-size:13px;"></div>
     </div>
@@ -397,19 +397,19 @@ if (!$svc->isConfigured()) :
         <form method="POST" action="<?php echo $_SERVER['PHP_SELF']; ?>">
             <input type="hidden" name="action" value="send_test">
             <input type="hidden" name="token" value="<?php echo newToken(); ?>">
-            <h2>📣 Send Test Notification</h2>
-            <label>Title</label>
-            <input type="text" name="title" value="Test from Flotte 🚗" required />
-            <label>Message</label>
+            <h2>📣 <?php echo $langs->trans('SendTestNotification'); ?></h2>
+            <label><?php echo $langs->trans('Title'); ?></label>
+            <input type="text" name="title" value="<?php echo $langs->trans('TestFromFlotte'); ?>" required />
+            <label><?php echo $langs->trans('Message'); ?></label>
             <textarea name="body" rows="3" style="resize:vertical;">This is a test push notification from your Fleet Management System.</textarea>
-            <label>Target</label>
+            <label><?php echo $langs->trans('Target'); ?></label>
             <select name="target">
-                <option value="me">Only Me</option>
-                <option value="broadcast">All Users (Broadcast)</option>
+                <option value="me"><?php echo $langs->trans('OnlyMe'); ?></option>
+                <option value="broadcast"><?php echo $langs->trans('AllUsersBroadcast'); ?></option>
             </select>
             <div class="nc-modal-footer">
-                <button type="button" class="nc-btn nc-btn-ghost" onclick="document.getElementById('modal-test').classList.remove('open')">Cancel</button>
-                <button type="submit" class="nc-btn nc-btn-primary"><i class="fa fa-paper-plane"></i> Send</button>
+                <button type="button" class="nc-btn nc-btn-ghost" onclick="document.getElementById('modal-test').classList.remove('open')"><?php echo $langs->trans('Cancel'); ?></button>
+                <button type="submit" class="nc-btn nc-btn-primary"><i class="fa fa-paper-plane"></i> <?php echo $langs->trans('Send'); ?></button>
             </div>
         </form>
     </div>

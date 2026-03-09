@@ -417,7 +417,7 @@ $title = $langs->trans('Inspection');
 if ($action == 'create') {
     $title = $langs->trans('NewInspection');
 } elseif ($action == 'edit') {
-    $title = $langs->trans('Edit Inspection');
+    $title = $langs->trans('EditInspection');
 } elseif ($id > 0) {
     $title = $langs->trans('Inspection') . " " . $object->ref;
 }
@@ -670,7 +670,7 @@ $isEdit   = ($action == 'edit');
 $isCreate = ($action == 'create');
 $isView   = (!$isEdit && !$isCreate);
 
-$pageTitle = $isCreate ? $langs->trans('NewInspection') : ($isEdit ? $langs->trans('Edit Inspection') : $langs->trans('Inspection'));
+$pageTitle = $isCreate ? $langs->trans('NewInspection') : ($isEdit ? $langs->trans('EditInspection') : $langs->trans('Inspection'));
 $pageSub   = $isCreate ? $langs->trans('FillInInspectionDetails') : (isset($object->ref) ? $object->ref : '');
 
 // Form start
@@ -714,7 +714,7 @@ print '<div class="dc-grid">';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon blue"><i class="fa fa-clipboard-list"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('Inspection Information').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('InspectionInformation').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
@@ -764,7 +764,7 @@ print '    </div></div>';
 
 // Registration Number
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Registration Number').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('RegistrationNumber').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="text" name="registration_number" value="'.(isset($object->registration_number) ? dol_escape_htmltag($object->registration_number) : '').'">';
@@ -775,7 +775,7 @@ print '    </div></div>';
 
 // Date Out
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Date Out').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('DateOut').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print $form->selectDate((isset($object->datetime_out) ? $object->datetime_out : ''), 'datetime_out', 1, 1, 1, '', 1, 1);
@@ -786,7 +786,7 @@ print '    </div></div>';
 
 // Date In
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Date In').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('DateIn').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print $form->selectDate((isset($object->datetime_in) ? $object->datetime_in : ''), 'datetime_in', 1, 1, 1, '', 1, 1);
@@ -802,13 +802,13 @@ print '</div>';  // dc-card
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon amber"><i class="fa fa-tachometer-alt"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('Meter And Fuel Information').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('MeterAndFuelInformation').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
 // Meter Out
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Meter Out').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('MeterOut').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="number" name="meter_out" value="'.(isset($object->meter_out) ? dol_escape_htmltag($object->meter_out) : '').'" min="0">';
@@ -819,7 +819,7 @@ print '    </div></div>';
 
 // Meter In
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Meter In').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('MeterIn').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="number" name="meter_in" value="'.(isset($object->meter_in) ? dol_escape_htmltag($object->meter_in) : '').'" min="0">';
@@ -830,7 +830,7 @@ print '    </div></div>';
 
 // Fuel Out
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Fuel Out').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('FuelOut').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="text" name="fuel_out" value="'.(isset($object->fuel_out) ? dol_escape_htmltag($object->fuel_out) : '').'">';
@@ -841,7 +841,7 @@ print '    </div></div>';
 
 // Fuel In
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Fuel In').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('FuelIn').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="text" name="fuel_in" value="'.(isset($object->fuel_in) ? dol_escape_htmltag($object->fuel_in) : '').'">';
@@ -859,31 +859,31 @@ print '</div>';// dc-grid row1
    ROW 2 — Inspection Checklist
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 $checklist_items = array(
-    'petrol_card'        => $langs->trans('Petrol Card'),
-    'lights_indicators'  => $langs->trans('Lights Indicators'),
-    'inverter_cigarette' => $langs->trans('Inverter Cigarette'),
-    'mats_seats'         => $langs->trans('Mats Seats'),
-    'interior_damage'    => $langs->trans('Interior Damage'),
-    'interior_lights'    => $langs->trans('Interior Lights'),
-    'exterior_damage'    => $langs->trans('Exterior Damage'),
-    'tyres_condition'    => $langs->trans('Tyres Condition'),
+    'petrol_card'        => $langs->trans('PetrolCard'),
+    'lights_indicators'  => $langs->trans('LightsIndicators'),
+    'inverter_cigarette' => $langs->trans('InverterCigarette'),
+    'mats_seats'         => $langs->trans('MatsSeats'),
+    'interior_damage'    => $langs->trans('InteriorDamage'),
+    'interior_lights'    => $langs->trans('InteriorLights'),
+    'exterior_damage'    => $langs->trans('ExteriorDamage'),
+    'tyres_condition'    => $langs->trans('TyresCondition'),
     'ladders'            => $langs->trans('Ladders'),
-    'extension_leeds'    => $langs->trans('Extension Leeds'),
-    'power_tools'        => $langs->trans('Power Tools'),
-    'ac_working'         => $langs->trans('AC Working'),
-    'headlights_working' => $langs->trans('Headlights Working'),
-    'locks_alarms'       => $langs->trans('Locks Alarms'),
-    'windows_condition'  => $langs->trans('Windows Condition'),
-    'seats_condition'    => $langs->trans('Seats Condition'),
-    'oil_check'          => $langs->trans('Oil Check'),
+    'extension_leeds'    => $langs->trans('ExtensionLeeds'),
+    'power_tools'        => $langs->trans('PowerTools'),
+    'ac_working'         => $langs->trans('ACWorking'),
+    'headlights_working' => $langs->trans('HeadlightsWorking'),
+    'locks_alarms'       => $langs->trans('LocksAlarms'),
+    'windows_condition'  => $langs->trans('WindowsCondition'),
+    'seats_condition'    => $langs->trans('SeatsCondition'),
+    'oil_check'          => $langs->trans('OilCheck'),
     'suspension'         => $langs->trans('Suspension'),
-    'toolboxes_condition'=> $langs->trans('Toolboxes Condition'),
+    'toolboxes_condition'=> $langs->trans('ToolboxesCondition'),
 );
 
 print '<div class="dc-card" style="margin-bottom:20px;">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon green"><i class="fa fa-check-double"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('Inspection Checklist').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('InspectionChecklist').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 print '  <div class="dc-checklist">';

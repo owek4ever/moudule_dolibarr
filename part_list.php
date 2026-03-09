@@ -175,7 +175,7 @@ if ($resql) {
 }
 
 // Page header
-llxHeader('', $langs->trans("Parts List"), '');
+llxHeader('', $langs->trans("PartsList"), '');
 
 // Build param string for URL
 $param = '';
@@ -570,18 +570,18 @@ table.vl-table tbody td.right  { text-align: right; }
 <!-- Header -->
 <div class="vl-header">
     <div class="vl-header-left">
-        <h1><i class="fa fa-cogs" style="color:#3c4758;margin-right:10px;"></i><?php echo $langs->trans("Parts List"); ?></h1>
-        <div class="vl-subtitle"><?php echo $nbtotalofrecords; ?> part<?php echo $nbtotalofrecords != 1 ? 's' : ''; ?> found</div>
+        <h1><i class="fa fa-cogs" style="color:#3c4758;margin-right:10px;"></i><?php echo $langs->trans("PartsList"); ?></h1>
+        <div class="vl-subtitle"><?php echo $nbtotalofrecords; ?> <?php echo $langs->trans("PartsList"); ?></div>
     </div>
     <div class="vl-header-actions">
         <?php if ($user->rights->flotte->read) { ?>
         <a class="vl-btn vl-btn-secondary" href="<?php echo dol_buildpath('/flotte/part_list.php', 1); ?>?action=export">
-            <i class="fa fa-download"></i> Export
+            <i class="fa fa-download"></i> <?php echo $langs->trans("Export"); ?>
         </a>
         <?php } ?>
         <?php if ($user->rights->flotte->write) { ?>
         <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/part_card.php', 1); ?>?action=create">
-            <i class="fa fa-plus"></i> New Part
+            <i class="fa fa-plus"></i> <?php echo $langs->trans("NewPart"); ?>
         </a>
         <?php } ?>
     </div>
@@ -598,86 +598,86 @@ table.vl-table tbody td.right  { text-align: right; }
 
 <div class="vl-filters">
     <div class="vl-filter-group">
-        <label>Reference</label>
-        <input type="text" name="search_ref" placeholder="Search ref…" value="<?php echo dol_escape_htmltag($search_ref); ?>">
+        <label><?php echo $langs->trans("Reference"); ?></label>
+        <input type="text" name="search_ref" placeholder="<?php echo $langs->trans('Reference'); ?>…" value="<?php echo dol_escape_htmltag($search_ref); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Title</label>
-        <input type="text" name="search_title" placeholder="Part title…" value="<?php echo dol_escape_htmltag($search_title); ?>">
+        <label><?php echo $langs->trans("PartTitle"); ?></label>
+        <input type="text" name="search_title" placeholder="<?php echo $langs->trans('PartTitle'); ?>…" value="<?php echo dol_escape_htmltag($search_title); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Part No.</label>
-        <input type="text" name="search_number" placeholder="Part number…" value="<?php echo dol_escape_htmltag($search_number); ?>">
+        <label><?php echo $langs->trans("PartNumber"); ?></label>
+        <input type="text" name="search_number" placeholder="<?php echo $langs->trans('PartNumber'); ?>…" value="<?php echo dol_escape_htmltag($search_number); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Barcode</label>
-        <input type="text" name="search_barcode" placeholder="Barcode…" value="<?php echo dol_escape_htmltag($search_barcode); ?>">
+        <label><?php echo $langs->trans("Barcode"); ?></label>
+        <input type="text" name="search_barcode" placeholder="<?php echo $langs->trans('Barcode'); ?>…" value="<?php echo dol_escape_htmltag($search_barcode); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Manufacturer</label>
-        <input type="text" name="search_manufacturer" placeholder="Manufacturer…" value="<?php echo dol_escape_htmltag($search_manufacturer); ?>">
+        <label><?php echo $langs->trans("Manufacturer"); ?></label>
+        <input type="text" name="search_manufacturer" placeholder="<?php echo $langs->trans('Manufacturer'); ?>…" value="<?php echo dol_escape_htmltag($search_manufacturer); ?>">
     </div>
     <div class="vl-filter-group" style="max-width:170px;">
-        <label>Vendor</label>
+        <label><?php echo $langs->trans("Vendor"); ?></label>
         <select name="search_vendor">
-            <option value="">All</option>
+            <option value=""><?php echo $langs->trans("All"); ?></option>
             <?php foreach ($vendors as $v_id => $v_name) { ?>
             <option value="<?php echo (int)$v_id; ?>" <?php echo (int)$search_vendor === (int)$v_id ? 'selected' : ''; ?>><?php echo dol_escape_htmltag($v_name); ?></option>
             <?php } ?>
         </select>
     </div>
     <div class="vl-filter-group" style="max-width:160px;">
-        <label>Status</label>
+        <label><?php echo $langs->trans("Status"); ?></label>
         <select name="search_status">
-            <option value="">All</option>
-            <option value="Active"       <?php echo $search_status === 'Active'       ? 'selected' : ''; ?>>Active</option>
-            <option value="Inactive"     <?php echo $search_status === 'Inactive'     ? 'selected' : ''; ?>>Inactive</option>
-            <option value="Maintenance"  <?php echo $search_status === 'Maintenance'  ? 'selected' : ''; ?>>Maintenance</option>
-            <option value="Discontinued" <?php echo $search_status === 'Discontinued' ? 'selected' : ''; ?>>Discontinued</option>
+            <option value=""><?php echo $langs->trans("All"); ?></option>
+            <option value="Active"       <?php echo $search_status === 'Active'       ? 'selected' : ''; ?>><?php echo $langs->trans("Active"); ?></option>
+            <option value="Inactive"     <?php echo $search_status === 'Inactive'     ? 'selected' : ''; ?>><?php echo $langs->trans("Inactive"); ?></option>
+            <option value="Maintenance"  <?php echo $search_status === 'Maintenance'  ? 'selected' : ''; ?>><?php echo $langs->trans("Maintenance"); ?></option>
+            <option value="Discontinued" <?php echo $search_status === 'Discontinued' ? 'selected' : ''; ?>><?php echo $langs->trans("Discontinued"); ?></option>
         </select>
     </div>
     <div class="vl-filter-group" style="max-width:160px;">
-        <label>Availability</label>
+        <label><?php echo $langs->trans("Availability"); ?></label>
         <select name="search_availability">
-            <option value="">All</option>
-            <option value="1" <?php echo $search_availability === '1' ? 'selected' : ''; ?>>Available</option>
-            <option value="0" <?php echo $search_availability === '0' ? 'selected' : ''; ?>>Not Available</option>
+            <option value=""><?php echo $langs->trans("All"); ?></option>
+            <option value="1" <?php echo $search_availability === '1' ? 'selected' : ''; ?>><?php echo $langs->trans("Available"); ?></option>
+            <option value="0" <?php echo $search_availability === '0' ? 'selected' : ''; ?>><?php echo $langs->trans("NotAvailable"); ?></option>
         </select>
     </div>
     <div class="vl-filter-actions">
-        <button type="submit" class="vl-btn-filter apply"><i class="fa fa-search"></i> Search</button>
-        <button type="submit" name="button_removefilter" value="1" class="vl-btn-filter reset"><i class="fa fa-times"></i> Reset</button>
+        <button type="submit" class="vl-btn-filter apply"><i class="fa fa-search"></i> <?php echo $langs->trans("Search"); ?></button>
+        <button type="submit" name="button_removefilter" value="1" class="vl-btn-filter reset"><i class="fa fa-times"></i> <?php echo $langs->trans("Reset"); ?></button>
     </div>
 </div>
 
 <!-- Stats chips -->
 <div class="vl-stats">
     <div class="vl-stat-chip">
-        <span class="vl-stat-num"><?php echo $nbtotalofrecords; ?></span> Total
+        <span class="vl-stat-num"><?php echo $nbtotalofrecords; ?></span> <?php echo $langs->trans("Total"); ?>
     </div>
     <?php if ($cnt_active > 0) { ?>
     <div class="vl-stat-chip" style="background:#f0fdf4;color:#166534;">
-        <span class="vl-stat-num" style="color:#166534;"><?php echo $cnt_active; ?></span> Active
+        <span class="vl-stat-num" style="color:#166534;"><?php echo $cnt_active; ?></span> <?php echo $langs->trans("Active"); ?>
     </div>
     <?php } ?>
     <?php if ($cnt_maintenance > 0) { ?>
     <div class="vl-stat-chip" style="background:#fffbeb;color:#92400e;">
-        <span class="vl-stat-num" style="color:#92400e;"><?php echo $cnt_maintenance; ?></span> Maintenance
+        <span class="vl-stat-num" style="color:#92400e;"><?php echo $cnt_maintenance; ?></span> <?php echo $langs->trans("Maintenance"); ?>
     </div>
     <?php } ?>
     <?php if ($cnt_inactive > 0) { ?>
     <div class="vl-stat-chip" style="background:#fef2f2;color:#991b1b;">
-        <span class="vl-stat-num" style="color:#991b1b;"><?php echo $cnt_inactive; ?></span> Inactive
+        <span class="vl-stat-num" style="color:#991b1b;"><?php echo $cnt_inactive; ?></span> <?php echo $langs->trans("Inactive"); ?>
     </div>
     <?php } ?>
     <?php if ($cnt_discontinued > 0) { ?>
     <div class="vl-stat-chip" style="background:#f0f2fa;color:#5a6482;">
-        <span class="vl-stat-num" style="color:#5a6482;"><?php echo $cnt_discontinued; ?></span> Discontinued
+        <span class="vl-stat-num" style="color:#5a6482;"><?php echo $cnt_discontinued; ?></span> <?php echo $langs->trans("Discontinued"); ?>
     </div>
     <?php } ?>
     <?php if ($cnt_out_of_stock > 0) { ?>
     <div class="vl-stat-chip" style="background:#fef2f2;color:#991b1b;">
-        <span class="vl-stat-num" style="color:#991b1b;"><?php echo $cnt_out_of_stock; ?></span> Out of Stock
+        <span class="vl-stat-num" style="color:#991b1b;"><?php echo $cnt_out_of_stock; ?></span> <?php echo $langs->trans("OutOfStock"); ?>
     </div>
     <?php } ?>
 </div>
@@ -688,17 +688,17 @@ table.vl-table tbody td.right  { text-align: right; }
     <table class="vl-table">
         <thead>
             <tr>
-                <th><a href="<?php echo pl_sortHref('t.ref', $sortfield, $sortorder, $self, $param); ?>">Ref <?php echo pl_sortArrow('t.ref', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo pl_sortHref('t.title', $sortfield, $sortorder, $self, $param); ?>">Title <?php echo pl_sortArrow('t.title', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo pl_sortHref('t.number', $sortfield, $sortorder, $self, $param); ?>">Part No. <?php echo pl_sortArrow('t.number', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo pl_sortHref('t.barcode', $sortfield, $sortorder, $self, $param); ?>">Barcode <?php echo pl_sortArrow('t.barcode', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo pl_sortHref('t.manufacturer', $sortfield, $sortorder, $self, $param); ?>">Manufacturer <?php echo pl_sortArrow('t.manufacturer', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo pl_sortHref('v.name', $sortfield, $sortorder, $self, $param); ?>">Vendor <?php echo pl_sortArrow('v.name', $sortfield, $sortorder); ?></a></th>
-                <th class="right"><a href="<?php echo pl_sortHref('t.qty_on_hand', $sortfield, $sortorder, $self, $param); ?>">Stock <?php echo pl_sortArrow('t.qty_on_hand', $sortfield, $sortorder); ?></a></th>
-                <th class="right"><a href="<?php echo pl_sortHref('t.unit_cost', $sortfield, $sortorder, $self, $param); ?>">Unit Cost <?php echo pl_sortArrow('t.unit_cost', $sortfield, $sortorder); ?></a></th>
-                <th class="center"><a href="<?php echo pl_sortHref('t.status', $sortfield, $sortorder, $self, $param); ?>">Status <?php echo pl_sortArrow('t.status', $sortfield, $sortorder); ?></a></th>
-                <th class="center"><a href="<?php echo pl_sortHref('t.availability', $sortfield, $sortorder, $self, $param); ?>">Available <?php echo pl_sortArrow('t.availability', $sortfield, $sortorder); ?></a></th>
-                <th class="center">Actions</th>
+                <th><a href="<?php echo pl_sortHref('t.ref', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Ref"); ?> <?php echo pl_sortArrow('t.ref', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo pl_sortHref('t.title', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("PartTitle"); ?> <?php echo pl_sortArrow('t.title', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo pl_sortHref('t.number', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("PartNumber"); ?> <?php echo pl_sortArrow('t.number', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo pl_sortHref('t.barcode', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Barcode"); ?> <?php echo pl_sortArrow('t.barcode', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo pl_sortHref('t.manufacturer', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Manufacturer"); ?> <?php echo pl_sortArrow('t.manufacturer', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo pl_sortHref('v.name', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Vendor"); ?> <?php echo pl_sortArrow('v.name', $sortfield, $sortorder); ?></a></th>
+                <th class="right"><a href="<?php echo pl_sortHref('t.qty_on_hand', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Stock"); ?> <?php echo pl_sortArrow('t.qty_on_hand', $sortfield, $sortorder); ?></a></th>
+                <th class="right"><a href="<?php echo pl_sortHref('t.unit_cost', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("UnitCost"); ?> <?php echo pl_sortArrow('t.unit_cost', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><a href="<?php echo pl_sortHref('t.status', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Status"); ?> <?php echo pl_sortArrow('t.status', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><a href="<?php echo pl_sortHref('t.availability', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Availability"); ?> <?php echo pl_sortArrow('t.availability', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><?php echo $langs->trans("Action"); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -708,7 +708,7 @@ table.vl-table tbody td.right  { text-align: right; }
         ?>
             <tr>
                 <!-- Ref -->
-                <td data-label="Ref">
+                <td data-label="<?php echo $langs->trans('Ref'); ?>">
                     <a href="<?php echo $cardUrl; ?>" class="vl-ref-link">
                         <span class="vl-ref-icon"><i class="fa fa-cog"></i></span>
                         <?php echo dol_escape_htmltag($obj->ref); ?>
@@ -716,7 +716,7 @@ table.vl-table tbody td.right  { text-align: right; }
                 </td>
 
                 <!-- Title -->
-                <td data-label="Title">
+                <td data-label="<?php echo $langs->trans('PartTitle'); ?>">
                     <div class="vl-part-name"><?php echo dol_escape_htmltag($obj->title ?: '—'); ?></div>
                     <?php if (!empty($obj->model) || !empty($obj->year)) { ?>
                     <div class="vl-part-sub"><?php echo dol_escape_htmltag(trim(($obj->model ?? '').' '.($obj->year ?? ''))); ?></div>
@@ -724,27 +724,27 @@ table.vl-table tbody td.right  { text-align: right; }
                 </td>
 
                 <!-- Part Number -->
-                <td data-label="Part No.">
+                <td data-label="<?php echo $langs->trans('PartNumber'); ?>">
                     <?php if (!empty($obj->number)) { ?>
                     <span class="vl-mono"><?php echo dol_escape_htmltag($obj->number); ?></span>
                     <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
                 </td>
 
                 <!-- Barcode -->
-                <td data-label="Barcode">
+                <td data-label="<?php echo $langs->trans('Barcode'); ?>">
                     <?php if (!empty($obj->barcode)) { ?>
                     <span class="vl-mono"><?php echo dol_escape_htmltag($obj->barcode); ?></span>
                     <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
                 </td>
 
                 <!-- Manufacturer -->
-                <td data-label="Manufacturer"><?php echo dol_escape_htmltag($obj->manufacturer ?: '—'); ?></td>
+                <td data-label="<?php echo $langs->trans('Manufacturer'); ?>"><?php echo dol_escape_htmltag($obj->manufacturer ?: '—'); ?></td>
 
                 <!-- Vendor -->
-                <td data-label="Vendor"><?php echo dol_escape_htmltag($obj->vendor_name ?: '—'); ?></td>
+                <td data-label="<?php echo $langs->trans('Vendor'); ?>"><?php echo dol_escape_htmltag($obj->vendor_name ?: '—'); ?></td>
 
                 <!-- Stock -->
-                <td class="right" data-label="Stock">
+                <td class="right" data-label="<?php echo $langs->trans('Stock'); ?>">
                     <?php
                     $qty = (int)$obj->qty_on_hand;
                     if ($qty <= 0)     $stock_cls = 'empty';
@@ -755,39 +755,39 @@ table.vl-table tbody td.right  { text-align: right; }
                 </td>
 
                 <!-- Unit Cost -->
-                <td class="right" data-label="Unit Cost">
+                <td class="right" data-label="<?php echo $langs->trans('UnitCost'); ?>">
                     <?php echo !empty($obj->unit_cost) ? price($obj->unit_cost) : '<span style="color:#c4c9d8;">—</span>'; ?>
                 </td>
 
                 <!-- Status -->
-                <td class="center" data-label="Status">
+                <td class="center" data-label="<?php echo $langs->trans('Status'); ?>">
                     <?php
                     $st = $obj->status;
-                    if ($st == 'Active')        echo '<span class="vl-badge active">Active</span>';
-                    elseif ($st == 'Inactive')  echo '<span class="vl-badge inactive">Inactive</span>';
-                    elseif ($st == 'Maintenance') echo '<span class="vl-badge maintenance">Maintenance</span>';
-                    elseif ($st == 'Discontinued') echo '<span class="vl-badge discontinued">Discontinued</span>';
+                    if ($st == 'Active')        echo '<span class="vl-badge active">'.$langs->trans('Active').'</span>';
+                    elseif ($st == 'Inactive')  echo '<span class="vl-badge inactive">'.$langs->trans('Inactive').'</span>';
+                    elseif ($st == 'Maintenance') echo '<span class="vl-badge maintenance">'.$langs->trans('Maintenance').'</span>';
+                    elseif ($st == 'Discontinued') echo '<span class="vl-badge discontinued">'.$langs->trans('Discontinued').'</span>';
                     else echo '<span style="color:#c4c9d8;font-size:13px;">—</span>';
                     ?>
                 </td>
 
                 <!-- Availability -->
-                <td class="center" data-label="Available">
+                <td class="center" data-label="<?php echo $langs->trans('Availability'); ?>">
                     <?php
-                    if ($obj->availability == 1) echo '<span class="vl-badge available">Available</span>';
-                    else                         echo '<span class="vl-badge unavailable">Not Available</span>';
+                    if ($obj->availability == 1) echo '<span class="vl-badge available">'.$langs->trans('Available').'</span>';
+                    else                         echo '<span class="vl-badge unavailable">'.$langs->trans('NotAvailable').'</span>';
                     ?>
                 </td>
 
                 <!-- Actions -->
-                <td data-label="Actions">
+                <td data-label="<?php echo $langs->trans('Action'); ?>">
                     <div class="vl-actions">
-                        <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="View"><i class="fa fa-eye"></i></a>
+                        <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="<?php echo $langs->trans('View'); ?>"><i class="fa fa-eye"></i></a>
                         <?php if ($user->rights->flotte->write) { ?>
-                        <a href="<?php echo $cardUrl; ?>&action=edit" class="vl-action-btn edit" title="Edit"><i class="fa fa-pen"></i></a>
+                        <a href="<?php echo $cardUrl; ?>&action=edit" class="vl-action-btn edit" title="<?php echo $langs->trans('Edit'); ?>"><i class="fa fa-pen"></i></a>
                         <?php } ?>
                         <?php if ($user->rights->flotte->delete) { ?>
-                        <a href="<?php echo $self; ?>?id=<?php echo $obj->rowid; ?>&action=delete&token=<?php echo newToken(); ?><?php echo $param; ?>" class="vl-action-btn del" title="Delete"><i class="fa fa-trash"></i></a>
+                        <a href="<?php echo $self; ?>?id=<?php echo $obj->rowid; ?>&action=delete&token=<?php echo newToken(); ?><?php echo $param; ?>" class="vl-action-btn del" title="<?php echo $langs->trans('Delete'); ?>"><i class="fa fa-trash"></i></a>
                         <?php } ?>
                     </div>
                 </td>
@@ -797,10 +797,10 @@ table.vl-table tbody td.right  { text-align: right; }
                 <td colspan="11">
                     <div class="vl-empty">
                         <div class="vl-empty-icon"><i class="fa fa-cogs"></i></div>
-                        <p>No parts found</p>
+                        <p><?php echo $langs->trans("PartsList"); ?></p>
                         <?php if ($user->rights->flotte->write) { ?>
                         <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/part_card.php', 1); ?>?action=create">
-                            <i class="fa fa-plus"></i> Add First Part
+                            <i class="fa fa-plus"></i> <?php echo $langs->trans("NewPart"); ?>
                         </a>
                         <?php } ?>
                     </div>
@@ -821,7 +821,7 @@ table.vl-table tbody td.right  { text-align: right; }
     ?>
     <div class="vl-pagination">
         <div class="vl-pagination-info">
-            Showing <strong><?php echo $showing_from; ?></strong>–<strong><?php echo $showing_to; ?></strong> of <strong><?php echo $nbtotalofrecords; ?></strong> parts
+            <?php echo $langs->trans("ShowingVehicles", $showing_from, $showing_to, $nbtotalofrecords); ?>
         </div>
         <div class="vl-page-btns">
             <a class="vl-page-btn <?php echo $page == 0 ? 'disabled' : ''; ?>" href="<?php echo $self; ?>?page=0&sortfield=<?php echo $sortfield; ?>&sortorder=<?php echo $sortorder; ?>&<?php echo $param; ?>">«</a>

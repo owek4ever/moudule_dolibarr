@@ -109,7 +109,7 @@ foreach ($all_vehicles as $v) {
 }
 
 // Page output — no llxHeader wrapper, we need full viewport
-llxHeader('', 'Vehicle Tracking Map', '');
+llxHeader('', $langs->trans('VehicleTrackingMap'), '');
 print '<div class="fichecenter">';
 ?>
 <style>
@@ -331,21 +331,21 @@ print '<div class="fichecenter">';
     <div class="vtm-topbar">
         <div class="vtm-topbar-left">
             <button class="vtm-btn vtm-sidebar-toggle" onclick="toggleSidebar()">
-                <i class="fa fa-bars"></i> Vehicles
+                <i class="fa fa-bars"></i> <?php echo $langs->trans('Vehicles'); ?>
             </button>
             <div class="vtm-topbar-title">
-                <i class="fa fa-map-marker-alt"></i> Vehicle Tracking Map
+                <i class="fa fa-map-marker-alt"></i> <?php echo $langs->trans('VehicleTrackingMap'); ?>
             </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;">
             <button class="vtm-btn vtm-btn-fs" onclick="toggleFullscreen()" id="fsBtn">
-                <i class="fa fa-expand" id="fsIcon"></i> Full Screen
+                <i class="fa fa-expand" id="fsIcon"></i> <?php echo $langs->trans('FullScreen'); ?>
             </button>
             <a href="<?php echo dol_buildpath('/flotte/tracking_list.php', 1); ?>" class="vtm-btn">
-                <i class="fa fa-th-large"></i> Card View
+                <i class="fa fa-th-large"></i> <?php echo $langs->trans('CardView'); ?>
             </a>
             <a href="<?php echo dol_buildpath('/flotte/flotteindex.php', 1); ?>" class="vtm-btn">
-                <i class="fa fa-arrow-left"></i> Dashboard
+                <i class="fa fa-arrow-left"></i> <?php echo $langs->trans('Dashboard'); ?>
             </a>
         </div>
     </div>
@@ -356,15 +356,15 @@ print '<div class="fichecenter">';
         <!-- ── Sidebar ── -->
         <div class="vtm-sidebar" id="vtmSidebar">
             <div class="vtm-sidebar-header">
-                <div class="vtm-sidebar-title">Vehicles (<?php echo count($all_vehicles); ?>)</div>
-                <input type="text" class="vtm-search" id="vtmSearch" placeholder="Search vehicle..." oninput="filterVehicles(this.value)">
+                <div class="vtm-sidebar-title"><?php echo $langs->trans('Vehicles'); ?> (<?php echo count($all_vehicles); ?>)</div>
+                <input type="text" class="vtm-search" id="vtmSearch" placeholder="<?php echo $langs->trans('SearchVehicle'); ?>..." oninput="filterVehicles(this.value)">
             </div>
             <div class="vtm-vehicle-list" id="vtmVehicleList">
                 <?php foreach ($all_vehicles as $v):
                     $vname = trim($v->maker.' '.$v->model);
                     if (empty($vname)) $vname = $v->ref;
                     $st = $v->computed_status;
-                    $st_label = $st === 'available' ? 'Available' : ($st === 'inuse' ? 'In Use' : 'Off');
+                    $st_label = $st === 'available' ? $langs->trans('Available') : ($st === 'inuse' ? $langs->trans('InUse') : $langs->trans('Off'));
                     $is_active = ($v->rowid == $selected_id);
                 ?>
                 <a href="<?php echo dol_buildpath('/flotte/vehicle_tracking_map.php', 1).'?id='.(int)$v->rowid; ?>"
@@ -391,7 +391,7 @@ print '<div class="fichecenter">';
                 $sv_name = trim($sv->maker.' '.$sv->model);
                 if (empty($sv_name)) $sv_name = $sv->ref;
                 $sv_st = $sv->computed_status;
-                $sv_st_label = $sv_st === 'available' ? 'Available' : ($sv_st === 'inuse' ? 'In Use' : 'Out of Service');
+                $sv_st_label = $sv_st === 'available' ? $langs->trans('Available') : ($sv_st === 'inuse' ? $langs->trans('InUse') : $langs->trans('OutOfService'));
                 $sv_driver   = trim(($sv->driver_firstname ?? '').' '.($sv->driver_lastname ?? ''));
                 $sv_customer = trim(($sv->customer_firstname ?? '').' '.($sv->customer_lastname ?? ''));
             ?>
@@ -428,12 +428,12 @@ print '<div class="fichecenter">';
                 <div class="vtm-route-point">
                     <div class="vtm-rp-icon dep"><i class="fa fa-map-pin"></i></div>
                     <div style="min-width:0;">
-                        <div class="vtm-rp-label">From</div>
+                        <div class="vtm-rp-label"><?php echo $langs->trans('From'); ?></div>
                         <div class="vtm-rp-addr">
                             <?php if (!empty($sv->departure_address)): ?>
                                 <?php echo dol_escape_htmltag($sv->departure_address); ?>
                             <?php else: ?>
-                                <span class="vtm-rp-none">No departure set</span>
+                                <span class="vtm-rp-none"><?php echo $langs->trans('NoDepartureSet'); ?></span>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -442,7 +442,7 @@ print '<div class="fichecenter">';
                 <div class="vtm-route-point">
                     <div class="vtm-rp-icon curr"><i class="fa fa-truck"></i></div>
                     <div style="min-width:0;">
-                        <div class="vtm-rp-label">Status</div>
+                        <div class="vtm-rp-label"><?php echo $langs->trans('Status'); ?></div>
                         <div class="vtm-rp-addr"><?php echo dol_escape_htmltag(ucwords(str_replace('_', ' ', $sv->booking_status ?? 'Active'))); ?></div>
                     </div>
                 </div>
@@ -450,12 +450,12 @@ print '<div class="fichecenter">';
                 <div class="vtm-route-point">
                     <div class="vtm-rp-icon arr"><i class="fa fa-flag-checkered"></i></div>
                     <div style="min-width:0;">
-                        <div class="vtm-rp-label">To</div>
+                        <div class="vtm-rp-label"><?php echo $langs->trans('To'); ?></div>
                         <div class="vtm-rp-addr">
                             <?php if (!empty($sv->arriving_address)): ?>
                                 <?php echo dol_escape_htmltag($sv->arriving_address); ?>
                             <?php else: ?>
-                                <span class="vtm-rp-none">No destination set</span>
+                                <span class="vtm-rp-none"><?php echo $langs->trans('NoDestinationSet'); ?></span>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -473,7 +473,7 @@ print '<div class="fichecenter">';
             <?php else: ?>
             <div class="vtm-no-addr">
                 <i class="fa fa-map-marked-alt"></i>
-                <h3>No Route Data Available</h3>
+                <h3><?php echo $langs->trans('NoRouteDataAvailable'); ?></h3>
                 <p>This vehicle has no departure or arrival address recorded. Add addresses to a booking to enable map tracking.</p>
                 <a href="<?php echo dol_buildpath('/flotte/vehicle_card.php', 1).'?id='.(int)$sv->rowid; ?>" class="vtm-btn" style="margin-top:8px;">
                     <i class="fa fa-eye"></i> View Vehicle
@@ -484,8 +484,8 @@ print '<div class="fichecenter">';
             <?php else: ?>
             <div class="vtm-no-addr">
                 <i class="fa fa-car"></i>
-                <h3>No Vehicle Selected</h3>
-                <p>Select a vehicle from the sidebar to view its tracking information.</p>
+                <h3><?php echo $langs->trans('NoVehicleSelected'); ?></h3>
+                <p><?php echo $langs->trans('SelectVehicleFromSidebar'); ?></p>
             </div>
             <?php endif; ?>
 
@@ -669,13 +669,13 @@ function toggleFullscreen() {
         wrap.classList.remove('fullscreen');
         if (icon1) { icon1.className = 'fa fa-expand'; }
         if (icon2) { icon2.className = 'fa fa-expand'; }
-        if (btn)   { btn.innerHTML = '<i class="fa fa-expand"></i> Full Screen'; }
+        if (btn)   { btn.innerHTML = '<i class="fa fa-expand"></i> <?php echo $langs->trans("FullScreen"); ?>'; }
         document.body.style.overflow = '';
     } else {
         wrap.classList.add('fullscreen');
         if (icon1) { icon1.className = 'fa fa-compress'; }
         if (icon2) { icon2.className = 'fa fa-compress'; }
-        if (btn)   { btn.innerHTML = '<i class="fa fa-compress"></i> Exit Full Screen'; }
+        if (btn)   { btn.innerHTML = '<i class="fa fa-compress"></i> <?php echo $langs->trans("ExitFullScreen"); ?>'; }
         document.body.style.overflow = 'hidden';
     }
     // Invalidate map size after layout change

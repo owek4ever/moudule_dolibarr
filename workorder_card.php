@@ -121,7 +121,7 @@ if ($action == 'confirm_delete' && $confirm == 'yes' && $user->rights->flotte->d
         exit;
     } else {
         $db->rollback();
-        $errors[] = 'Error deleting work order: '.$db->lasterror();
+        $errors[] = $langs->trans('ErrorDeletingWorkOrder').': '.$db->lasterror();
     }
 }
 
@@ -142,7 +142,7 @@ if ($action == 'add' && $user->rights->flotte->write) {
     $technician_notes    = GETPOST('technician_notes',    'alpha');
 
     if (empty($ref)) $ref = getNextWorkOrderRef($db, $conf->entity);
-    if (empty($ref)) { $error++; $errors[] = 'Reference is required.'; }
+    if (empty($ref)) { $error++; $errors[] = $langs->trans('ErrorFieldRequired'); }
 
     if (!$error) {
         $sql  = "INSERT INTO ".MAIN_DB_PREFIX."flotte_workorder (";
@@ -179,7 +179,7 @@ if ($action == 'add' && $user->rights->flotte->write) {
         } else {
             $db->rollback();
             $error++;
-            $errors[] = 'ErrorCreatingWorkOrder: '.$db->lasterror();
+            $errors[] = $langs->trans('ErrorCreatingWorkOrder').': '.$db->lasterror();
         }
     } else {
         $db->rollback();
@@ -202,7 +202,7 @@ if ($action == 'update' && $user->rights->flotte->write) {
     $status              = GETPOST('status',              'alpha');
     $technician_notes    = GETPOST('technician_notes',    'alpha');
 
-    if (empty($ref)) { $error++; $errors[] = 'Reference is required.'; }
+    if (empty($ref)) { $error++; $errors[] = $langs->trans('ErrorFieldRequired'); }
 
     if (!$error) {
         $sql  = "UPDATE ".MAIN_DB_PREFIX."flotte_workorder SET";
@@ -231,7 +231,7 @@ if ($action == 'update' && $user->rights->flotte->write) {
         } else {
             $db->rollback();
             $error++;
-            $errors[] = 'ErrorUpdatingWorkOrder: '.$db->lasterror();
+            $errors[] = $langs->trans('ErrorUpdatingWorkOrder').': '.$db->lasterror();
         }
     } else {
         $db->rollback();
@@ -248,7 +248,7 @@ if ($id > 0) {
     $resql = $db->query($sql);
     if ($resql) {
         $object = $db->fetch_object($resql);
-        if (!$object) { header("HTTP/1.0 404 Not Found"); print 'Work order not found.'; exit; }
+        if (!$object) { header("HTTP/1.0 404 Not Found"); print $langs->trans('WorkOrderNotFound'); exit; }
         if (empty($object->task_to_perform))  $object->task_to_perform  = $object->description ?? '';
         if (empty($object->technician_notes)) $object->technician_notes = $object->note        ?? '';
         if (empty($object->due_date))         $object->due_date         = $object->required_by ?? '';
@@ -256,7 +256,7 @@ if ($id > 0) {
         if (empty($object->status))           $object->status           = 'Pending';
     } else {
         header("HTTP/1.0 500 Internal Server Error");
-        print 'Error loading work order: '.$db->lasterror();
+        print $langs->trans('ErrorLoadingWorkOrder').': '.$db->lasterror();
         exit;
     }
 }
@@ -600,8 +600,8 @@ if ($isView && $id > 0) {
     $curPriority = !empty($object->priority) ? $object->priority : 'Medium';
     $statusCss   = isset($statusBadgeClass[$curStatus])     ? $statusBadgeClass[$curStatus]     : 'status-pending';
     $priorityCss = isset($priorityBadgeClass[$curPriority]) ? $priorityBadgeClass[$curPriority] : 'priority-medium';
-    print '<span class="dc-badge '.$statusCss.'">'.dol_escape_htmltag($curStatus).'</span>';
-    print '<span class="dc-badge '.$priorityCss.'">'.dol_escape_htmltag($curPriority).'</span>';
+    print '<span class="dc-badge '.$statusCss.'">'.dol_escape_htmltag($langs->trans(str_replace(' ', '', $curStatus))).'</span>';
+    print '<span class="dc-badge '.$priorityCss.'">'.dol_escape_htmltag($langs->trans($curPriority)).'</span>';
     print '<a class="dc-btn dc-btn-ghost" href="'.dol_buildpath('/flotte/workorder_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('BackToList').'</a>';
     if ($user->rights->flotte->write)  print '<a class="dc-btn dc-btn-ghost" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=edit"><i class="fa fa-pen"></i> '.$langs->trans('Modify').'</a>';
     if ($user->rights->flotte->delete) print '<a class="dc-btn dc-btn-danger" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=delete"><i class="fa fa-trash"></i> '.$langs->trans('Delete').'</a>';
@@ -618,7 +618,7 @@ print '<div class="dc-grid">';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon blue"><i class="fa fa-clipboard-list"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('WorkOrder Information').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('WorkOrderInformation').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
@@ -680,7 +680,7 @@ print '</div>';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon green"><i class="fa fa-user-cog"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('Assignment And Status').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('AssignmentAndStatus').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
@@ -702,7 +702,7 @@ print '    </div></div>';
 
 // Responsible Person
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Responsible Person').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('ResponsiblePerson').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print '<input type="text" name="responsible_person" value="'.dol_escape_htmltag($object->responsible_person).'" placeholder="'.$langs->trans('SupervisorOrApprover').'">';
 else print dol_escape_htmltag($object->responsible_person ?: '&mdash;');
@@ -716,7 +716,7 @@ if ($isCreate || $isEdit) {
     print '<div class="dc-radio-group">';
     foreach (['Pending', 'In Progress', 'Completed', 'Cancelled'] as $s) {
         $chk = ($object->status == $s) ? ' checked' : '';
-        print '<label><input type="radio" name="status" value="'.dol_escape_htmltag($s).'"'.$chk.'><span>'.dol_escape_htmltag($s).'</span></label>';
+        print '<label><input type="radio" name="status" value="'.dol_escape_htmltag($s).'"'.$chk.'><span>'.dol_escape_htmltag($langs->trans(str_replace(' ', '', $s))).'</span></label>';
     }
     print '</div>';
 } else {
@@ -746,7 +746,7 @@ print '  <div class="dc-card-body">';
 
 // Start Date
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Start Date').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('StartDate').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $sdVal = !empty($object->start_date) ? htmlspecialchars($object->start_date) : '';
@@ -760,7 +760,7 @@ print '    </div></div>';
 
 // Due Date
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Due Date').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('DueDate').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $ddVal = !empty($object->due_date) ? htmlspecialchars($object->due_date) : '';
@@ -786,23 +786,23 @@ print '</div>';// dc-grid row2
 print '<div class="dc-card" style="margin-bottom:20px;">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon teal"><i class="fa fa-tasks"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('Task Details').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('TaskDetails').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
 // Task to Perform
 print '  <div class="dc-field" style="flex-direction:column;gap:8px;">';
-print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('Task To Perform').'</div>';
+print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('TaskToPerform').'</div>';
 print '    <div class="dc-field-value" style="width:100%;">';
-if ($isCreate || $isEdit) print '<textarea name="task_to_perform" rows="3" placeholder="'.dol_escape_htmltag($langs->trans('DescribecTaskscTo Be Performed')).'">'.dol_escape_htmltag($object->task_to_perform).'</textarea>';
+if ($isCreate || $isEdit) print '<textarea name="task_to_perform" rows="3" placeholder="'.dol_escape_htmltag($langs->trans('DescribeTasksToBePerformed')).'">'.dol_escape_htmltag($object->task_to_perform).'</textarea>';
 else print '<div style="white-space:pre-wrap;">'.nl2br(dol_escape_htmltag($object->task_to_perform ?: '&mdash;')).'</div>';
 print '    </div></div>';
 
 // Problem Description
 print '  <div class="dc-field" style="flex-direction:column;gap:8px;">';
-print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('Problem Description').'</div>';
+print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('ProblemDescription').'</div>';
 print '    <div class="dc-field-value" style="width:100%;">';
-if ($isCreate || $isEdit) print '<textarea name="problem_description" rows="3" placeholder="'.dol_escape_htmltag($langs->trans('Describe Problem Or Symptoms')).'">'.dol_escape_htmltag($object->problem_description).'</textarea>';
+if ($isCreate || $isEdit) print '<textarea name="problem_description" rows="3" placeholder="'.dol_escape_htmltag($langs->trans('DescribeProblemOrSymptoms')).'">'.dol_escape_htmltag($object->problem_description).'</textarea>';
 else print '<div style="white-space:pre-wrap;">'.nl2br(dol_escape_htmltag($object->problem_description ?: '&mdash;')).'</div>';
 print '    </div></div>';
 
@@ -815,15 +815,15 @@ print '</div>';
 print '<div class="dc-card" style="margin-bottom:20px;">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon purple"><i class="fa fa-sticky-note"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('Notes And Approval').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('NotesAndApproval').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
 // Technician Notes
 print '  <div class="dc-field" style="flex-direction:column;gap:8px;">';
-print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('Technician Notes').'</div>';
+print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('TechnicianNotes').'</div>';
 print '    <div class="dc-field-value" style="width:100%;">';
-if ($isCreate || $isEdit) print '<textarea name="technician_notes" rows="5" placeholder="'.dol_escape_htmltag($langs->trans('Findings Observations Recommendations')).'">'.dol_escape_htmltag($object->technician_notes).'</textarea>';
+if ($isCreate || $isEdit) print '<textarea name="technician_notes" rows="5" placeholder="'.dol_escape_htmltag($langs->trans('FindingsObservationsRecommendations')).'">'.dol_escape_htmltag($object->technician_notes).'</textarea>';
 else print '<div style="white-space:pre-wrap;">'.nl2br(dol_escape_htmltag($object->technician_notes ?: '&mdash;')).'</div>';
 print '    </div></div>';
 

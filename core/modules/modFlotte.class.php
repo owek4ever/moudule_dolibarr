@@ -373,7 +373,7 @@ class modFlotte extends DolibarrModules
 		$this->menu[$r] = array(
 			'fk_menu' => 'fk_mainmenu=flotte',
 			'type' => 'left',
-			'titre' => 'Work Orders',
+			'titre' => 'WorkOrders',
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_workorders',
 			'url' => '/flotte/workorder_list.php',

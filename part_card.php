@@ -124,7 +124,7 @@ if ($action == 'confirm_delete' && $confirm == 'yes' && $user->rights->flotte->d
     } else {
         $db->rollback();
         $error++;
-        setEventMessages("Error deleting part", null, 'errors');
+        setEventMessages($langs->trans("ErrorDeletingPart"), null, 'errors');
     }
 }
 
@@ -155,7 +155,7 @@ if ($action == 'add') {
     
     if (empty($title)) {
         $error++;
-        $errors[] = "Part title is required";
+        $errors[] = $langs->trans("ErrorFieldRequired");
     }
     
     if (!$error) {
@@ -186,11 +186,11 @@ if ($action == 'add') {
             $id = $db->last_insert_id(MAIN_DB_PREFIX."flotte_part");
             $db->commit();
             $action = 'view';
-            setEventMessages("Part created successfully", null, 'mesgs');
+            setEventMessages($langs->trans("PartCreatedSuccessfully"), null, 'mesgs');
         } else {
             $db->rollback();
             $error++;
-            $errors[] = "Error creating part: " . $db->lasterror();
+            $errors[] = $langs->trans("ErrorCreatingPart") . ": " . $db->lasterror();
         }
     } else {
         $db->rollback();
@@ -219,7 +219,7 @@ if ($action == 'update') {
     
     if (empty($title)) {
         $error++;
-        $errors[] = "Part title is required";
+        $errors[] = $langs->trans("ErrorFieldRequired");
     }
     
     if (!$error) {
@@ -246,11 +246,11 @@ if ($action == 'update') {
         if ($result) {
             $db->commit();
             $action = 'view';
-            setEventMessages("Part updated successfully", null, 'mesgs');
+            setEventMessages($langs->trans("PartUpdatedSuccessfully"), null, 'mesgs');
         } else {
             $db->rollback();
             $error++;
-            $errors[] = "Error updating part: " . $db->lasterror();
+            $errors[] = $langs->trans("ErrorUpdatingPart") . ": " . $db->lasterror();
         }
     } else {
         $db->rollback();
@@ -268,11 +268,11 @@ if ($id > 0) {
     if ($resql) {
         $object = $db->fetch_object($resql);
         if (!$object) {
-            print "Part not found";
+            print $langs->trans("PartNotFound");
             exit;
         }
     } else {
-        print "Error loading part";
+        print $langs->trans("ErrorLoadingPart");
         exit;
     }
 } else {
@@ -635,7 +635,7 @@ print '<div class="dc-grid">';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon blue"><i class="fa fa-puzzle-piece"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('Part Information').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('PartInformation').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
@@ -655,7 +655,7 @@ print '    </div></div>';
 
 // Part Title
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label required">'.$langs->trans('Part Title').'</div>';
+print '    <div class="dc-field-label required">'.$langs->trans('PartTitle').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="text" name="title" value="'.dol_escape_htmltag($object->title).'" required>';
@@ -666,7 +666,7 @@ print '    </div></div>';
 
 // Part Number
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Part Number').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('PartNumber').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="text" name="number" value="'.dol_escape_htmltag($object->number).'">';
@@ -688,7 +688,7 @@ print '    </div></div>';
 
 // Manufacturer
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Manu facturer').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Manufacturer').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<input type="text" name="manufacturer" value="'.dol_escape_htmltag($object->manufacturer).'">';
@@ -726,7 +726,7 @@ print '</div>';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon green"><i class="fa fa-boxes"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('Inventory And Sourcing').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('InventoryAndSourcing').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
@@ -758,7 +758,7 @@ print '    <div class="dc-field-label">'.$langs->trans('Status').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $status_options = array(
-        ''             => $langs->trans('Select Status'),
+        ''             => $langs->trans('SelectStatus'),
         'Active'       => $langs->trans('Active'),
         'Inactive'     => $langs->trans('Inactive'),
         'Maintenance'  => $langs->trans('Maintenance'),

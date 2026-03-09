@@ -69,10 +69,10 @@ if ($action == 'confirm_delete' && $confirm == 'yes' && $user->rights->flotte->w
     if ($id > 0) {
         $result = $db->query("DELETE FROM ".MAIN_DB_PREFIX."flotte_workorder WHERE rowid = ".(int)$id);
         if ($result) {
-            setEventMessages('Work order deleted.', null, 'mesgs');
+            setEventMessages($langs->trans('WorkOrderDeletedSuccessfully'), null, 'mesgs');
             header("Location: ".$_SERVER['PHP_SELF']); exit;
         } else {
-            setEventMessages('Error: '.$db->lasterror(), null, 'errors');
+            setEventMessages($langs->trans('Error').': '.$db->lasterror(), null, 'errors');
         }
     }
 }
@@ -158,15 +158,15 @@ if (!empty($search_priority))     $param .= '&search_priority='.urlencode($searc
 if (!empty($search_status))       $param .= '&search_status='.urlencode($search_status);
 if (!empty($search_due_date))     $param .= '&search_due_date='.urlencode($search_due_date);
 
-llxHeader('', 'Work Orders', '');
+llxHeader('', $langs->trans('WorkOrdersList'), '');
 
 // Delete confirmation
 if ($action == 'delete') {
     $id = GETPOST('id', 'int');
     print $form->formconfirm(
         $_SERVER["PHP_SELF"].'?id='.$id.$param,
-        'Delete Work Order',
-        'Are you sure you want to delete this work order?',
+        $langs->trans('DeleteWorkOrder'),
+        $langs->trans('ConfirmDeleteWorkOrder'),
         'confirm_delete', '', 0, 1
     );
 }
@@ -359,18 +359,18 @@ table.vl-table tbody td.center { text-align: center; }
 <!-- Header -->
 <div class="vl-header">
     <div class="vl-header-left">
-        <h1><i class="fa fa-tools" style="color:#3c4758;margin-right:10px;"></i>Work Orders</h1>
-        <div class="vl-subtitle"><?php echo $nbtotalofrecords; ?> work order<?php echo $nbtotalofrecords != 1 ? 's' : ''; ?> found</div>
+        <h1><i class="fa fa-tools" style="color:#3c4758;margin-right:10px;"></i><?php echo $langs->trans("WorkOrdersList"); ?></h1>
+        <div class="vl-subtitle"><?php echo $nbtotalofrecords; ?> <?php echo $langs->trans("WorkOrders"); ?></div>
     </div>
     <div class="vl-header-actions">
         <?php if ($user->rights->flotte->read) { ?>
         <a class="vl-btn vl-btn-secondary" href="<?php echo dol_buildpath('/flotte/workorder_list.php', 1); ?>?action=export">
-            <i class="fa fa-download"></i> Export
+            <i class="fa fa-download"></i> <?php echo $langs->trans("Export"); ?>
         </a>
         <?php } ?>
         <?php if ($user->rights->flotte->write) { ?>
         <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/workorder_card.php', 1); ?>?action=create">
-            <i class="fa fa-plus"></i> New Work Order
+            <i class="fa fa-plus"></i> <?php echo $langs->trans("NewWorkOrder"); ?>
         </a>
         <?php } ?>
     </div>
@@ -387,70 +387,70 @@ table.vl-table tbody td.center { text-align: center; }
 
 <div class="vl-filters">
     <div class="vl-filter-group">
-        <label>Reference</label>
-        <input type="text" name="search_ref" placeholder="Search ref…" value="<?php echo dol_escape_htmltag($search_ref); ?>">
+        <label><?php echo $langs->trans("Reference"); ?></label>
+        <input type="text" name="search_ref" placeholder="<?php echo $langs->trans('Reference'); ?>…" value="<?php echo dol_escape_htmltag($search_ref); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Requested By</label>
-        <input type="text" name="search_requested_by" placeholder="Name or department…" value="<?php echo dol_escape_htmltag($search_requested_by); ?>">
+        <label><?php echo $langs->trans("RequestedBy"); ?></label>
+        <input type="text" name="search_requested_by" placeholder="<?php echo $langs->trans('NameOrDepartment'); ?>…" value="<?php echo dol_escape_htmltag($search_requested_by); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Assigned To</label>
-        <input type="text" name="search_assigned_to" placeholder="Driver name…" value="<?php echo dol_escape_htmltag($search_assigned_to); ?>">
+        <label><?php echo $langs->trans("AssignedTo"); ?></label>
+        <input type="text" name="search_assigned_to" placeholder="<?php echo $langs->trans('Driver'); ?>…" value="<?php echo dol_escape_htmltag($search_assigned_to); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Due Date</label>
+        <label><?php echo $langs->trans("DueDate"); ?></label>
         <input type="date" name="search_due_date" value="<?php echo dol_escape_htmltag($search_due_date); ?>">
     </div>
     <div class="vl-filter-group" style="max-width:150px;">
-        <label>Priority</label>
+        <label><?php echo $langs->trans("Priority"); ?></label>
         <select name="search_priority">
-            <option value="">All</option>
-            <option value="Low"    <?php echo $search_priority === 'Low'    ? 'selected' : ''; ?>>Low</option>
-            <option value="Medium" <?php echo $search_priority === 'Medium' ? 'selected' : ''; ?>>Medium</option>
-            <option value="High"   <?php echo $search_priority === 'High'   ? 'selected' : ''; ?>>High</option>
-            <option value="Urgent" <?php echo $search_priority === 'Urgent' ? 'selected' : ''; ?>>Urgent</option>
+            <option value=""><?php echo $langs->trans("All"); ?></option>
+            <option value="Low"    <?php echo $search_priority === 'Low'    ? 'selected' : ''; ?>><?php echo $langs->trans("Low"); ?></option>
+            <option value="Medium" <?php echo $search_priority === 'Medium' ? 'selected' : ''; ?>><?php echo $langs->trans("Medium"); ?></option>
+            <option value="High"   <?php echo $search_priority === 'High'   ? 'selected' : ''; ?>><?php echo $langs->trans("High"); ?></option>
+            <option value="Urgent" <?php echo $search_priority === 'Urgent' ? 'selected' : ''; ?>><?php echo $langs->trans("Urgent"); ?></option>
         </select>
     </div>
     <div class="vl-filter-group" style="max-width:150px;">
-        <label>Status</label>
+        <label><?php echo $langs->trans("Status"); ?></label>
         <select name="search_status">
-            <option value="">All</option>
-            <option value="Pending"     <?php echo $search_status === 'Pending'     ? 'selected' : ''; ?>>Pending</option>
-            <option value="In Progress" <?php echo $search_status === 'In Progress' ? 'selected' : ''; ?>>In Progress</option>
-            <option value="Completed"   <?php echo $search_status === 'Completed'   ? 'selected' : ''; ?>>Completed</option>
-            <option value="Cancelled"   <?php echo $search_status === 'Cancelled'   ? 'selected' : ''; ?>>Cancelled</option>
+            <option value=""><?php echo $langs->trans("All"); ?></option>
+            <option value="Pending"     <?php echo $search_status === 'Pending'     ? 'selected' : ''; ?>><?php echo $langs->trans("Pending"); ?></option>
+            <option value="In Progress" <?php echo $search_status === 'In Progress' ? 'selected' : ''; ?>><?php echo $langs->trans("InProgress"); ?></option>
+            <option value="Completed"   <?php echo $search_status === 'Completed'   ? 'selected' : ''; ?>><?php echo $langs->trans("Completed"); ?></option>
+            <option value="Cancelled"   <?php echo $search_status === 'Cancelled'   ? 'selected' : ''; ?>><?php echo $langs->trans("Cancelled"); ?></option>
         </select>
     </div>
     <div class="vl-filter-actions">
-        <button type="submit" class="vl-btn-filter apply"><i class="fa fa-search"></i> Search</button>
-        <button type="submit" name="button_removefilter" value="1" class="vl-btn-filter reset"><i class="fa fa-times"></i> Reset</button>
+        <button type="submit" class="vl-btn-filter apply"><i class="fa fa-search"></i> <?php echo $langs->trans("Search"); ?></button>
+        <button type="submit" name="button_removefilter" value="1" class="vl-btn-filter reset"><i class="fa fa-times"></i> <?php echo $langs->trans("Reset"); ?></button>
     </div>
 </div>
 
 <!-- Stats chips -->
 <div class="vl-stats">
     <div class="vl-stat-chip">
-        <span class="vl-stat-num"><?php echo $nbtotalofrecords; ?></span> Total
+        <span class="vl-stat-num"><?php echo $nbtotalofrecords; ?></span> <?php echo $langs->trans("Total"); ?>
     </div>
     <?php if ($cnt_pending > 0) { ?>
     <div class="vl-stat-chip" style="background:#f0f2fa;color:#5a6482;">
-        <span class="vl-stat-num" style="color:#5a6482;"><?php echo $cnt_pending; ?></span> Pending
+        <span class="vl-stat-num" style="color:#5a6482;"><?php echo $cnt_pending; ?></span> <?php echo $langs->trans("Pending"); ?>
     </div>
     <?php } ?>
     <?php if ($cnt_inprogress > 0) { ?>
     <div class="vl-stat-chip" style="background:#f0fdf4;color:#166534;">
-        <span class="vl-stat-num" style="color:#166534;"><?php echo $cnt_inprogress; ?></span> In Progress
+        <span class="vl-stat-num" style="color:#166534;"><?php echo $cnt_inprogress; ?></span> <?php echo $langs->trans("InProgress"); ?>
     </div>
     <?php } ?>
     <?php if ($cnt_completed > 0) { ?>
     <div class="vl-stat-chip" style="background:#eff6ff;color:#1d4ed8;">
-        <span class="vl-stat-num" style="color:#1d4ed8;"><?php echo $cnt_completed; ?></span> Completed
+        <span class="vl-stat-num" style="color:#1d4ed8;"><?php echo $cnt_completed; ?></span> <?php echo $langs->trans("Completed"); ?>
     </div>
     <?php } ?>
     <?php if ($cnt_cancelled > 0) { ?>
     <div class="vl-stat-chip" style="background:#fef2f2;color:#991b1b;">
-        <span class="vl-stat-num" style="color:#991b1b;"><?php echo $cnt_cancelled; ?></span> Cancelled
+        <span class="vl-stat-num" style="color:#991b1b;"><?php echo $cnt_cancelled; ?></span> <?php echo $langs->trans("Cancelled"); ?>
     </div>
     <?php } ?>
 </div>
@@ -461,14 +461,14 @@ table.vl-table tbody td.center { text-align: center; }
     <table class="vl-table">
         <thead>
             <tr>
-                <th><a href="<?php echo wo_sortHref('t.ref', $sortfield, $sortorder, $self, $param); ?>">Ref <?php echo wo_sortArrow('t.ref', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo wo_sortHref('t.requested_by', $sortfield, $sortorder, $self, $param); ?>">Requested By <?php echo wo_sortArrow('t.requested_by', $sortfield, $sortorder); ?></a></th>
-                <th>Task</th>
-                <th><a href="<?php echo wo_sortHref('d.lastname', $sortfield, $sortorder, $self, $param); ?>">Assigned To <?php echo wo_sortArrow('d.lastname', $sortfield, $sortorder); ?></a></th>
-                <th class="center"><a href="<?php echo wo_sortHref('t.due_date', $sortfield, $sortorder, $self, $param); ?>">Due Date <?php echo wo_sortArrow('t.due_date', $sortfield, $sortorder); ?></a></th>
-                <th class="center"><a href="<?php echo wo_sortHref('t.priority', $sortfield, $sortorder, $self, $param); ?>">Priority <?php echo wo_sortArrow('t.priority', $sortfield, $sortorder); ?></a></th>
-                <th class="center"><a href="<?php echo wo_sortHref('t.status', $sortfield, $sortorder, $self, $param); ?>">Status <?php echo wo_sortArrow('t.status', $sortfield, $sortorder); ?></a></th>
-                <th class="center">Actions</th>
+                <th><a href="<?php echo wo_sortHref('t.ref', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Ref"); ?> <?php echo wo_sortArrow('t.ref', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo wo_sortHref('t.requested_by', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("RequestedBy"); ?> <?php echo wo_sortArrow('t.requested_by', $sortfield, $sortorder); ?></a></th>
+                <th><?php echo $langs->trans("TaskToPerform"); ?></th>
+                <th><a href="<?php echo wo_sortHref('d.lastname', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("AssignedTo"); ?> <?php echo wo_sortArrow('d.lastname', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><a href="<?php echo wo_sortHref('t.due_date', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("DueDate"); ?> <?php echo wo_sortArrow('t.due_date', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><a href="<?php echo wo_sortHref('t.priority', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Priority"); ?> <?php echo wo_sortArrow('t.priority', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><a href="<?php echo wo_sortHref('t.status', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Status"); ?> <?php echo wo_sortArrow('t.status', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><?php echo $langs->trans("Action"); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -514,7 +514,7 @@ table.vl-table tbody td.center { text-align: center; }
                 <td class="center">
                     <?php
                     $pcss = strtolower($priority);
-                    echo '<span class="vl-priority '.$pcss.'">'.dol_escape_htmltag($priority).'</span>';
+                    echo '<span class="vl-priority '.$pcss.'">'.$langs->trans($priority).'</span>';
                     ?>
                 </td>
 
@@ -522,10 +522,10 @@ table.vl-table tbody td.center { text-align: center; }
                 <td class="center">
                     <?php
                     $st = $obj->status;
-                    if ($st == 'Pending')        echo '<span class="vl-badge pending">Pending</span>';
-                    elseif ($st == 'In Progress') echo '<span class="vl-badge inprogress">In Progress</span>';
-                    elseif ($st == 'Completed')   echo '<span class="vl-badge completed">Completed</span>';
-                    elseif ($st == 'Cancelled')   echo '<span class="vl-badge cancelled">Cancelled</span>';
+                    if ($st == 'Pending')        echo '<span class="vl-badge pending">'.$langs->trans('Pending').'</span>';
+                    elseif ($st == 'In Progress') echo '<span class="vl-badge inprogress">'.$langs->trans('InProgress').'</span>';
+                    elseif ($st == 'Completed')   echo '<span class="vl-badge completed">'.$langs->trans('Completed').'</span>';
+                    elseif ($st == 'Cancelled')   echo '<span class="vl-badge cancelled">'.$langs->trans('Cancelled').'</span>';
                     else                          echo '<span style="color:#c4c9d8;font-size:13px;">—</span>';
                     ?>
                 </td>
@@ -533,10 +533,10 @@ table.vl-table tbody td.center { text-align: center; }
                 <!-- Actions -->
                 <td>
                     <div class="vl-actions">
-                        <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="View"><i class="fa fa-eye"></i></a>
+                        <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="<?php echo $langs->trans('View'); ?>"><i class="fa fa-eye"></i></a>
                         <?php if ($user->rights->flotte->write) { ?>
-                        <a href="<?php echo $cardUrl; ?>&action=edit" class="vl-action-btn edit" title="Edit"><i class="fa fa-pen"></i></a>
-                        <a href="<?php echo $self; ?>?id=<?php echo $obj->rowid; ?>&action=delete&token=<?php echo newToken(); ?>" class="vl-action-btn del" title="Delete"><i class="fa fa-trash"></i></a>
+                        <a href="<?php echo $cardUrl; ?>&action=edit" class="vl-action-btn edit" title="<?php echo $langs->trans('Edit'); ?>"><i class="fa fa-pen"></i></a>
+                        <a href="<?php echo $self; ?>?id=<?php echo $obj->rowid; ?>&action=delete&token=<?php echo newToken(); ?>" class="vl-action-btn del" title="<?php echo $langs->trans('Delete'); ?>"><i class="fa fa-trash"></i></a>
                         <?php } ?>
                     </div>
                 </td>
@@ -546,10 +546,10 @@ table.vl-table tbody td.center { text-align: center; }
                 <td colspan="8">
                     <div class="vl-empty">
                         <div class="vl-empty-icon"><i class="fa fa-tools"></i></div>
-                        <p>No work orders found</p>
+                        <p><?php echo $langs->trans("WorkOrdersList"); ?></p>
                         <?php if ($user->rights->flotte->write) { ?>
                         <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/workorder_card.php', 1); ?>?action=create">
-                            <i class="fa fa-plus"></i> Add First Work Order
+                            <i class="fa fa-plus"></i> <?php echo $langs->trans("NewWorkOrder"); ?>
                         </a>
                         <?php } ?>
                     </div>
@@ -570,7 +570,7 @@ table.vl-table tbody td.center { text-align: center; }
     ?>
     <div class="vl-pagination">
         <div class="vl-pagination-info">
-            Showing <strong><?php echo $showing_from; ?></strong>–<strong><?php echo $showing_to; ?></strong> of <strong><?php echo $nbtotalofrecords; ?></strong> work orders
+            <?php echo $langs->trans("ShowingVehicles", $showing_from, $showing_to, $nbtotalofrecords); ?>
         </div>
         <div class="vl-page-btns">
             <a class="vl-page-btn <?php echo $page == 0 ? 'disabled' : ''; ?>" href="<?php echo $self; ?>?page=0&sortfield=<?php echo $sortfield; ?>&sortorder=<?php echo $sortorder; ?>&<?php echo $param; ?>">«</a>

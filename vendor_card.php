@@ -146,7 +146,7 @@ if ($action == 'confirm_delete' && $confirm == 'yes' && $user->rights->flotte->d
     } else {
         $db->rollback();
         $error++;
-        setEventMessages("Error deleting vendor", null, 'errors');
+        setEventMessages($langs->trans('ErrorDeletingVendor'), null, 'errors');
     }
 }
 
@@ -175,12 +175,12 @@ if ($action == 'add') {
     // Validation
     if (empty($fk_soc) || $fk_soc <= 0) {
         $error++;
-        $errors[] = "Please select a Third Party";
+        $errors[] = $langs->trans("SelectThirdParty");
     }
     
     if (empty($name)) {
         $error++;
-        $errors[] = "Vendor name is required";
+        $errors[] = $langs->trans("ErrorFieldRequired");
     }
     
     // Check if this third party is already a vendor
@@ -191,7 +191,7 @@ if ($action == 'add') {
         $resql = $db->query($sql);
         if ($resql && $db->num_rows($resql) > 0) {
             $error++;
-            $errors[] = "This Third Party is already registered as a vendor";
+            $errors[] = $langs->trans("VendorAlreadyExists");
         }
     }
     
@@ -221,11 +221,11 @@ if ($action == 'add') {
             $id = $db->last_insert_id(MAIN_DB_PREFIX."flotte_vendor");
             $db->commit();
             $action = 'view';
-            setEventMessages("Vendor created successfully", null, 'mesgs');
+            setEventMessages($langs->trans("VendorCreatedSuccessfully"), null, 'mesgs');
         } else {
             $db->rollback();
             $error++;
-            $errors[] = "Error creating vendor: " . $db->lasterror();
+            $errors[] = $langs->trans("ErrorCreatingVendor") . ": " . $db->lasterror();
         }
     } else {
         $db->rollback();
@@ -253,7 +253,7 @@ if ($action == 'update') {
     
     if (empty($name)) {
         $error++;
-        $errors[] = "Vendor name is required";
+        $errors[] = $langs->trans("ErrorFieldRequired");
     }
     
     if (!$error) {
@@ -276,11 +276,11 @@ if ($action == 'update') {
         if ($result) {
             $db->commit();
             $action = 'view';
-            setEventMessages("Vendor updated successfully", null, 'mesgs');
+            setEventMessages($langs->trans("VendorUpdatedSuccessfully"), null, 'mesgs');
         } else {
             $db->rollback();
             $error++;
-            $errors[] = "Error updating vendor: " . $db->lasterror();
+            $errors[] = $langs->trans("ErrorUpdatingVendor") . ": " . $db->lasterror();
         }
     } else {
         $db->rollback();
@@ -326,7 +326,7 @@ if ($id > 0) {
 
 $title = $langs->trans('Vendor');
 if ($action == 'create') {
-    $title = $langs->trans('New Vendor');
+    $title = $langs->trans('NewVendor');
 } elseif ($action == 'edit') {
     $title = $langs->trans('EditVendor');
 } elseif ($id > 0) {
@@ -560,7 +560,7 @@ $isEdit   = ($action == 'edit');
 $isCreate = ($action == 'create');
 $isView   = (!$isEdit && !$isCreate);
 
-$pageTitle = $isCreate ? $langs->trans('New Vendor') : ($isEdit ? $langs->trans('Edit Vendor') : $langs->trans('Vendor'));
+$pageTitle = $isCreate ? $langs->trans('NewVendor') : ($isEdit ? $langs->trans('EditVendor') : $langs->trans('Vendor'));
 $pageSub   = $isCreate ? '' : (isset($object->ref) ? $object->ref : '');
 
 // Type badge class
@@ -606,7 +606,7 @@ print '<div class="dc-grid">';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon blue"><i class="fa fa-truck"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('Vendor Information').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('VendorInformation').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
@@ -626,7 +626,7 @@ print '    </div></div>';
 
 // Third Party
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label required">'.$langs->trans('Third Party').'</div>';
+print '    <div class="dc-field-label required">'.$langs->trans('ThirdParty').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate) {
     print $formcompany->select_company($object->fk_soc, 'fk_soc', 's.fournisseur = 1', 'SelectThirdParty', 0, 0, array(), 0, '');
@@ -724,7 +724,7 @@ print '</div>';
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon green"><i class="fa fa-map-marker-alt"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('Address Information').'</span>';
+print '    <span class="dc-card-title">'.$langs->trans('AddressInformation').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 

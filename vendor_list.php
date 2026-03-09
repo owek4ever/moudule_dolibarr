@@ -152,7 +152,7 @@ if ($resql) {
 }
 
 // Page header
-llxHeader('', $langs->trans("Vendors List"), '');
+llxHeader('', $langs->trans("VendorsList"), '');
 
 // Show delete confirmation dialog if requested
 if ($action == 'delete') {
@@ -521,18 +521,18 @@ table.vl-table tbody td.center { text-align: center; }
 <!-- Header -->
 <div class="vl-header">
     <div class="vl-header-left">
-        <h1><i class="fa fa-store" style="color:#3c4758;margin-right:10px;"></i><?php echo $langs->trans("Vendors List"); ?></h1>
-        <div class="vl-subtitle"><?php echo $nbtotalofrecords; ?> vendor<?php echo $nbtotalofrecords != 1 ? 's' : ''; ?> found</div>
+        <h1><i class="fa fa-store" style="color:#3c4758;margin-right:10px;"></i><?php echo $langs->trans("VendorsList"); ?></h1>
+        <div class="vl-subtitle"><?php echo $nbtotalofrecords; ?> <?php echo $langs->trans("VendorsList"); ?></div>
     </div>
     <div class="vl-header-actions">
         <?php if ($user->rights->flotte->read) { ?>
         <a class="vl-btn vl-btn-secondary" href="<?php echo dol_buildpath('/flotte/vendor_list.php', 1); ?>?action=export">
-            <i class="fa fa-download"></i> Export
+            <i class="fa fa-download"></i> <?php echo $langs->trans("Export"); ?>
         </a>
         <?php } ?>
         <?php if ($user->rights->flotte->write) { ?>
         <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/vendor_card.php', 1); ?>?action=create">
-            <i class="fa fa-plus"></i> New Vendor
+            <i class="fa fa-plus"></i> <?php echo $langs->trans("NewVendor"); ?>
         </a>
         <?php } ?>
     </div>
@@ -549,51 +549,51 @@ table.vl-table tbody td.center { text-align: center; }
 
 <div class="vl-filters">
     <div class="vl-filter-group">
-        <label>Reference</label>
-        <input type="text" name="search_ref" placeholder="Search ref…" value="<?php echo dol_escape_htmltag($search_ref); ?>">
+        <label><?php echo $langs->trans("Reference"); ?></label>
+        <input type="text" name="search_ref" placeholder="<?php echo $langs->trans('Reference'); ?>…" value="<?php echo dol_escape_htmltag($search_ref); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Name</label>
-        <input type="text" name="search_name" placeholder="Vendor name…" value="<?php echo dol_escape_htmltag($search_name); ?>">
+        <label><?php echo $langs->trans("Name"); ?></label>
+        <input type="text" name="search_name" placeholder="<?php echo $langs->trans('Name'); ?>…" value="<?php echo dol_escape_htmltag($search_name); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Phone</label>
-        <input type="text" name="search_phone" placeholder="Phone…" value="<?php echo dol_escape_htmltag($search_phone); ?>">
+        <label><?php echo $langs->trans("Phone"); ?></label>
+        <input type="text" name="search_phone" placeholder="<?php echo $langs->trans('Phone'); ?>…" value="<?php echo dol_escape_htmltag($search_phone); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>Email</label>
-        <input type="text" name="search_email" placeholder="Email…" value="<?php echo dol_escape_htmltag($search_email); ?>">
+        <label><?php echo $langs->trans("Email"); ?></label>
+        <input type="text" name="search_email" placeholder="<?php echo $langs->trans('Email'); ?>…" value="<?php echo dol_escape_htmltag($search_email); ?>">
     </div>
     <div class="vl-filter-group" style="max-width:160px;">
-        <label>Type</label>
+        <label><?php echo $langs->trans("Type"); ?></label>
         <select name="search_type">
-            <option value="">All</option>
-            <option value="Parts"       <?php echo $search_type === 'Parts'       ? 'selected' : ''; ?>>Parts</option>
-            <option value="Fuel"        <?php echo $search_type === 'Fuel'        ? 'selected' : ''; ?>>Fuel</option>
-            <option value="Maintenance" <?php echo $search_type === 'Maintenance' ? 'selected' : ''; ?>>Maintenance</option>
-            <option value="Insurance"   <?php echo $search_type === 'Insurance'   ? 'selected' : ''; ?>>Insurance</option>
-            <option value="Service"     <?php echo $search_type === 'Service'     ? 'selected' : ''; ?>>Service</option>
-            <option value="Other"       <?php echo $search_type === 'Other'       ? 'selected' : ''; ?>>Other</option>
+            <option value=""><?php echo $langs->trans("All"); ?></option>
+            <option value="Parts"       <?php echo $search_type === 'Parts'       ? 'selected' : ''; ?>><?php echo $langs->trans("Parts"); ?></option>
+            <option value="Fuel"        <?php echo $search_type === 'Fuel'        ? 'selected' : ''; ?>><?php echo $langs->trans("Fuel"); ?></option>
+            <option value="Maintenance" <?php echo $search_type === 'Maintenance' ? 'selected' : ''; ?>><?php echo $langs->trans("Maintenance"); ?></option>
+            <option value="Insurance"   <?php echo $search_type === 'Insurance'   ? 'selected' : ''; ?>><?php echo $langs->trans("Insurance"); ?></option>
+            <option value="Service"     <?php echo $search_type === 'Service'     ? 'selected' : ''; ?>><?php echo $langs->trans("Service"); ?></option>
+            <option value="Other"       <?php echo $search_type === 'Other'       ? 'selected' : ''; ?>><?php echo $langs->trans("Other"); ?></option>
         </select>
     </div>
     <div class="vl-filter-group">
-        <label>City</label>
-        <input type="text" name="search_city" placeholder="City…" value="<?php echo dol_escape_htmltag($search_city); ?>">
+        <label><?php echo $langs->trans("City"); ?></label>
+        <input type="text" name="search_city" placeholder="<?php echo $langs->trans('City'); ?>…" value="<?php echo dol_escape_htmltag($search_city); ?>">
     </div>
     <div class="vl-filter-group">
-        <label>State</label>
-        <input type="text" name="search_state" placeholder="State…" value="<?php echo dol_escape_htmltag($search_state); ?>">
+        <label><?php echo $langs->trans("State"); ?></label>
+        <input type="text" name="search_state" placeholder="<?php echo $langs->trans('State'); ?>…" value="<?php echo dol_escape_htmltag($search_state); ?>">
     </div>
     <div class="vl-filter-actions">
-        <button type="submit" class="vl-btn-filter apply"><i class="fa fa-search"></i> Search</button>
-        <button type="submit" name="button_removefilter" value="1" class="vl-btn-filter reset"><i class="fa fa-times"></i> Reset</button>
+        <button type="submit" class="vl-btn-filter apply"><i class="fa fa-search"></i> <?php echo $langs->trans("Search"); ?></button>
+        <button type="submit" name="button_removefilter" value="1" class="vl-btn-filter reset"><i class="fa fa-times"></i> <?php echo $langs->trans("Reset"); ?></button>
     </div>
 </div>
 
 <!-- Stats chips -->
 <div class="vl-stats">
     <div class="vl-stat-chip">
-        <span class="vl-stat-num"><?php echo $nbtotalofrecords; ?></span> Total
+        <span class="vl-stat-num"><?php echo $nbtotalofrecords; ?></span> <?php echo $langs->trans("Total"); ?>
     </div>
     <?php
     $type_styles = array(
@@ -628,15 +628,15 @@ table.vl-table tbody td.center { text-align: center; }
     <table class="vl-table">
         <thead>
             <tr>
-                <th><a href="<?php echo vl_sortHref('t.ref', $sortfield, $sortorder, $self, $param); ?>">Ref <?php echo vl_sortArrow('t.ref', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo vl_sortHref('t.name', $sortfield, $sortorder, $self, $param); ?>">Name <?php echo vl_sortArrow('t.name', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo vl_sortHref('t.phone', $sortfield, $sortorder, $self, $param); ?>">Phone <?php echo vl_sortArrow('t.phone', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo vl_sortHref('t.email', $sortfield, $sortorder, $self, $param); ?>">Email <?php echo vl_sortArrow('t.email', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo vl_sortHref('t.type', $sortfield, $sortorder, $self, $param); ?>">Type <?php echo vl_sortArrow('t.type', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo vl_sortHref('t.city', $sortfield, $sortorder, $self, $param); ?>">City <?php echo vl_sortArrow('t.city', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo vl_sortHref('t.state', $sortfield, $sortorder, $self, $param); ?>">State <?php echo vl_sortArrow('t.state', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo vl_sortHref('t.website', $sortfield, $sortorder, $self, $param); ?>">Website <?php echo vl_sortArrow('t.website', $sortfield, $sortorder); ?></a></th>
-                <th class="center">Actions</th>
+                <th><a href="<?php echo vl_sortHref('t.ref', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Ref"); ?> <?php echo vl_sortArrow('t.ref', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo vl_sortHref('t.name', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Name"); ?> <?php echo vl_sortArrow('t.name', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo vl_sortHref('t.phone', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Phone"); ?> <?php echo vl_sortArrow('t.phone', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo vl_sortHref('t.email', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Email"); ?> <?php echo vl_sortArrow('t.email', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo vl_sortHref('t.type', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Type"); ?> <?php echo vl_sortArrow('t.type', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo vl_sortHref('t.city', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("City"); ?> <?php echo vl_sortArrow('t.city', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo vl_sortHref('t.state', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("State"); ?> <?php echo vl_sortArrow('t.state', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo vl_sortHref('t.website', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Website"); ?> <?php echo vl_sortArrow('t.website', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><?php echo $langs->trans("Action"); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -646,7 +646,7 @@ table.vl-table tbody td.center { text-align: center; }
         ?>
             <tr>
                 <!-- Ref -->
-                <td data-label="Ref">
+                <td data-label="<?php echo $langs->trans('Ref'); ?>">
                     <a href="<?php echo $cardUrl; ?>" class="vl-ref-link">
                         <span class="vl-ref-icon"><i class="fa fa-store"></i></span>
                         <?php echo dol_escape_htmltag($obj->ref); ?>
@@ -654,7 +654,7 @@ table.vl-table tbody td.center { text-align: center; }
                 </td>
 
                 <!-- Name + email -->
-                <td data-label="Name">
+                <td data-label="<?php echo $langs->trans('Name'); ?>">
                     <div class="vl-vendor-name"><?php echo dol_escape_htmltag($obj->name ?: '—'); ?></div>
                     <?php if (!empty($obj->email)) { ?>
                     <div class="vl-vendor-sub"><?php echo dol_escape_htmltag($obj->email); ?></div>
@@ -662,13 +662,13 @@ table.vl-table tbody td.center { text-align: center; }
                 </td>
 
                 <!-- Phone -->
-                <td data-label="Phone"><?php echo dol_escape_htmltag($obj->phone ?: '—'); ?></td>
+                <td data-label="<?php echo $langs->trans('Phone'); ?>"><?php echo dol_escape_htmltag($obj->phone ?: '—'); ?></td>
 
                 <!-- Email -->
-                <td data-label="Email"><?php echo dol_escape_htmltag($obj->email ?: '—'); ?></td>
+                <td data-label="<?php echo $langs->trans('Email'); ?>"><?php echo dol_escape_htmltag($obj->email ?: '—'); ?></td>
 
                 <!-- Type -->
-                <td data-label="Type">
+                <td data-label="<?php echo $langs->trans('Type'); ?>">
                     <?php
                     $t = $obj->type;
                     $badge_class = strtolower($t);
@@ -678,13 +678,13 @@ table.vl-table tbody td.center { text-align: center; }
                 </td>
 
                 <!-- City -->
-                <td data-label="City"><?php echo dol_escape_htmltag($obj->city ?: '—'); ?></td>
+                <td data-label="<?php echo $langs->trans('City'); ?>"><?php echo dol_escape_htmltag($obj->city ?: '—'); ?></td>
 
                 <!-- State -->
-                <td data-label="State"><?php echo dol_escape_htmltag($obj->state ?: '—'); ?></td>
+                <td data-label="<?php echo $langs->trans('State'); ?>"><?php echo dol_escape_htmltag($obj->state ?: '—'); ?></td>
 
                 <!-- Website -->
-                <td data-label="Website">
+                <td data-label="<?php echo $langs->trans('Website'); ?>">
                     <?php if (!empty($obj->website)) {
                         $website_url = strpos($obj->website, 'http') === 0 ? $obj->website : 'http://' . $obj->website;
                     ?>
@@ -696,14 +696,14 @@ table.vl-table tbody td.center { text-align: center; }
                 </td>
 
                 <!-- Actions -->
-                <td data-label="Actions">
+                <td data-label="<?php echo $langs->trans('Action'); ?>">
                     <div class="vl-actions">
-                        <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="View"><i class="fa fa-eye"></i></a>
+                        <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="<?php echo $langs->trans('View'); ?>"><i class="fa fa-eye"></i></a>
                         <?php if ($user->rights->flotte->write) { ?>
-                        <a href="<?php echo $cardUrl; ?>&action=edit" class="vl-action-btn edit" title="Edit"><i class="fa fa-pen"></i></a>
+                        <a href="<?php echo $cardUrl; ?>&action=edit" class="vl-action-btn edit" title="<?php echo $langs->trans('Edit'); ?>"><i class="fa fa-pen"></i></a>
                         <?php } ?>
                         <?php if ($user->rights->flotte->write) { ?>
-                        <a href="<?php echo $self; ?>?id=<?php echo $obj->rowid; ?>&action=delete&token=<?php echo newToken(); ?>" class="vl-action-btn del" title="Delete"><i class="fa fa-trash"></i></a>
+                        <a href="<?php echo $self; ?>?id=<?php echo $obj->rowid; ?>&action=delete&token=<?php echo newToken(); ?>" class="vl-action-btn del" title="<?php echo $langs->trans('Delete'); ?>"><i class="fa fa-trash"></i></a>
                         <?php } ?>
                     </div>
                 </td>
@@ -713,10 +713,10 @@ table.vl-table tbody td.center { text-align: center; }
                 <td colspan="9">
                     <div class="vl-empty">
                         <div class="vl-empty-icon"><i class="fa fa-store"></i></div>
-                        <p>No vendors found</p>
+                        <p><?php echo $langs->trans("VendorsList"); ?></p>
                         <?php if ($user->rights->flotte->write) { ?>
                         <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/vendor_card.php', 1); ?>?action=create">
-                            <i class="fa fa-plus"></i> Add First Vendor
+                            <i class="fa fa-plus"></i> <?php echo $langs->trans("NewVendor"); ?>
                         </a>
                         <?php } ?>
                     </div>
@@ -737,7 +737,7 @@ table.vl-table tbody td.center { text-align: center; }
     ?>
     <div class="vl-pagination">
         <div class="vl-pagination-info">
-            Showing <strong><?php echo $showing_from; ?></strong>–<strong><?php echo $showing_to; ?></strong> of <strong><?php echo $nbtotalofrecords; ?></strong> vendors
+            <?php echo $langs->trans('ShowingVehicles', $showing_from, $showing_to, $nbtotalofrecords); ?>
         </div>
         <div class="vl-page-btns">
             <a class="vl-page-btn <?php echo $page == 0 ? 'disabled' : ''; ?>" href="<?php echo $self; ?>?page=0&sortfield=<?php echo $sortfield; ?>&sortorder=<?php echo $sortorder; ?>&<?php echo $param; ?>">«</a>
