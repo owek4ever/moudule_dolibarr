@@ -31,6 +31,49 @@ if (!$res) { die("Include of main fails"); }
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
 
+// ── OSRM proxy endpoint ──────────────────────────────────────────────────────
+if (GETPOST('osrm_proxy', 'int') == 1) {
+    $coords = isset($_GET['coords']) ? $_GET['coords'] : '';
+    if (!preg_match('/^[-0-9.,;]+$/', $coords) || strlen($coords) < 5 || strlen($coords) > 512) {
+        header('Content-Type: application/json');
+        http_response_code(400);
+        echo json_encode(array('error' => 'invalid coords', 'received' => $coords));
+        exit;
+    }
+    $osrm_servers = array(
+        'https://router.project-osrm.org/route/v1/driving/',
+        'https://routing.openstreetmap.de/routed-car/route/v1/driving/',
+    );
+    $osrm_result = null;
+    $osrm_log = array();
+    foreach ($osrm_servers as $osrm_base) {
+        if (!function_exists('curl_init')) { $osrm_log[] = array('status'=>'no_curl'); break; }
+        $ch = curl_init($osrm_base . $coords . '?overview=full&geometries=geojson');
+        curl_setopt_array($ch, array(
+            CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15,
+            CURLOPT_CONNECTTIMEOUT => 8, CURLOPT_USERAGENT => 'DolibarrFlotte/1.0',
+            CURLOPT_SSL_VERIFYPEER => false, CURLOPT_SSL_VERIFYHOST => false,
+            CURLOPT_FOLLOWLOCATION => true,
+        ));
+        $osrm_raw  = curl_exec($ch);
+        $osrm_err  = curl_error($ch);
+        $osrm_http = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        if ($osrm_raw !== false && $osrm_http >= 200 && $osrm_http < 300) {
+            $osrm_json = json_decode($osrm_raw, true);
+            if (!empty($osrm_json['routes'])) { $osrm_result = $osrm_raw; break; }
+        }
+        $osrm_log[] = array('server' => $osrm_base, 'err' => $osrm_err, 'http' => $osrm_http);
+    }
+    header('Content-Type: application/json');
+    header('Cache-Control: no-store');
+    if (isset($_GET['debug'])) { echo json_encode(array('log'=>$osrm_log,'coords'=>$coords)); }
+    elseif ($osrm_result) { echo $osrm_result; }
+    else { http_response_code(503); echo json_encode(array('error'=>'routing unavailable','log'=>$osrm_log)); }
+    exit;
+}
+// ── End OSRM proxy ───────────────────────────────────────────────────────────
+
 // Load translation files
 $langs->loadLangs(array("flotte@flotte", "other"));
 
@@ -126,6 +169,23 @@ $object->stops = '';
 $object->eta = '';
 $object->pickup_datetime = '';
 $object->dropoff_datetime = '';
+$object->expense_fuel = '';
+$object->expense_fuel_qty = '';
+$object->expense_fuel_price = '';
+$object->expense_fuel_type = '';
+$object->expense_fuel_vendor = '';
+$object->expense_road = '';
+$object->expense_road_toll = '';
+$object->expense_road_parking = '';
+$object->expense_road_other = '';
+$object->expense_driver = '';
+$object->expense_driver_salary = '';
+$object->expense_driver_overnight = '';
+$object->expense_driver_bonus = '';
+$object->expense_commission = '';
+$object->expense_commission_agent = '';
+$object->expense_commission_tax = '';
+$object->expense_commission_other = '';
 
 $error = 0;
 $errors = array();
@@ -210,6 +270,24 @@ if ($action == 'add') {
     $pickup_datetime  = ($pickup_ts > 0) ? date('Y-m-d H:i:s', $pickup_ts) : '';
     $dropoff_ts = dol_mktime(GETPOST('dropoff_datetimehour','int'), GETPOST('dropoff_datetimemin','int'), 0, GETPOST('dropoff_datetimemonth','int'), GETPOST('dropoff_datetimeday','int'), GETPOST('dropoff_datetimeyear','int'));
     $dropoff_datetime = ($dropoff_ts > 0) ? date('Y-m-d H:i:s', $dropoff_ts) : '';
+    $expense_fuel_qty        = GETPOST('expense_fuel_qty', 'alpha');
+    $expense_fuel_price      = GETPOST('expense_fuel_price', 'alpha');
+    $expense_fuel_type       = GETPOST('expense_fuel_type', 'alphanohtml');
+    $expense_fuel_vendor     = GETPOST('expense_fuel_vendor', 'int');
+    $expense_fuel            = ($expense_fuel_qty && $expense_fuel_price) ? round((float)$expense_fuel_qty * (float)$expense_fuel_price, 2) : GETPOST('expense_fuel', 'alpha');
+    $expense_road_toll       = GETPOST('expense_road_toll', 'alpha');
+    $expense_road_parking    = GETPOST('expense_road_parking', 'alpha');
+    $expense_road_other      = GETPOST('expense_road_other', 'alpha');
+    $expense_road            = round((float)$expense_road_toll + (float)$expense_road_parking + (float)$expense_road_other, 2);
+    $expense_driver_salary   = GETPOST('expense_driver_salary', 'alpha');
+    $expense_driver_overnight= GETPOST('expense_driver_overnight', 'alpha');
+    $expense_driver_bonus    = GETPOST('expense_driver_bonus', 'alpha');
+    $expense_driver          = round((float)$expense_driver_salary + (float)$expense_driver_overnight + (float)$expense_driver_bonus, 2);
+    $expense_commission_agent= GETPOST('expense_commission_agent', 'alpha');
+    $expense_commission_tax  = GETPOST('expense_commission_tax', 'alpha');
+    $expense_commission_other= GETPOST('expense_commission_other', 'alpha');
+    $expense_commission_tax_amt = round((float)$expense_commission_agent * (float)$expense_commission_tax / 100, 2);
+    $expense_commission      = round((float)$expense_commission_agent + $expense_commission_tax_amt + (float)$expense_commission_other, 2);
 
     // Auto-generate reference if empty
     if (empty($ref)) {
@@ -238,7 +316,12 @@ if ($action == 'add') {
         $sql .= "ref, entity, fk_vehicle, fk_driver, fk_vendor, fk_customer, booking_date, status, distance, ";
         $sql .= "arriving_address, departure_address, dep_lat, dep_lon, arr_lat, arr_lon, buying_amount, selling_amount, stops, eta, pickup_datetime, dropoff_datetime, ";
         $sql .= "buying_tax_rate, buying_qty, buying_price, buying_unit, buying_amount_ttc, ";
-        $sql .= "selling_tax_rate, selling_qty, selling_price, selling_unit, selling_amount_ttc, fk_user_author";
+        $sql .= "selling_tax_rate, selling_qty, selling_price, selling_unit, selling_amount_ttc, ";
+        $sql .= "expense_fuel, expense_fuel_qty, expense_fuel_price, expense_fuel_type, expense_fuel_vendor, ";
+        $sql .= "expense_road, expense_road_toll, expense_road_parking, expense_road_other, ";
+        $sql .= "expense_driver, expense_driver_salary, expense_driver_overnight, expense_driver_bonus, ";
+        $sql .= "expense_commission, expense_commission_agent, expense_commission_tax, expense_commission_other, ";
+        $sql .= "fk_user_author";
         $sql .= ") VALUES (";
         $sql .= "'".$db->escape($ref)."', ".((int) $conf->entity).", ";
         $sql .= "".((int) $fk_vehicle).", ";
@@ -270,6 +353,23 @@ if ($action == 'add') {
         $sql .= ($selling_price ? ((float) $selling_price) : "NULL").", ";
         $sql .= (!empty($selling_unit) ? "'".$db->escape($selling_unit)."'" : "NULL").", ";
         $sql .= ($selling_amount_ttc ? ((float) $selling_amount_ttc) : "NULL").", ";
+        $sql .= ($expense_fuel       ? ((float) $expense_fuel)       : "NULL").", ";
+        $sql .= ($expense_fuel_qty   ? ((float) $expense_fuel_qty)   : "NULL").", ";
+        $sql .= ($expense_fuel_price ? ((float) $expense_fuel_price) : "NULL").", ";
+        $sql .= (!empty($expense_fuel_type)   ? "'".$db->escape($expense_fuel_type)."'" : "NULL").", ";
+        $sql .= ($expense_fuel_vendor > 0 ? ((int) $expense_fuel_vendor) : "NULL").", ";
+        $sql .= ($expense_road        ? ((float) $expense_road)        : "NULL").", ";
+        $sql .= ($expense_road_toll   ? ((float) $expense_road_toll)   : "NULL").", ";
+        $sql .= ($expense_road_parking? ((float) $expense_road_parking): "NULL").", ";
+        $sql .= ($expense_road_other  ? ((float) $expense_road_other)  : "NULL").", ";
+        $sql .= ($expense_driver          ? ((float) $expense_driver)          : "NULL").", ";
+        $sql .= ($expense_driver_salary   ? ((float) $expense_driver_salary)   : "NULL").", ";
+        $sql .= ($expense_driver_overnight? ((float) $expense_driver_overnight): "NULL").", ";
+        $sql .= ($expense_driver_bonus    ? ((float) $expense_driver_bonus)    : "NULL").", ";
+        $sql .= ($expense_commission       ? ((float) $expense_commission)       : "NULL").", ";
+        $sql .= ($expense_commission_agent ? ((float) $expense_commission_agent) : "NULL").", ";
+        $sql .= ($expense_commission_tax   ? ((float) $expense_commission_tax)   : "NULL").", ";
+        $sql .= ($expense_commission_other ? ((float) $expense_commission_other) : "NULL").", ";
         $sql .= ((int) $user->id);
         $sql .= ")";
         
@@ -341,6 +441,24 @@ if ($action == 'update' && $id > 0) {
     $pickup_datetime  = ($pickup_ts > 0) ? date('Y-m-d H:i:s', $pickup_ts) : '';
     $dropoff_ts = dol_mktime(GETPOST('dropoff_datetimehour','int'), GETPOST('dropoff_datetimemin','int'), 0, GETPOST('dropoff_datetimemonth','int'), GETPOST('dropoff_datetimeday','int'), GETPOST('dropoff_datetimeyear','int'));
     $dropoff_datetime = ($dropoff_ts > 0) ? date('Y-m-d H:i:s', $dropoff_ts) : '';
+    $expense_fuel_qty        = GETPOST('expense_fuel_qty', 'alpha');
+    $expense_fuel_price      = GETPOST('expense_fuel_price', 'alpha');
+    $expense_fuel_type       = GETPOST('expense_fuel_type', 'alphanohtml');
+    $expense_fuel_vendor     = GETPOST('expense_fuel_vendor', 'int');
+    $expense_fuel            = ($expense_fuel_qty && $expense_fuel_price) ? round((float)$expense_fuel_qty * (float)$expense_fuel_price, 2) : GETPOST('expense_fuel', 'alpha');
+    $expense_road_toll       = GETPOST('expense_road_toll', 'alpha');
+    $expense_road_parking    = GETPOST('expense_road_parking', 'alpha');
+    $expense_road_other      = GETPOST('expense_road_other', 'alpha');
+    $expense_road            = round((float)$expense_road_toll + (float)$expense_road_parking + (float)$expense_road_other, 2);
+    $expense_driver_salary   = GETPOST('expense_driver_salary', 'alpha');
+    $expense_driver_overnight= GETPOST('expense_driver_overnight', 'alpha');
+    $expense_driver_bonus    = GETPOST('expense_driver_bonus', 'alpha');
+    $expense_driver          = round((float)$expense_driver_salary + (float)$expense_driver_overnight + (float)$expense_driver_bonus, 2);
+    $expense_commission_agent= GETPOST('expense_commission_agent', 'alpha');
+    $expense_commission_tax  = GETPOST('expense_commission_tax', 'alpha');
+    $expense_commission_other= GETPOST('expense_commission_other', 'alpha');
+    $expense_commission_tax_amt = round((float)$expense_commission_agent * (float)$expense_commission_tax / 100, 2);
+    $expense_commission      = round((float)$expense_commission_agent + $expense_commission_tax_amt + (float)$expense_commission_other, 2);
     
     // Validation
     if (empty($fk_vehicle)) {
@@ -393,6 +511,23 @@ if ($action == 'update' && $id > 0) {
         $sql .= "dropoff_datetime = ".(!empty($dropoff_datetime) ? "'".$db->escape($dropoff_datetime)."'" : "NULL").", ";
         $sql .= "buying_tax_rate = ".(!empty($buying_tax_rate) ? "'".$db->escape($buying_tax_rate)."'" : "NULL").", ";
         $sql .= "selling_tax_rate = ".(!empty($selling_tax_rate) ? "'".$db->escape($selling_tax_rate)."'" : "NULL").", ";
+        $sql .= "expense_fuel = ".($expense_fuel ? ((float) $expense_fuel) : "NULL").", ";
+        $sql .= "expense_fuel_qty = ".($expense_fuel_qty ? ((float) $expense_fuel_qty) : "NULL").", ";
+        $sql .= "expense_fuel_price = ".($expense_fuel_price ? ((float) $expense_fuel_price) : "NULL").", ";
+        $sql .= "expense_fuel_type = ".(!empty($expense_fuel_type) ? "'".$db->escape($expense_fuel_type)."'" : "NULL").", ";
+        $sql .= "expense_fuel_vendor = ".($expense_fuel_vendor > 0 ? ((int) $expense_fuel_vendor) : "NULL").", ";
+        $sql .= "expense_road = ".($expense_road ? ((float) $expense_road) : "NULL").", ";
+        $sql .= "expense_road_toll = ".($expense_road_toll ? ((float) $expense_road_toll) : "NULL").", ";
+        $sql .= "expense_road_parking = ".($expense_road_parking ? ((float) $expense_road_parking) : "NULL").", ";
+        $sql .= "expense_road_other = ".($expense_road_other ? ((float) $expense_road_other) : "NULL").", ";
+        $sql .= "expense_driver = ".($expense_driver ? ((float) $expense_driver) : "NULL").", ";
+        $sql .= "expense_driver_salary = ".($expense_driver_salary ? ((float) $expense_driver_salary) : "NULL").", ";
+        $sql .= "expense_driver_overnight = ".($expense_driver_overnight ? ((float) $expense_driver_overnight) : "NULL").", ";
+        $sql .= "expense_driver_bonus = ".($expense_driver_bonus ? ((float) $expense_driver_bonus) : "NULL").", ";
+        $sql .= "expense_commission = ".($expense_commission ? ((float) $expense_commission) : "NULL").", ";
+        $sql .= "expense_commission_agent = ".($expense_commission_agent ? ((float) $expense_commission_agent) : "NULL").", ";
+        $sql .= "expense_commission_tax = ".($expense_commission_tax ? ((float) $expense_commission_tax) : "NULL").", ";
+        $sql .= "expense_commission_other = ".($expense_commission_other ? ((float) $expense_commission_other) : "NULL").", ";
         $sql .= "fk_user_modif = ".((int) $user->id).", ";
         $sql .= "tms = '".$db->idate($now)."' ";
         $sql .= "WHERE rowid = ".((int) $id);
@@ -422,6 +557,34 @@ if ($_chk && $db->num_rows($_chk) == 0) {
 $_chk = $db->query("SHOW COLUMNS FROM ".MAIN_DB_PREFIX."flotte_booking LIKE 'dropoff_datetime'");
 if ($_chk && $db->num_rows($_chk) == 0) {
     $db->query("ALTER TABLE ".MAIN_DB_PREFIX."flotte_booking ADD COLUMN dropoff_datetime DATETIME DEFAULT NULL");
+}
+foreach (array('expense_fuel','expense_road','expense_driver','expense_commission') as $exp_col) {
+    $_chk = $db->query("SHOW COLUMNS FROM ".MAIN_DB_PREFIX."flotte_booking LIKE '".$exp_col."'");
+    if ($_chk && $db->num_rows($_chk) == 0) {
+        $db->query("ALTER TABLE ".MAIN_DB_PREFIX."flotte_booking ADD COLUMN ".$exp_col." DECIMAL(15,2) DEFAULT NULL");
+    }
+}
+// New sub-columns
+$_new_cols = array(
+    'expense_fuel_qty'           => 'DECIMAL(15,4) DEFAULT NULL',
+    'expense_fuel_price'         => 'DECIMAL(15,4) DEFAULT NULL',
+    'expense_fuel_type'          => 'VARCHAR(50) DEFAULT NULL',
+    'expense_fuel_vendor'        => 'INT DEFAULT NULL',
+    'expense_road_toll'          => 'DECIMAL(15,2) DEFAULT NULL',
+    'expense_road_parking'       => 'DECIMAL(15,2) DEFAULT NULL',
+    'expense_road_other'         => 'DECIMAL(15,2) DEFAULT NULL',
+    'expense_driver_salary'      => 'DECIMAL(15,2) DEFAULT NULL',
+    'expense_driver_overnight'   => 'DECIMAL(15,2) DEFAULT NULL',
+    'expense_driver_bonus'       => 'DECIMAL(15,2) DEFAULT NULL',
+    'expense_commission_agent'   => 'DECIMAL(15,2) DEFAULT NULL',
+    'expense_commission_tax'     => 'DECIMAL(5,2) DEFAULT NULL',
+    'expense_commission_other'   => 'DECIMAL(15,2) DEFAULT NULL',
+);
+foreach ($_new_cols as $_col => $_type) {
+    $_chk = $db->query("SHOW COLUMNS FROM ".MAIN_DB_PREFIX."flotte_booking LIKE '".$_col."'");
+    if ($_chk && $db->num_rows($_chk) == 0) {
+        $db->query("ALTER TABLE ".MAIN_DB_PREFIX."flotte_booking ADD COLUMN ".$_col." ".$_type);
+    }
 }
 
 // Load object data
@@ -560,8 +723,16 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
     background: #fff;
     border: 1px solid #e8eaf0;
     border-radius: 12px;
-    overflow: hidden;
+    overflow: visible;
     box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+    /* No position/z-index here — avoids trapping child dropdowns in a stacking context */
+}
+/* Keep header/body rounded corners without overflow:hidden on the card */
+.dc-card-header {
+    border-radius: 12px 12px 0 0;
+}
+.dc-card-body > .dc-field:last-child {
+    border-radius: 0 0 12px 12px;
 }
 .dc-card-header {
     display: flex; align-items: center; gap: 10px;
@@ -782,7 +953,8 @@ input.dc-incl-val { background: #edfaf3 !important; color: #16a34a !important; f
 /* ── OSM Autocomplete ── */
 .osm-autocomplete-wrap { position: relative; width: 100%; }
 .osm-suggestions {
-    position: absolute; z-index: 9999; left: 0; right: 0; top: calc(100% + 4px);
+    /* base styles — JS overrides position/z-index after appending to body */
+    position: fixed; z-index: 2147483647; left: 0; top: 0;
     background: #fff; border: 1.5px solid #e2e5f0; border-radius: 10px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.10); list-style: none;
     margin: 0; padding: 4px 0; max-height: 220px; overflow-y: auto; display: none;
@@ -808,8 +980,21 @@ input.dc-incl-val { background: #edfaf3 !important; color: #16a34a !important; f
 .osm-stops-view { display: flex; flex-direction: column; gap: 6px; }
 .osm-stop-badge { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: #2d3748; }
 .osm-stop-badge .osm-stop-num { width: 20px; height: 20px; border-radius: 50%; background: #3c4758; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-#osm-map-wrap { width: 100%; border-radius: 10px; overflow: hidden; border: 1.5px solid #e2e5f0; position: relative; min-height: 240px; }
+/* Hide Leaflet Routing Machine's default panel — we only want the route line */
+.leaflet-routing-container { display: none !important; }
+/* The map container creates its own stacking context at z-index 0.
+   This confines Leaflet's internal high z-indexes (200, 400…) inside it,
+   so they can never bleed above dropdowns/datepickers in the rest of the page. */
+#osm-map-wrap { width: 100%; border-radius: 10px; overflow: hidden; border: 1.5px solid #e2e5f0; position: relative; min-height: 240px; z-index: 0; }
+/* Do NOT set z-index on #osm-map itself — Leaflet manages its own internal layers */
 #osm-map { width: 100%; height: 240px; }
+/* Address suggestion dropdowns: no ancestor stacking context traps them,
+   so z-index: 9999 freely floats above page content including the map. */
+/* jQuery UI datepicker is appended to <body> — force it above everything */
+.ui-datepicker,
+div.ui-datepicker { z-index: 99999 !important; }
+/* OSM autocomplete suggestions also need to float above the map */
+.osm-suggestions { z-index: 99999 !important; }
 #osm-map-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: #f7f8fc; color: #b0b8cc; font-size: 13px; }
 #osm-map-empty i { font-size: 28px; opacity: 0.4; }
 
@@ -849,6 +1034,64 @@ input.dc-incl-val { background: #edfaf3 !important; color: #16a34a !important; f
         font-size: 14px !important; /* slightly larger for touch */
     }
 }
+
+/* ---- Expense cards ---- */
+.dc-expense-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 16px;
+    background: #f7f8fc;
+}
+@media(max-width:780px){ .dc-expense-grid { grid-template-columns: 1fr; } }
+
+.dc-expense-card {
+    background: #fff;
+    border: 1.5px solid #e8eaf0;
+    border-radius: 12px;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.05);
+    overflow: hidden;
+}
+.dc-expense-card-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f0f2f8;
+    background: #f7f8fc;
+}
+.dc-expense-card-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; flex-shrink: 0;
+}
+.dc-expense-card-title { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #5a6482; }
+.dc-expense-card-subtotal { margin-left: auto; font-size: 13px; font-weight: 700; color: #1a1f2e; font-family: 'DM Mono', monospace; }
+
+.dc-expense-rows { padding: 0; }
+.dc-expense-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid #f5f6fb;
+}
+.dc-expense-row:last-child { border-bottom: none; }
+.dc-expense-row-label {
+    flex: 0 0 140px; font-size: 11.5px; font-weight: 600;
+    color: #8b92a9; text-transform: uppercase; letter-spacing: 0.4px;
+}
+.dc-expense-row-val { flex: 1; font-size: 13.5px; font-weight: 600; color: #1a1f2e; font-family: 'DM Mono', monospace; }
+.dc-expense-row-val.empty { color: #c4c9d8; font-family: 'DM Sans', sans-serif; font-weight: 400; font-size: 13px; }
+.dc-expense-input {
+    width: 100%; border: 1.5px solid #e2e5f0 !important; border-radius: 6px !important;
+    padding: 6px 10px !important; font-size: 13px !important; font-weight: 500 !important;
+    color: #1a1f2e !important; background: #fafbfe !important; outline: none;
+}
+.dc-expense-input:focus { border-color: #3c4758 !important; box-shadow: 0 0 0 3px rgba(60,71,88,0.08) !important; background: #fff !important; }
+.dc-expense-total-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 22px; background: #f7f8fc;
+    border-top: 1px solid #f0f2f8; border-radius: 0 0 12px 12px;
+}
+.dc-expense-total-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #8b92a9; }
+.dc-expense-total-val { font-size: 18px; font-weight: 700; color: #1a1f2e; font-family: 'DM Mono', monospace; }
 </style>
 <?php
 
@@ -985,7 +1228,7 @@ print '    <div class="dc-field-label">'.$langs->trans('Driver').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $drivers = array();
-    $sql = "SELECT rowid, firsError: Registration failed - push service errotname, lastname FROM ".MAIN_DB_PREFIX."flotte_driver WHERE entity IN (".getEntity('flotte').")";
+    $sql = "SELECT rowid, firstname, lastname FROM ".MAIN_DB_PREFIX."flotte_driver WHERE entity IN (".getEntity('flotte').")";
     $resql = $db->query($sql);
     if ($resql) {
         while ($obj = $db->fetch_object($resql)) {
@@ -1105,7 +1348,7 @@ if ($isCreate || $isEdit) {
     print '    <div class="dc-pricing-col"><label class="dc-pricing-label">'.$langs->trans('Qty').'</label>';
     print '    <input type="number" id="buying_qty" name="buying_qty" value="'.$bq.'" min="0" step="any" placeholder="0"></div>';
     print '    <div class="dc-pricing-col"><label class="dc-pricing-label">'.$langs->trans('Unit').'</label>';
-    print '    <select id="buying_unit" name="buying_unit"><option value="">—</option>';
+    print '    <select id="buying_unit" name="buying_unit"><option value="">&mdash;</option>';
     foreach (array('All Inclusive','Ton','Kg','Km','Hour','Day','Week') as $u) {
         $sel = ($bu === $u) ? ' selected' : '';
         print '<option value="'.dol_escape_htmltag($u).'"'.$sel.'>'.dol_escape_htmltag($u).'</option>';
@@ -1129,9 +1372,9 @@ if ($isCreate || $isEdit) {
     $bqv   = !empty($object->buying_qty)   ? $object->buying_qty   : '—';
     $bpv   = !empty($object->buying_price) ? price($object->buying_price) : '—';
     $buv   = !empty($object->buying_unit)  ? dol_escape_htmltag($object->buying_unit) : '';
-    print '<span class="dc-pricing-meta">'.$bqv.($buv?' '.$buv:'').' × '.$bpv.'</span>';
+    print '<span class="dc-pricing-meta">'.$bqv.($buv?' '.$buv:'').' &times; '.$bpv.'</span>';
     print '<span class="dc-pricing-excl dc-amount buying">'.$bexcl.'</span>';
-    print '<span class="dc-pricing-arrow">→</span>';
+    print '<span class="dc-pricing-arrow">&rarr;</span>';
     print '<span class="dc-pricing-incl dc-amount buying-ttc">'.$bincl.'</span>';
     print '</div>';
 }
@@ -1152,7 +1395,7 @@ if ($isCreate || $isEdit) {
     print '    <div class="dc-pricing-col"><label class="dc-pricing-label">'.$langs->trans('Qty').'</label>';
     print '    <input type="number" id="selling_qty" name="selling_qty" value="'.$sq.'" min="0" step="any" placeholder="0"></div>';
     print '    <div class="dc-pricing-col"><label class="dc-pricing-label">'.$langs->trans('Unit').'</label>';
-    print '    <select id="selling_unit" name="selling_unit"><option value="">—</option>';
+    print '    <select id="selling_unit" name="selling_unit"><option value="">&mdash;</option>';
     foreach (array('All Inclusive','Ton','Kg','Km','Hour','Day','Week') as $u) {
         $sel = ($su === $u) ? ' selected' : '';
         print '<option value="'.dol_escape_htmltag($u).'"'.$sel.'>'.dol_escape_htmltag($u).'</option>';
@@ -1176,9 +1419,9 @@ if ($isCreate || $isEdit) {
     $sqv   = !empty($object->selling_qty)   ? $object->selling_qty   : '—';
     $spv   = !empty($object->selling_price) ? price($object->selling_price) : '—';
     $suv   = !empty($object->selling_unit)  ? dol_escape_htmltag($object->selling_unit) : '';
-    print '<span class="dc-pricing-meta">'.$sqv.($suv?' '.$suv:'').' × '.$spv.'</span>';
+    print '<span class="dc-pricing-meta">'.$sqv.($suv?' '.$suv:'').' &times; '.$spv.'</span>';
     print '<span class="dc-pricing-excl dc-amount selling">'.$sexcl.'</span>';
-    print '<span class="dc-pricing-arrow">→</span>';
+    print '<span class="dc-pricing-arrow">&rarr;</span>';
     print '<span class="dc-pricing-incl dc-amount selling-ttc">'.$sincl.'</span>';
     print '</div>';
 }
@@ -1340,7 +1583,7 @@ print '    </div></div>';
 
 // Map preview
 if ($isCreate || $isEdit) {
-    print '  <div class="dc-field" style="flex-direction:column;gap:10px;">';
+    print '  <div class="dc-field dc-field-maprow" style="flex-direction:column;gap:10px;">';
     print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('Route Preview').'</div>';
     print '    <div id="osm-map-wrap">';
     print '      <div id="osm-map"></div>';
@@ -1349,7 +1592,7 @@ if ($isCreate || $isEdit) {
     print '  </div>';
 } else {
     if (!empty($object->departure_address) && !empty($object->arriving_address)) {
-        print '  <div class="dc-field" style="flex-direction:column;gap:10px;">';
+        print '  <div class="dc-field dc-field-maprow" style="flex-direction:column;gap:10px;">';
         print '    <div class="dc-field-label" style="flex:none;">'.$langs->trans('Route Preview').'</div>';
         print '    <div id="osm-map-wrap"><div id="osm-map"></div></div>';
         print '  </div>';
@@ -1364,6 +1607,265 @@ print '</div>';// dc-grid
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    BOTTOM ACTION BAR
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+// ---- Expenses Card ----
+print '<div class="dc-card" style="margin-bottom:20px;">';
+print '<div class="dc-card-header">';
+print '<div class="dc-card-header-icon amber"><i class="fa fa-receipt"></i></div>';
+print '<span class="dc-card-title">'.$langs->trans('Expenses').'</span>';
+if ($isView && $id > 0) {
+    print '<a href="'.dol_buildpath('/flotte/expenses_list.php',1).'?fk_booking='.$id.'" class="dc-btn dc-btn-ghost" style="margin-left:auto;font-size:12px;padding:5px 12px;"><i class="fa fa-list"></i> '.$langs->trans('ViewAllExpenses').'</a>';
+}
+print '</div>';
+
+// ── Load vendors for fuel vendor selector ──
+$vendors_list = array();
+$_vsql = "SELECT rowid, name FROM ".MAIN_DB_PREFIX."flotte_vendor WHERE entity IN (".getEntity('flotte').")";
+$_vres = $db->query($_vsql);
+if ($_vres) { while ($_vobj = $db->fetch_object($_vres)) { $vendors_list[$_vobj->rowid] = dol_escape_htmltag($_vobj->name); } }
+
+$exp_subtotals = array(
+    'fuel'       => 0,
+    'road'       => 0,
+    'driver'     => 0,
+    'commission' => 0,
+);
+if (!empty($object->expense_fuel))             $exp_subtotals['fuel']       += (float)$object->expense_fuel;
+if (!empty($object->expense_road))             $exp_subtotals['road']       += (float)$object->expense_road;
+if (!empty($object->expense_driver))           $exp_subtotals['driver']     += (float)$object->expense_driver;
+if (!empty($object->expense_commission))       $exp_subtotals['commission'] += (float)$object->expense_commission;
+
+print '<div class="dc-expense-grid">';
+
+/* ── FUEL ── */
+$fuel_sub = $exp_subtotals['fuel'];
+print '<div class="dc-expense-card">';
+print '<div class="dc-expense-card-header">';
+print '<div class="dc-expense-card-icon" style="background:rgba(245,158,11,0.12);color:#d97706;"><i class="fa fa-gas-pump"></i></div>';
+print '<span class="dc-expense-card-title">'.$langs->trans('FuelExpenses').'</span>';
+print '<span class="dc-expense-card-subtotal" id="fuel_subtotal">'.($fuel_sub > 0 ? price($fuel_sub) : '—').'</span>';
+print '</div>';
+print '<div class="dc-expense-rows">';
+
+// Fuel Vendor
+print '<div class="dc-expense-row">';
+print '<span class="dc-expense-row-label">'.$langs->trans('Vendor').'</span>';
+if ($isCreate || $isEdit) {
+    print '<div style="flex:1;">';
+    print $form->selectarray('expense_fuel_vendor', $vendors_list, (isset($object->expense_fuel_vendor) ? $object->expense_fuel_vendor : ''), 1);
+    print '</div>';
+} else {
+    $fv_name = '—';
+    if (!empty($object->expense_fuel_vendor)) {
+        foreach ($vendors_list as $vid => $vname) { if ($vid == $object->expense_fuel_vendor) { $fv_name = $vname; break; } }
+    }
+    print '<span class="dc-expense-row-val'.($fv_name === '—' ? ' empty' : '').'">'.dol_escape_htmltag($fv_name).'</span>';
+}
+print '</div>';
+
+// Fuel Type
+print '<div class="dc-expense-row">';
+print '<span class="dc-expense-row-label">'.$langs->trans('FuelType').'</span>';
+if ($isCreate || $isEdit) {
+    $fuel_types = array('gasoline'=>$langs->trans('Gasoline'),'diesel'=>$langs->trans('Diesel'),'lpg'=>'LPG','electric'=>$langs->trans('Electric'),'hybrid'=>$langs->trans('Hybrid'),'other'=>$langs->trans('Other'));
+    print '<div style="flex:1;">'.$form->selectarray('expense_fuel_type', $fuel_types, (isset($object->expense_fuel_type) ? $object->expense_fuel_type : ''), 1).'</div>';
+} else {
+    $ftype = !empty($object->expense_fuel_type) ? dol_escape_htmltag(ucfirst($object->expense_fuel_type)) : '—';
+    print '<span class="dc-expense-row-val'.($ftype === '—' ? ' empty' : '').'"><span class="dc-chip" style="font-size:12px;">'.dol_escape_htmltag($ftype).'</span></span>';
+}
+print '</div>';
+
+// Liters
+print '<div class="dc-expense-row">';
+print '<span class="dc-expense-row-label">'.$langs->trans('Liters').'</span>';
+if ($isCreate || $isEdit) {
+    print '<input type="number" id="expense_fuel_qty" name="expense_fuel_qty" class="dc-expense-input" value="'.dol_escape_htmltag(isset($object->expense_fuel_qty) ? $object->expense_fuel_qty : '').'" min="0" step="any" placeholder="0.00" oninput="calcFuelTotal()">';
+} else {
+    $fqty = !empty($object->expense_fuel_qty) ? dol_escape_htmltag($object->expense_fuel_qty).' L' : '—';
+    print '<span class="dc-expense-row-val'.(!empty($object->expense_fuel_qty) ? '' : ' empty').'">'.$fqty.'</span>';
+}
+print '</div>';
+
+// Price per Liter
+print '<div class="dc-expense-row">';
+print '<span class="dc-expense-row-label">'.$langs->trans('PricePerLiter').'</span>';
+if ($isCreate || $isEdit) {
+    print '<input type="number" id="expense_fuel_price" name="expense_fuel_price" class="dc-expense-input" value="'.dol_escape_htmltag(isset($object->expense_fuel_price) ? $object->expense_fuel_price : '').'" min="0" step="any" placeholder="0.00" oninput="calcFuelTotal()">';
+} else {
+    $fprice = !empty($object->expense_fuel_price) ? price($object->expense_fuel_price) : '—';
+    print '<span class="dc-expense-row-val'.(!empty($object->expense_fuel_price) ? '' : ' empty').'">'.$fprice.'</span>';
+}
+print '</div>';
+
+// Fuel Cost total
+print '<div class="dc-expense-row" style="background:#fffbf0;">';
+print '<span class="dc-expense-row-label" style="color:#d97706;">'.$langs->trans('FuelCostTotal').'</span>';
+if ($isCreate || $isEdit) {
+    print '<input type="number" id="expense_fuel" name="expense_fuel" class="dc-expense-input" value="'.dol_escape_htmltag(isset($object->expense_fuel) ? $object->expense_fuel : '').'" min="0" step="any" placeholder="0.00" style="background:#fff8ec!important;border-color:#fcd34d!important;font-weight:700!important;" oninput="calcExpenseTotal()">';
+} else {
+    print '<span class="dc-expense-row-val" style="color:#d97706;">'.(!empty($object->expense_fuel) ? price($object->expense_fuel) : '<span class="empty">—</span>').'</span>';
+}
+print '</div>';
+
+print '</div></div>'; // rows + fuel card
+
+/* ── DRIVER ── */
+$driver_sub = $exp_subtotals['driver'];
+print '<div class="dc-expense-card">';
+print '<div class="dc-expense-card-header">';
+print '<div class="dc-expense-card-icon" style="background:rgba(139,92,246,0.12);color:#7c3aed;"><i class="fa fa-user-tie"></i></div>';
+print '<span class="dc-expense-card-title">'.$langs->trans('DriverExpenses').'</span>';
+print '<span class="dc-expense-card-subtotal" id="driver_subtotal">'.($driver_sub > 0 ? price($driver_sub) : '—').'</span>';
+print '</div>';
+print '<div class="dc-expense-rows">';
+
+foreach (array(
+    'expense_driver_salary'    => array('label' => $langs->trans('SalaryDayRate'),  'id' => 'expense_driver_salary'),
+    'expense_driver_overnight' => array('label' => $langs->trans('OvernightFee'),   'id' => 'expense_driver_overnight'),
+    'expense_driver_bonus'     => array('label' => $langs->trans('Bonus'),          'id' => 'expense_driver_bonus'),
+) as $dkey => $dmeta) {
+    $dval = isset($object->$dkey) ? $object->$dkey : '';
+    print '<div class="dc-expense-row">';
+    print '<span class="dc-expense-row-label">'.dol_escape_htmltag($dmeta['label']).'</span>';
+    if ($isCreate || $isEdit) {
+        print '<input type="number" id="'.dol_escape_htmltag($dmeta['id']).'" name="'.dol_escape_htmltag($dkey).'" class="dc-expense-input" value="'.dol_escape_htmltag($dval).'" min="0" step="any" placeholder="0.00" oninput="calcDriverTotal()">';
+    } else {
+        print '<span class="dc-expense-row-val'.(!empty($dval) ? '' : ' empty').'">'.(!empty($dval) ? price($dval) : '—').'</span>';
+    }
+    print '</div>';
+}
+
+// Driver total
+print '<div class="dc-expense-row" style="background:#faf5ff;">';
+print '<span class="dc-expense-row-label" style="color:#7c3aed;">'.$langs->trans('Total').'</span>';
+if ($isCreate || $isEdit) {
+    print '<input type="number" id="expense_driver" name="expense_driver" class="dc-expense-input" value="'.dol_escape_htmltag(isset($object->expense_driver)?$object->expense_driver:'').'" min="0" step="any" placeholder="0.00" style="background:#f5f3ff!important;border-color:#c4b5fd!important;font-weight:700!important;" readonly>';
+} else {
+    print '<span class="dc-expense-row-val" style="color:#7c3aed;">'.(!empty($object->expense_driver) ? price($object->expense_driver) : '<span class="empty">—</span>').'</span>';
+}
+print '</div>';
+
+print '</div></div>'; // rows + driver card
+
+/* ── ROAD ── */
+$road_sub = $exp_subtotals['road'];
+print '<div class="dc-expense-card">';
+print '<div class="dc-expense-card-header">';
+print '<div class="dc-expense-card-icon" style="background:rgba(59,130,246,0.12);color:#2563eb;"><i class="fa fa-road"></i></div>';
+print '<span class="dc-expense-card-title">'.$langs->trans('RoadExpenses').'</span>';
+print '<span class="dc-expense-card-subtotal" id="road_subtotal">'.($road_sub > 0 ? price($road_sub) : '—').'</span>';
+print '</div>';
+print '<div class="dc-expense-rows">';
+
+foreach (array(
+    'expense_road_toll'    => array('label' => $langs->trans('TollFees'),    'id' => 'expense_road_toll'),
+    'expense_road_parking' => array('label' => $langs->trans('ParkingFees'), 'id' => 'expense_road_parking'),
+    'expense_road_other'   => array('label' => $langs->trans('OtherFees'),   'id' => 'expense_road_other'),
+) as $rkey => $rmeta) {
+    $rval = isset($object->$rkey) ? $object->$rkey : '';
+    print '<div class="dc-expense-row">';
+    print '<span class="dc-expense-row-label">'.dol_escape_htmltag($rmeta['label']).'</span>';
+    if ($isCreate || $isEdit) {
+        print '<input type="number" id="'.dol_escape_htmltag($rmeta['id']).'" name="'.dol_escape_htmltag($rkey).'" class="dc-expense-input" value="'.dol_escape_htmltag($rval).'" min="0" step="any" placeholder="0.00" oninput="calcRoadTotal()">';
+    } else {
+        print '<span class="dc-expense-row-val'.(!empty($rval) ? '' : ' empty').'">'.(!empty($rval) ? price($rval) : '—').'</span>';
+    }
+    print '</div>';
+}
+
+// Road total
+print '<div class="dc-expense-row" style="background:#eff6ff;">';
+print '<span class="dc-expense-row-label" style="color:#2563eb;">'.$langs->trans('Total').'</span>';
+if ($isCreate || $isEdit) {
+    print '<input type="number" id="expense_road" name="expense_road" class="dc-expense-input" value="'.dol_escape_htmltag(isset($object->expense_road)?$object->expense_road:'').'" min="0" step="any" placeholder="0.00" style="background:#eff6ff!important;border-color:#93c5fd!important;font-weight:700!important;" readonly>';
+} else {
+    print '<span class="dc-expense-row-val" style="color:#2563eb;">'.(!empty($object->expense_road) ? price($object->expense_road) : '<span class="empty">—</span>').'</span>';
+}
+print '</div>';
+
+print '</div></div>'; // rows + road card
+
+/* ── COMMISSION ── */
+$comm_sub = $exp_subtotals['commission'];
+print '<div class="dc-expense-card">';
+print '<div class="dc-expense-card-header">';
+print '<div class="dc-expense-card-icon" style="background:rgba(22,163,74,0.12);color:#15803d;"><i class="fa fa-coins"></i></div>';
+print '<span class="dc-expense-card-title">'.$langs->trans('CommissionExpenses').'</span>';
+print '<span class="dc-expense-card-subtotal" id="commission_subtotal">'.($comm_sub > 0 ? price($comm_sub) : '—').'</span>';
+print '</div>';
+print '<div class="dc-expense-rows">';
+
+// Agent Commission
+$cval_agent = isset($object->expense_commission_agent) ? $object->expense_commission_agent : '';
+print '<div class="dc-expense-row">';
+print '<span class="dc-expense-row-label">'.$langs->trans('AgentCommission').'</span>';
+if ($isCreate || $isEdit) {
+    print '<input type="number" id="expense_commission_agent" name="expense_commission_agent" class="dc-expense-input" value="'.dol_escape_htmltag($cval_agent).'" min="0" step="any" placeholder="0.00" oninput="calcCommissionTotal()">';
+} else {
+    print '<span class="dc-expense-row-val'.(!empty($cval_agent) ? '' : ' empty').'">'.(!empty($cval_agent) ? price($cval_agent) : '—').'</span>';
+}
+print '</div>';
+
+// Tax Rate %
+$cval_tax = isset($object->expense_commission_tax) ? $object->expense_commission_tax : '';
+print '<div class="dc-expense-row">';
+print '<span class="dc-expense-row-label">'.$langs->trans('TaxRate').'</span>';
+if ($isCreate || $isEdit) {
+    print '<div style="display:flex;align-items:center;gap:6px;flex:1;">';
+    print '<input type="number" id="expense_commission_tax" name="expense_commission_tax" class="dc-expense-input" value="'.dol_escape_htmltag($cval_tax).'" min="0" max="100" step="any" placeholder="0" oninput="calcCommissionTotal()" style="max-width:90px!important;color:#6d28d9!important;border-color:rgba(109,40,217,0.3)!important;background:rgba(109,40,217,0.04)!important;font-weight:700!important;">';
+    print '<span style="font-size:13px;font-weight:700;color:#6d28d9;">%</span>';
+    print '<span style="font-size:11.5px;color:#9aa0b4;margin-left:4px;">→ <span id="commission_tax_amount" style="color:#6d28d9;font-weight:600;">0.00</span></span>';
+    print '</div>';
+} else {
+    if (!empty($cval_tax)) {
+        $tax_amount = round((float)$cval_agent * (float)$cval_tax / 100, 2);
+        print '<span class="dc-expense-row-val"><span class="dc-chip dc-tax-badge" style="font-size:12px;">'.dol_escape_htmltag($cval_tax).'%</span>';
+        print '<span style="font-size:12px;color:#6d28d9;margin-left:6px;">= '.price($tax_amount).'</span></span>';
+    } else {
+        print '<span class="dc-expense-row-val empty">—</span>';
+    }
+}
+print '</div>';
+
+// Other Fees
+$cval_other = isset($object->expense_commission_other) ? $object->expense_commission_other : '';
+print '<div class="dc-expense-row">';
+print '<span class="dc-expense-row-label">'.$langs->trans('OtherFees').'</span>';
+if ($isCreate || $isEdit) {
+    print '<input type="number" id="expense_commission_other" name="expense_commission_other" class="dc-expense-input" value="'.dol_escape_htmltag($cval_other).'" min="0" step="any" placeholder="0.00" oninput="calcCommissionTotal()">';
+} else {
+    print '<span class="dc-expense-row-val'.(!empty($cval_other) ? '' : ' empty').'">'.(!empty($cval_other) ? price($cval_other) : '—').'</span>';
+}
+print '</div>';
+
+// Commission total
+print '<div class="dc-expense-row" style="background:#f0fdf4;">';
+print '<span class="dc-expense-row-label" style="color:#15803d;">'.$langs->trans('Total').'</span>';
+if ($isCreate || $isEdit) {
+    print '<input type="number" id="expense_commission" name="expense_commission" class="dc-expense-input" value="'.dol_escape_htmltag(isset($object->expense_commission)?$object->expense_commission:'').'" min="0" step="any" placeholder="0.00" style="background:#f0fdf4!important;border-color:#86efac!important;font-weight:700!important;" readonly>';
+} else {
+    print '<span class="dc-expense-row-val" style="color:#15803d;">'.(!empty($object->expense_commission) ? price($object->expense_commission) : '<span class="empty">—</span>').'</span>';
+}
+print '</div>';
+
+print '</div></div>'; // rows + commission card
+
+print '</div>'; // dc-expense-grid
+
+// Grand total row
+$exp_total = $exp_subtotals['fuel'] + $exp_subtotals['road'] + $exp_subtotals['driver'] + $exp_subtotals['commission'];
+print '<div class="dc-expense-total-row">';
+print '<span class="dc-expense-total-label"><i class="fa fa-calculator" style="font-size:11px;margin-right:6px;"></i>'.$langs->trans('TotalExpenses').'</span>';
+if ($isCreate || $isEdit) {
+    print '<span class="dc-expense-total-val" id="expense_total">0.00</span>';
+} else {
+    print '<span class="dc-expense-total-val">'.($exp_total > 0 ? price($exp_total) : '&mdash;').'</span>';
+}
+print '</div>';
+
+print '</div>'; // dc-card
+// ---- End Expenses Card ----
+
+
 if ($isCreate || $isEdit) {
     print '<div class="dc-action-bar">';
     print '<a class="dc-btn dc-btn-ghost dc-action-bar-left" href="'.dol_buildpath('/flotte/booking_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('BackToList').'</a>';
@@ -1446,7 +1948,7 @@ print '<script>
 (function(){
 "use strict";
 var EDIT_MODE = '.$isEditMode.';
-var map = null, routeLayer = null, markers = [], depCoords = null, arrCoords = null, stopCoords = [], stopCount = 0;
+var map = null, routeLayer = null, outlineLayer = null, markers = [], depCoords = null, arrCoords = null, stopCoords = [], stopCount = 0;
 
 // Stored coords from DB (0 means not saved yet)
 var storedDep = { lat: '.$existingDepLat.', lon: '.$existingDepLon.' };
@@ -1494,7 +1996,7 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 function geocode(q) {
-    return fetch("https://nominatim.openstreetmap.org/search?format=json&q="+encodeURIComponent(q)+"&limit=1",{headers:{"Accept-Language":"en","User-Agent":"DolibarrFlotte/1.0"}})
+    return fetch("https://nominatim.openstreetmap.org/search?format=json&q="+encodeURIComponent(q)+"&limit=1&accept-language=en")
     .then(function(r){return r.json();}).then(function(d){return d.length?{lat:parseFloat(d[0].lat),lon:parseFloat(d[0].lon)}:null;}).catch(function(){return null;});
 }
 
@@ -1502,28 +2004,43 @@ var ntTimers = {};
 function setupAutocomplete(inId, sugId, onSel) {
     var inp = document.getElementById(inId), lst = document.getElementById(sugId);
     if (!inp||!lst) return;
+    // Move suggestion list to <body> so it is never clipped by any ancestor stacking context
+    document.body.appendChild(lst);
+    lst.style.position = "fixed";
+    lst.style.zIndex   = "2147483647";
+    lst.style.display  = "none";
+    function positionList() {
+        var r = inp.getBoundingClientRect();
+        lst.style.top   = (r.bottom + 2) + "px";
+        lst.style.left  = r.left + "px";
+        lst.style.width = r.width + "px";
+    }
     inp.addEventListener("input", function(){
         var q = inp.value.trim(); lst.innerHTML=""; lst.style.display="none";
         if (q.length<3) return;
         clearTimeout(ntTimers[inId]);
         ntTimers[inId] = setTimeout(function(){
+            positionList();
             lst.innerHTML="<li class=\'osm-loading\'><i class=\'fa fa-spinner fa-spin\'></i> Searching...</li>"; lst.style.display="block";
-            fetch("https://nominatim.openstreetmap.org/search?format=json&q="+encodeURIComponent(q)+"&limit=5",{headers:{"Accept-Language":"en","User-Agent":"DolibarrFlotte/1.0"}})
+            fetch("https://nominatim.openstreetmap.org/search?format=json&q="+encodeURIComponent(q)+"&limit=5&accept-language=en")
             .then(function(r){return r.json();}).then(function(data){
                 lst.innerHTML="";
-                if (!data.length){lst.innerHTML="<li style=\'color:#8b92a9;padding:9px 14px;font-size:12.5px;\'>No results</li>";lst.style.display="block";return;}
+                if (!data.length){lst.innerHTML="<li style=\'color:#8b92a9;padding:9px 14px;font-size:12.5px;\'>No results</li>";positionList();lst.style.display="block";return;}
                 data.forEach(function(p){
                     var li=document.createElement("li");
                     li.innerHTML="<i class=\'fa fa-map-marker-alt\'></i><span>"+escH(p.display_name)+"</span>";
                     li.addEventListener("mousedown",function(e){e.preventDefault();inp.value=p.display_name;lst.style.display="none";onSel({lat:parseFloat(p.lat),lon:parseFloat(p.lon)},p.display_name);});
                     lst.appendChild(li);
                 });
-                lst.style.display="block";
+                positionList(); lst.style.display="block";
             }).catch(function(){lst.style.display="none";});
         },400);
     });
+    // Keep dropdown aligned if user scrolls or resizes
+    window.addEventListener("scroll", function(){ if(lst.style.display!=="none") positionList(); }, true);
+    window.addEventListener("resize", function(){ if(lst.style.display!=="none") positionList(); });
     inp.addEventListener("blur",function(){setTimeout(function(){lst.style.display="none";},200);});
-    inp.addEventListener("focus",function(){if(lst.children.length)lst.style.display="block";});
+    inp.addEventListener("focus",function(){if(lst.children.length){positionList();lst.style.display="block";}});
 }
 
 window.addStop = function(existAddr, existLat, existLon) {
@@ -1540,7 +2057,10 @@ window.addStop = function(existAddr, existLat, existLon) {
     var latI=document.createElement("input"); latI.type="hidden"; latI.id="stop-lat-"+idx; if(existLat) latI.value=existLat;
     var lonI=document.createElement("input"); lonI.type="hidden"; lonI.id="stop-lon-"+idx; if(existLon) lonI.value=existLon;
     var rm=document.createElement("button"); rm.type="button"; rm.className="osm-remove-stop"; rm.innerHTML="<i class=\'fa fa-times\'></i>";
-    rm.addEventListener("click",function(){row.remove();renumberStops();updateStopsHidden();recalcRoute();});
+    rm.addEventListener("click",function(){
+        var orphan=document.getElementById("stop-sug-"+idx); if(orphan) orphan.remove();
+        row.remove();renumberStops();updateStopsHidden();recalcRoute();
+    });
     row.appendChild(badge); row.appendChild(wrap); row.appendChild(latI); row.appendChild(lonI); row.appendChild(rm);
     cont.appendChild(row);
     setupAutocomplete("stop-input-"+idx,"stop-sug-"+idx,function(c){document.getElementById("stop-lat-"+idx).value=c.lat;document.getElementById("stop-lon-"+idx).value=c.lon;updateStopsHidden();recalcRoute();});
@@ -1561,14 +2081,65 @@ function updateStopsHidden() {
 function initMap() {
     var el=document.getElementById("osm-map"); if(!el) return;
     map=L.map("osm-map",{zoomControl:true,scrollWheelZoom:false}).setView([34.0,9.0],6);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap contributors",maxZoom:18}).addTo(map);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"&copy; OpenStreetMap contributors",maxZoom:18}).addTo(map);
+    // Force Leaflet to recalculate container size after page layout fully settles
+    setTimeout(function(){ if(map) map.invalidateSize(); }, 250);
 }
+
+var lrmControl = null;
+
+function drawWithLRM(wps) {
+    if (!map) return;
+    var emp = document.getElementById("osm-map-empty"); if (emp) emp.style.display = "none";
+    if (lrmControl) { try { map.removeControl(lrmControl); } catch(e){} lrmControl = null; }
+    if (outlineLayer) { map.removeLayer(outlineLayer); outlineLayer = null; }
+    if (routeLayer)   { map.removeLayer(routeLayer);   routeLayer   = null; }
+    markers.forEach(function(m){ map.removeLayer(m); }); markers = [];
+    var valid = wps.filter(function(c){
+        return c && !isNaN(parseFloat(c.lat)) && !isNaN(parseFloat(c.lon))
+            && parseFloat(c.lat) !== 0 && parseFloat(c.lon) !== 0;
+    });
+    if (valid.length < 2) { return; }
+    var coords = valid.map(function(c){
+        return parseFloat(c.lon).toFixed(6) + "," + parseFloat(c.lat).toFixed(6);
+    }).join(";");
+    var proxyUrl = window.location.pathname + "?osrm_proxy=1&coords=" + encodeURIComponent(coords);
+    var controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var timer = controller ? setTimeout(function(){ controller.abort(); }, 20000) : null;
+    var fetchOpts = controller ? { signal: controller.signal } : {};
+    fetch(proxyUrl, fetchOpts)
+        .then(function(r) {
+            if (timer) clearTimeout(timer);
+            if (!r.ok) throw new Error("HTTP " + r.status);
+            return r.json();
+        })
+        .then(function(data) {
+            if (!data.routes || !data.routes.length) { drawFallbackRoute(wps); return; }
+            var route = data.routes[0];
+            var dInp = document.getElementById("distance");
+            if (dInp) dInp.value = Math.round(route.distance / 1000);
+            var eInp = document.getElementById("eta");
+            if (eInp) {
+                var sec = route.duration;
+                var h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60);
+                eInp.value = (h > 0 ? h + "h " : "") + m + "min";
+                calcDropoff(sec);
+            }
+            var latlngs = route.geometry.coordinates.map(function(c){ return [c[1], c[0]]; });
+            drawRoutePolyline(latlngs, wps);
+        })
+        .catch(function() {
+            if (timer) clearTimeout(timer);
+            drawFallbackRoute(wps);
+        });
+}
+
 
 function recalcRoute() {
     updateStopsHidden();
     if (!depCoords||!arrCoords) return;
-    var rows=document.querySelectorAll("#stops-container .osm-stop-row");
-    var proms=Array.from(rows).map(function(row){
+    var rows = document.querySelectorAll("#stops-container .osm-stop-row");
+    var proms = Array.from(rows).map(function(row){
         var lI=row.querySelector("input[id^=\'stop-lat\']"),nI=row.querySelector("input[id^=\'stop-lon\']"),iI=row.querySelector("input[type=\'text\']");
         if(lI&&nI&&lI.value&&nI.value) return Promise.resolve({lat:parseFloat(lI.value),lon:parseFloat(nI.value)});
         if(iI&&iI.value.trim().length>2) return geocode(iI.value.trim());
@@ -1576,39 +2147,45 @@ function recalcRoute() {
     });
     Promise.all(proms).then(function(sc){
         var wps=[depCoords]; sc.forEach(function(c){if(c)wps.push(c);}); wps.push(arrCoords);
-        var coords=wps.map(function(c){return c.lon+","+c.lat;}).join(";");
-        showLoaders(true);
-        fetch("https://router.project-osrm.org/route/v1/driving/"+coords+"?overview=full&geometries=geojson")
-        .then(function(r){return r.json();}).then(function(data){
-            showLoaders(false);
-            if(!data.routes||!data.routes.length) return;
-            var route=data.routes[0];
-            var dInp=document.getElementById("distance"); if(dInp) dInp.value=Math.round(route.distance/1000);
-            var eInp=document.getElementById("eta");
-            if(eInp){var h=Math.floor(route.duration/3600),m=Math.round((route.duration%3600)/60);eInp.value=(h>0?h+"h ":"")+m+"min"; calcDropoff(route.duration);}
-            drawRouteGeoJSON(route.geometry,wps);
-        }).catch(function(){showLoaders(false);});
+        drawWithLRM(wps);
     });
 }
 
 function drawRoute() {
     if(!depCoords||!arrCoords) return;
     var wps=[depCoords].concat(stopCoords).concat([arrCoords]);
-    var coords=wps.map(function(c){return c.lon+","+c.lat;}).join(";");
-    fetch("https://router.project-osrm.org/route/v1/driving/"+coords+"?overview=full&geometries=geojson")
-    .then(function(r){return r.json();}).then(function(data){if(data.routes&&data.routes.length)drawRouteGeoJSON(data.routes[0].geometry,wps);}).catch(function(){});
+    drawWithLRM(wps);
 }
 
-function drawRouteGeoJSON(geometry, wps) {
+function drawFallbackRoute(wps) {
     if(!map) return;
     var emp=document.getElementById("osm-map-empty"); if(emp) emp.style.display="none";
+    if(outlineLayer) map.removeLayer(outlineLayer);
     if(routeLayer) map.removeLayer(routeLayer);
     markers.forEach(function(m){map.removeLayer(m);}); markers=[];
-    routeLayer=L.geoJSON(geometry,{style:{color:"#3c4758",weight:4,opacity:0.85}}).addTo(map);
+    var latlngs=wps.map(function(c){return [c.lat,c.lon];});
+    // White outline underneath for depth, then solid coloured line on top
+    outlineLayer=L.polyline(latlngs,{color:"#ffffff",weight:8,opacity:1,lineJoin:"round",lineCap:"round"}).addTo(map);
+    routeLayer=L.polyline(latlngs,{color:"#3c4758",weight:5,opacity:1,lineJoin:"round",lineCap:"round"}).addTo(map);
     var iDep=L.divIcon({className:"",html:"<div style=\'background:#16a34a;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);\'></div>",iconSize:[14,14],iconAnchor:[7,7]});
     var iArr=L.divIcon({className:"",html:"<div style=\'background:#dc2626;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);\'></div>",iconSize:[14,14],iconAnchor:[7,7]});
     var iStp=L.divIcon({className:"",html:"<div style=\'background:#3c4758;width:11px;height:11px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.25);\'></div>",iconSize:[11,11],iconAnchor:[5.5,5.5]});
     wps.forEach(function(c,i){var ic=(i===0)?iDep:(i===wps.length-1?iArr:iStp);markers.push(L.marker([c.lat,c.lon],{icon:ic}).addTo(map));});
+    map.fitBounds(routeLayer.getBounds(),{padding:[24,24]});
+}
+
+function drawRoutePolyline(latlngs, wps) {
+    if(!map) return;
+    var emp=document.getElementById("osm-map-empty"); if(emp) emp.style.display="none";
+    if(outlineLayer){map.removeLayer(outlineLayer);outlineLayer=null;}
+    if(routeLayer){map.removeLayer(routeLayer);routeLayer=null;}
+    markers.forEach(function(m){map.removeLayer(m);}); markers=[];
+    outlineLayer=L.polyline(latlngs,{color:"#ffffff",weight:8,opacity:1,lineJoin:"round",lineCap:"round"}).addTo(map);
+    routeLayer=L.polyline(latlngs,{color:"#3c4758",weight:5,opacity:1,lineJoin:"round",lineCap:"round"}).addTo(map);
+    var iDep=L.divIcon({className:"",html:"<div style=\'background:#16a34a;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);\'></div>",iconSize:[14,14],iconAnchor:[7,7]});
+    var iArr=L.divIcon({className:"",html:"<div style=\'background:#dc2626;width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);\'></div>",iconSize:[14,14],iconAnchor:[7,7]});
+    var iStp=L.divIcon({className:"",html:"<div style=\'background:#3c4758;width:11px;height:11px;border-radius:50%;border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.25);\'></div>",iconSize:[11,11],iconAnchor:[5.5,5.5]});
+    wps.forEach(function(c,idx){var ic=(idx===0)?iDep:(idx===wps.length-1?iArr:iStp);markers.push(L.marker([c.lat,c.lon],{icon:ic}).addTo(map));});
     map.fitBounds(routeLayer.getBounds(),{padding:[24,24]});
 }
 
@@ -1649,6 +2226,76 @@ function showLoaders(s) {
 }
 function escH(str){var d=document.createElement("div");d.appendChild(document.createTextNode(str));return d.innerHTML;}
 })();
+</script>';
+
+// Expense calculators — must be global scope so oninput attributes can reach them
+print '<script>
+function calcFuelTotal() {
+    var qty   = parseFloat(document.getElementById("expense_fuel_qty")   ? document.getElementById("expense_fuel_qty").value   : 0) || 0;
+    var price = parseFloat(document.getElementById("expense_fuel_price") ? document.getElementById("expense_fuel_price").value : 0) || 0;
+    var el    = document.getElementById("expense_fuel");
+    if (qty > 0 && price > 0) {
+        var total = Math.round(qty * price * 100) / 100;
+        if (el) el.value = total.toFixed(2);
+        var sub = document.getElementById("fuel_subtotal");
+        if (sub) sub.textContent = total.toFixed(2);
+    } else {
+        var manual = parseFloat(el ? el.value : 0) || 0;
+        var sub = document.getElementById("fuel_subtotal");
+        if (sub) sub.textContent = manual > 0 ? manual.toFixed(2) : "—";
+    }
+    calcExpenseTotal();
+}
+function calcDriverTotal() {
+    var keys = ["expense_driver_salary","expense_driver_overnight","expense_driver_bonus"];
+    var total = 0;
+    keys.forEach(function(k){ var el=document.getElementById(k); if(el&&el.value) total+=parseFloat(el.value)||0; });
+    total = Math.round(total * 100) / 100;
+    var el = document.getElementById("expense_driver");
+    if (el) el.value = total > 0 ? total.toFixed(2) : "";
+    var sub = document.getElementById("driver_subtotal");
+    if (sub) sub.textContent = total > 0 ? total.toFixed(2) : "—";
+    calcExpenseTotal();
+}
+function calcRoadTotal() {
+    var keys = ["expense_road_toll","expense_road_parking","expense_road_other"];
+    var total = 0;
+    keys.forEach(function(k){ var el=document.getElementById(k); if(el&&el.value) total+=parseFloat(el.value)||0; });
+    total = Math.round(total * 100) / 100;
+    var el = document.getElementById("expense_road");
+    if (el) el.value = total > 0 ? total.toFixed(2) : "";
+    var sub = document.getElementById("road_subtotal");
+    if (sub) sub.textContent = total > 0 ? total.toFixed(2) : "—";
+    calcExpenseTotal();
+}
+function calcCommissionTotal() {
+    var agent   = parseFloat(document.getElementById("expense_commission_agent") ? document.getElementById("expense_commission_agent").value : 0) || 0;
+    var taxRate = parseFloat(document.getElementById("expense_commission_tax")   ? document.getElementById("expense_commission_tax").value   : 0) || 0;
+    var other   = parseFloat(document.getElementById("expense_commission_other") ? document.getElementById("expense_commission_other").value : 0) || 0;
+    var taxAmt  = Math.round(agent * taxRate / 100 * 100) / 100;
+    var total   = Math.round((agent + taxAmt + other) * 100) / 100;
+    var taxSpan = document.getElementById("commission_tax_amount");
+    if (taxSpan) taxSpan.textContent = taxAmt.toFixed(2);
+    var el = document.getElementById("expense_commission");
+    if (el) el.value = total > 0 ? total.toFixed(2) : "";
+    var sub = document.getElementById("commission_subtotal");
+    if (sub) sub.textContent = total > 0 ? total.toFixed(2) : "—";
+    calcExpenseTotal();
+}
+function calcExpenseTotal() {
+    var keys = ["expense_fuel","expense_road","expense_driver","expense_commission"];
+    var total = 0;
+    keys.forEach(function(k){ var el=document.getElementById(k); if(el&&el.value) total+=parseFloat(el.value)||0; });
+    total = Math.round(total * 100) / 100;
+    var t = document.getElementById("expense_total");
+    if (t) t.textContent = total > 0 ? total.toFixed(2) : "0.00";
+}
+document.addEventListener("DOMContentLoaded", function() {
+    calcFuelTotal();
+    calcDriverTotal();
+    calcRoadTotal();
+    calcCommissionTotal();
+});
 </script>';
 
 // End of page
