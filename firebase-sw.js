@@ -17,8 +17,8 @@ messaging.onBackgroundMessage(function(payload) {
     const notificationTitle = payload.notification?.title || 'Flotte Alert';
     const notificationOptions = {
         body:  payload.notification?.body || '',
-        icon:  '/flotte/img/flotte_icon.png',
-        badge: '/flotte/img/flotte_badge.png',
+        icon:  '/htdocs/custom/flotte/img/flotte_icon.png',
+        badge: '/htdocs/custom/flotte/img/flotte_badge.png',
         data:  payload.data || {},
         requireInteraction: (payload.data?.priority >= 3),
     };
@@ -30,8 +30,8 @@ self.addEventListener('notificationclick', function(event) {
     if (event.action === 'dismiss') return;
 
     const data = event.notification.data || {};
-    let url = '/flotte/notification_center.php';
-    if (data.vehicle_id) url = '/flotte/vehicle_card.php?id=' + data.vehicle_id;
+    let url = '/htdocs/custom/flotte/notification_center.php';
+    if (data.vehicle_id) url = '/htdocs/custom/flotte/vehicle_card.php?id=' + data.vehicle_id;
 
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
