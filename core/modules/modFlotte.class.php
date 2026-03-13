@@ -438,6 +438,23 @@ class modFlotte extends DolibarrModules
 		);
 		$r++;
 
+		// Reports submenu
+		$this->menu[$r] = array(
+			'fk_menu' => 'fk_mainmenu=flotte',
+			'type' => 'left',
+			'titre' => 'Reports',
+			'mainmenu' => 'flotte',
+			'leftmenu' => 'flotte_reports',
+			'url' => '/flotte/reports.php',
+			'langs' => 'flotte@flotte',
+			'position' => 1140,
+			'enabled' => 'isModEnabled("flotte")',
+			'perms' => '$user->hasRight("flotte", "read")',
+			'target' => '',
+			'user' => 2
+		);
+		$r++;
+
 		// Notification Settings submenu
 		$this->menu[$r] = array(
 			'fk_menu' => 'fk_mainmenu=flotte',
