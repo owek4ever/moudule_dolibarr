@@ -36,6 +36,25 @@ FlotteArea = Home Flotte
 MyPageName = My page name
 
 #
+# Reports
+#
+Reports = Reports
+FleetReports = Fleet Reports
+ReportPeriod = Report Period
+BookingsTrend = Bookings Trend
+BookingsByStatus = Bookings by Status
+FuelByVehicle = Fuel Consumption by Vehicle
+WorkOrdersByPriority = Work Orders by Priority
+TopVehicles = Top Vehicles by Bookings
+TopDrivers = Top Drivers by Bookings
+FleetStatus = Fleet Status Snapshot
+MaintenanceSummary = Maintenance Summary
+TotalDistance = Total Distance
+FuelConsumed = Fuel Consumed
+PendingWorkOrders = Pending Work Orders
+NoDataAvailable = No data available for this period
+
+#
 # Sample widget
 #
 MyWidget = My widget
