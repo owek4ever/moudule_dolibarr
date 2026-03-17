@@ -803,9 +803,10 @@ print '  </div>';
 print '  <div class="dc-header-actions">';
 if ($isView && $id > 0) {
     if (!empty($driver_data['status'])) {
-        $st = $driver_data['status'];
-        $stClass = ($st == 'Active') ? 'active' : (($st == 'Inactive') ? 'inactive' : 'onleave');
-        print '<span class="dc-badge '.$stClass.'">'.dol_escape_htmltag($st).'</span>';
+        $st = strtolower($driver_data['status']);
+        $stClass = ($st == 'active') ? 'active' : (($st == 'inactive') ? 'inactive' : 'onleave');
+        $displayLabel = ($st == 'suspended' || $st == 'on leave') ? 'On Leave' : ucfirst($st);
+        print '<span class="dc-badge '.$stClass.'">'.dol_escape_htmltag($displayLabel).'</span>';
     }
     print '<a class="dc-btn dc-btn-ghost" href="'.dol_buildpath('/flotte/driver_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.transLabel($langs, 'BackToList').'</a>';
     print '<a class="dc-btn dc-btn-ghost" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=edit"><i class="fa fa-pen"></i> '.transLabel($langs, 'Modify').'</a>';
@@ -974,15 +975,16 @@ print '    <div class="dc-field-label">'.transLabel($langs, 'Status').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     print '<select name="status"><option value="">--</option>';
-    print '<option value="Active"'.(isset($driver_data['status']) && $driver_data['status'] == 'Active' ? ' selected' : '').'>'.transLabel($langs, 'Active').'</option>';
-    print '<option value="Inactive"'.(isset($driver_data['status']) && $driver_data['status'] == 'Inactive' ? ' selected' : '').'>'.transLabel($langs, 'Inactive').'</option>';
-    print '<option value="On Leave"'.(isset($driver_data['status']) && $driver_data['status'] == 'On Leave' ? ' selected' : '').'>'.transLabel($langs, 'OnLeave').'</option>';
+    print '<option value="active"'.(isset($driver_data['status']) && strtolower($driver_data['status']) == 'active' ? ' selected' : '').'>'.transLabel($langs, 'Active').'</option>';
+    print '<option value="inactive"'.(isset($driver_data['status']) && strtolower($driver_data['status']) == 'inactive' ? ' selected' : '').'>'.transLabel($langs, 'Inactive').'</option>';
+    print '<option value="suspended"'.(isset($driver_data['status']) && in_array(strtolower($driver_data['status']), array('suspended', 'on leave', 'on_leave')) ? ' selected' : '').'>'.transLabel($langs, 'OnLeave').'</option>';
     print '</select>';
 } else {
     if (!empty($driver_data['status'])) {
-        $st = $driver_data['status'];
-        $stClass = ($st == 'Active') ? 'active' : (($st == 'Inactive') ? 'inactive' : 'onleave');
-        print '<span class="dc-badge '.$stClass.'">'.dol_escape_htmltag($st).'</span>';
+        $st = strtolower($driver_data['status']);
+        $stClass = ($st == 'active') ? 'active' : (($st == 'inactive') ? 'inactive' : 'onleave');
+        $displayLabel = ($st == 'suspended' || $st == 'on leave') ? 'On Leave' : ucfirst($st);
+        print '<span class="dc-badge '.$stClass.'">'.dol_escape_htmltag($displayLabel).'</span>';
     }
 }
 print '    </div></div>';

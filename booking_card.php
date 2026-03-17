@@ -127,6 +127,119 @@ function getNextBookingRef($db, $entity) {
     return $prefix.str_pad($next_number, 4, '0', STR_PAD_LEFT);
 }
 
+/**
+ * Sync booking expense data into the flotte_expense table.
+ * Deletes existing booking-sourced rows for this booking, then re-inserts
+ * one row per category that has a non-zero amount.
+ */
+function syncBookingExpensesToTable($db, $booking_id, $booking_date, $conf, $user, $expense_data) {
+    // Ensure flotte_expense table exists
+    $db->query("CREATE TABLE IF NOT EXISTS ".MAIN_DB_PREFIX."flotte_expense (
+      rowid              INT AUTO_INCREMENT PRIMARY KEY,
+      ref                VARCHAR(30)      DEFAULT NULL,
+      fk_booking         INT              DEFAULT NULL,
+      expense_date       DATE             DEFAULT NULL,
+      category           VARCHAR(30)      DEFAULT 'other',
+      amount             DECIMAL(15,2)    DEFAULT NULL,
+      notes              TEXT,
+      fuel_vendor        INT              DEFAULT NULL,
+      fuel_type          VARCHAR(50)      DEFAULT NULL,
+      fuel_qty           DECIMAL(15,4)    DEFAULT NULL,
+      fuel_price         DECIMAL(15,4)    DEFAULT NULL,
+      road_toll          DECIMAL(15,2)    DEFAULT NULL,
+      road_parking       DECIMAL(15,2)    DEFAULT NULL,
+      road_other         DECIMAL(15,2)    DEFAULT NULL,
+      driver_salary      DECIMAL(15,2)    DEFAULT NULL,
+      driver_overnight   DECIMAL(15,2)    DEFAULT NULL,
+      driver_bonus       DECIMAL(15,2)    DEFAULT NULL,
+      commission_agent   DECIMAL(15,2)    DEFAULT NULL,
+      commission_tax     DECIMAL(5,2)     DEFAULT NULL,
+      commission_other   DECIMAL(15,2)    DEFAULT NULL,
+      other_label        VARCHAR(255)     DEFAULT NULL,
+      source             VARCHAR(20)      DEFAULT 'manual',
+      entity             INT              DEFAULT 1,
+      date_creation      DATETIME         DEFAULT NULL,
+      fk_user_creat      INT              DEFAULT NULL,
+      tms                TIMESTAMP        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    // Remove old booking-sourced rows for this booking
+    $db->query("DELETE FROM ".MAIN_DB_PREFIX."flotte_expense WHERE fk_booking = ".((int)$booking_id)." AND source = 'booking'");
+
+    $year      = date('Y', strtotime($booking_date));
+    $exp_date  = !empty($booking_date) ? $db->escape($booking_date) : date('Y-m-d');
+
+    // Helper to get next expense ref
+    $getRef = function() use ($db, $conf, $year) {
+        $sql = "SELECT MAX(CAST(SUBSTRING(ref, 9) AS UNSIGNED)) AS mx FROM ".MAIN_DB_PREFIX."flotte_expense WHERE ref LIKE 'EXP-".$year."-%' AND entity = ".((int)$conf->entity);
+        $res = $db->query($sql);
+        $mx  = 0;
+        if ($res) { $obj = $db->fetch_object($res); $mx = (int)$obj->mx; }
+        return 'EXP-'.$year.'-'.str_pad($mx + 1, 4, '0', STR_PAD_LEFT);
+    };
+
+    // ── FUEL ──
+    if (!empty($expense_data['expense_fuel']) && (float)$expense_data['expense_fuel'] > 0) {
+        $ref = $getRef();
+        $db->query("INSERT INTO ".MAIN_DB_PREFIX."flotte_expense
+            (ref, fk_booking, expense_date, category, amount,
+             fuel_vendor, fuel_type, fuel_qty, fuel_price,
+             source, entity, date_creation, fk_user_creat) VALUES (
+            '".$db->escape($ref)."', ".((int)$booking_id).", '".$exp_date."', 'fuel',
+            ".((float)$expense_data['expense_fuel']).",
+            ".(!empty($expense_data['expense_fuel_vendor']) ? (int)$expense_data['expense_fuel_vendor'] : 'NULL').",
+            ".(!empty($expense_data['expense_fuel_type'])   ? "'".$db->escape($expense_data['expense_fuel_type'])."'" : 'NULL').",
+            ".(!empty($expense_data['expense_fuel_qty'])    ? (float)$expense_data['expense_fuel_qty']    : 'NULL').",
+            ".(!empty($expense_data['expense_fuel_price'])  ? (float)$expense_data['expense_fuel_price']  : 'NULL').",
+            'booking', ".((int)$conf->entity).", NOW(), ".((int)$user->id).")");
+    }
+
+    // ── ROAD ──
+    if (!empty($expense_data['expense_road']) && (float)$expense_data['expense_road'] > 0) {
+        $ref = $getRef();
+        $db->query("INSERT INTO ".MAIN_DB_PREFIX."flotte_expense
+            (ref, fk_booking, expense_date, category, amount,
+             road_toll, road_parking, road_other,
+             source, entity, date_creation, fk_user_creat) VALUES (
+            '".$db->escape($ref)."', ".((int)$booking_id).", '".$exp_date."', 'road',
+            ".((float)$expense_data['expense_road']).",
+            ".(!empty($expense_data['expense_road_toll'])    ? (float)$expense_data['expense_road_toll']    : 'NULL').",
+            ".(!empty($expense_data['expense_road_parking']) ? (float)$expense_data['expense_road_parking'] : 'NULL').",
+            ".(!empty($expense_data['expense_road_other'])   ? (float)$expense_data['expense_road_other']   : 'NULL').",
+            'booking', ".((int)$conf->entity).", NOW(), ".((int)$user->id).")");
+    }
+
+    // ── DRIVER ──
+    if (!empty($expense_data['expense_driver']) && (float)$expense_data['expense_driver'] > 0) {
+        $ref = $getRef();
+        $db->query("INSERT INTO ".MAIN_DB_PREFIX."flotte_expense
+            (ref, fk_booking, expense_date, category, amount,
+             driver_salary, driver_overnight, driver_bonus,
+             source, entity, date_creation, fk_user_creat) VALUES (
+            '".$db->escape($ref)."', ".((int)$booking_id).", '".$exp_date."', 'driver',
+            ".((float)$expense_data['expense_driver']).",
+            ".(!empty($expense_data['expense_driver_salary'])    ? (float)$expense_data['expense_driver_salary']    : 'NULL').",
+            ".(!empty($expense_data['expense_driver_overnight']) ? (float)$expense_data['expense_driver_overnight'] : 'NULL').",
+            ".(!empty($expense_data['expense_driver_bonus'])     ? (float)$expense_data['expense_driver_bonus']     : 'NULL').",
+            'booking', ".((int)$conf->entity).", NOW(), ".((int)$user->id).")");
+    }
+
+    // ── COMMISSION ──
+    if (!empty($expense_data['expense_commission']) && (float)$expense_data['expense_commission'] > 0) {
+        $ref = $getRef();
+        $db->query("INSERT INTO ".MAIN_DB_PREFIX."flotte_expense
+            (ref, fk_booking, expense_date, category, amount,
+             commission_agent, commission_tax, commission_other,
+             source, entity, date_creation, fk_user_creat) VALUES (
+            '".$db->escape($ref)."', ".((int)$booking_id).", '".$exp_date."', 'commission',
+            ".((float)$expense_data['expense_commission']).",
+            ".(!empty($expense_data['expense_commission_agent']) ? (float)$expense_data['expense_commission_agent'] : 'NULL').",
+            ".(!empty($expense_data['expense_commission_tax'])   ? (float)$expense_data['expense_commission_tax']   : 'NULL').",
+            ".(!empty($expense_data['expense_commission_other']) ? (float)$expense_data['expense_commission_other'] : 'NULL').",
+            'booking', ".((int)$conf->entity).", NOW(), ".((int)$user->id).")");
+    }
+}
+
 // Get parameters
 $id = GETPOST('id', 'int');
 $action = GETPOST('action', 'aZ09') ? GETPOST('action', 'aZ09') : 'view';
@@ -377,6 +490,14 @@ if ($action == 'add') {
         if ($result) {
             $id = $db->last_insert_id(MAIN_DB_PREFIX."flotte_booking");
             $db->commit();
+            // Sync expenses to flotte_expense table
+            $expense_sync_data = compact(
+                'expense_fuel','expense_fuel_qty','expense_fuel_price','expense_fuel_type','expense_fuel_vendor',
+                'expense_road','expense_road_toll','expense_road_parking','expense_road_other',
+                'expense_driver','expense_driver_salary','expense_driver_overnight','expense_driver_bonus',
+                'expense_commission','expense_commission_agent','expense_commission_tax','expense_commission_other'
+            );
+            syncBookingExpensesToTable($db, $id, $booking_date, $conf, $user, $expense_sync_data);
             $action = 'view';
             setEventMessages($langs->trans("BookingCreatedSuccessfully"), null, 'mesgs');
         } else {
@@ -535,6 +656,14 @@ if ($action == 'update' && $id > 0) {
         $result = $db->query($sql);
         if ($result) {
             $db->commit();
+            // Sync expenses to flotte_expense table
+            $expense_sync_data = compact(
+                'expense_fuel','expense_fuel_qty','expense_fuel_price','expense_fuel_type','expense_fuel_vendor',
+                'expense_road','expense_road_toll','expense_road_parking','expense_road_other',
+                'expense_driver','expense_driver_salary','expense_driver_overnight','expense_driver_bonus',
+                'expense_commission','expense_commission_agent','expense_commission_tax','expense_commission_other'
+            );
+            syncBookingExpensesToTable($db, $id, $booking_date, $conf, $user, $expense_sync_data);
             $action = 'view';
             setEventMessages($langs->trans("BookingUpdatedSuccessfully"), null, 'mesgs');
         } else {
@@ -1035,63 +1164,20 @@ div.ui-datepicker { z-index: 99999 !important; }
     }
 }
 
-/* ---- Expense cards ---- */
+/* ---- Expense sub-card grid ---- */
 .dc-expense-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-    padding: 16px;
-    background: #f7f8fc;
+    gap: 12px;
+    padding: 12px;
 }
 @media(max-width:780px){ .dc-expense-grid { grid-template-columns: 1fr; } }
-
-.dc-expense-card {
-    background: #fff;
-    border: 1.5px solid #e8eaf0;
-    border-radius: 12px;
-    box-shadow: 0 1px 5px rgba(0,0,0,0.05);
-    overflow: hidden;
+.dc-expense-subtotal {
+    margin-left: auto;
+    font-family: 'DM Mono', monospace; font-size: 12px; font-weight: 500;
+    background: #f0f2fa; color: #4a5568;
+    padding: 3px 9px; border-radius: 5px;
 }
-.dc-expense-card-header {
-    display: flex; align-items: center; gap: 10px;
-    padding: 12px 16px;
-    border-bottom: 1px solid #f0f2f8;
-    background: #f7f8fc;
-}
-.dc-expense-card-icon {
-    width: 32px; height: 32px; border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px; flex-shrink: 0;
-}
-.dc-expense-card-title { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #5a6482; }
-.dc-expense-card-subtotal { margin-left: auto; font-size: 13px; font-weight: 700; color: #1a1f2e; font-family: 'DM Mono', monospace; }
-
-.dc-expense-rows { padding: 0; }
-.dc-expense-row {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 16px;
-    border-bottom: 1px solid #f5f6fb;
-}
-.dc-expense-row:last-child { border-bottom: none; }
-.dc-expense-row-label {
-    flex: 0 0 140px; font-size: 11.5px; font-weight: 600;
-    color: #8b92a9; text-transform: uppercase; letter-spacing: 0.4px;
-}
-.dc-expense-row-val { flex: 1; font-size: 13.5px; font-weight: 600; color: #1a1f2e; font-family: 'DM Mono', monospace; }
-.dc-expense-row-val.empty { color: #c4c9d8; font-family: 'DM Sans', sans-serif; font-weight: 400; font-size: 13px; }
-.dc-expense-input {
-    width: 100%; border: 1.5px solid #e2e5f0 !important; border-radius: 6px !important;
-    padding: 6px 10px !important; font-size: 13px !important; font-weight: 500 !important;
-    color: #1a1f2e !important; background: #fafbfe !important; outline: none;
-}
-.dc-expense-input:focus { border-color: #3c4758 !important; box-shadow: 0 0 0 3px rgba(60,71,88,0.08) !important; background: #fff !important; }
-.dc-expense-total-row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 13px 22px; background: #f7f8fc;
-    border-top: 1px solid #f0f2f8; border-radius: 0 0 12px 12px;
-}
-.dc-expense-total-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #8b92a9; }
-.dc-expense-total-val { font-size: 18px; font-weight: 700; color: #1a1f2e; font-family: 'DM Mono', monospace; }
 </style>
 <?php
 
@@ -1634,233 +1720,202 @@ if (!empty($object->expense_road))             $exp_subtotals['road']       += (
 if (!empty($object->expense_driver))           $exp_subtotals['driver']     += (float)$object->expense_driver;
 if (!empty($object->expense_commission))       $exp_subtotals['commission'] += (float)$object->expense_commission;
 
+print '<div class="dc-card-body">';
 print '<div class="dc-expense-grid">';
 
 /* ── FUEL ── */
 $fuel_sub = $exp_subtotals['fuel'];
-print '<div class="dc-expense-card">';
-print '<div class="dc-expense-card-header">';
-print '<div class="dc-expense-card-icon" style="background:rgba(245,158,11,0.12);color:#d97706;"><i class="fa fa-gas-pump"></i></div>';
-print '<span class="dc-expense-card-title">'.$langs->trans('FuelExpenses').'</span>';
-print '<span class="dc-expense-card-subtotal" id="fuel_subtotal">'.($fuel_sub > 0 ? price($fuel_sub) : '—').'</span>';
-print '</div>';
-print '<div class="dc-expense-rows">';
+print '<div class="dc-card">';
+print '  <div class="dc-card-header">';
+print '    <div class="dc-card-header-icon amber"><i class="fa fa-gas-pump"></i></div>';
+print '    <span class="dc-card-title">'.$langs->trans('FuelExpenses').'</span>';
+print '    <span class="dc-expense-subtotal" id="fuel_subtotal">'.($fuel_sub > 0 ? price($fuel_sub) : '&#8212;').'</span>';
+print '  </div>';
+print '  <div class="dc-card-body">';
 
-// Fuel Vendor
-print '<div class="dc-expense-row">';
-print '<span class="dc-expense-row-label">'.$langs->trans('Vendor').'</span>';
+print '  <div class="dc-field"><div class="dc-field-label">'.$langs->trans('Vendor').'</div><div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<div style="flex:1;">';
     print $form->selectarray('expense_fuel_vendor', $vendors_list, (isset($object->expense_fuel_vendor) ? $object->expense_fuel_vendor : ''), 1);
-    print '</div>';
 } else {
-    $fv_name = '—';
-    if (!empty($object->expense_fuel_vendor)) {
-        foreach ($vendors_list as $vid => $vname) { if ($vid == $object->expense_fuel_vendor) { $fv_name = $vname; break; } }
-    }
-    print '<span class="dc-expense-row-val'.($fv_name === '—' ? ' empty' : '').'">'.dol_escape_htmltag($fv_name).'</span>';
+    $fv_name = '&#8212;';
+    if (!empty($object->expense_fuel_vendor)) { foreach ($vendors_list as $vid => $vname) { if ($vid == $object->expense_fuel_vendor) { $fv_name = '<span class="dc-chip"><i class="fa fa-store" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($vname).'</span>'; break; } } }
+    print $fv_name;
 }
-print '</div>';
+print '</div></div>';
 
-// Fuel Type
-print '<div class="dc-expense-row">';
-print '<span class="dc-expense-row-label">'.$langs->trans('FuelType').'</span>';
+print '  <div class="dc-field"><div class="dc-field-label">'.$langs->trans('FuelType').'</div><div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $fuel_types = array('gasoline'=>$langs->trans('Gasoline'),'diesel'=>$langs->trans('Diesel'),'lpg'=>'LPG','electric'=>$langs->trans('Electric'),'hybrid'=>$langs->trans('Hybrid'),'other'=>$langs->trans('Other'));
-    print '<div style="flex:1;">'.$form->selectarray('expense_fuel_type', $fuel_types, (isset($object->expense_fuel_type) ? $object->expense_fuel_type : ''), 1).'</div>';
+    print $form->selectarray('expense_fuel_type', $fuel_types, (isset($object->expense_fuel_type) ? $object->expense_fuel_type : ''), 1);
 } else {
-    $ftype = !empty($object->expense_fuel_type) ? dol_escape_htmltag(ucfirst($object->expense_fuel_type)) : '—';
-    print '<span class="dc-expense-row-val'.($ftype === '—' ? ' empty' : '').'"><span class="dc-chip" style="font-size:12px;">'.dol_escape_htmltag($ftype).'</span></span>';
+    print (!empty($object->expense_fuel_type) ? '<span class="dc-chip">'.dol_escape_htmltag(ucfirst($object->expense_fuel_type)).'</span>' : '&#8212;');
 }
-print '</div>';
+print '</div></div>';
 
-// Liters
-print '<div class="dc-expense-row">';
-print '<span class="dc-expense-row-label">'.$langs->trans('Liters').'</span>';
+print '  <div class="dc-field"><div class="dc-field-label">'.$langs->trans('Liters').'</div><div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="number" id="expense_fuel_qty" name="expense_fuel_qty" class="dc-expense-input" value="'.dol_escape_htmltag(isset($object->expense_fuel_qty) ? $object->expense_fuel_qty : '').'" min="0" step="any" placeholder="0.00" oninput="calcFuelTotal()">';
+    print '<input type="number" id="expense_fuel_qty" name="expense_fuel_qty" value="'.dol_escape_htmltag(isset($object->expense_fuel_qty)?$object->expense_fuel_qty:'').'" min="0" step="any" placeholder="0.00" oninput="calcFuelTotal()">';
 } else {
-    $fqty = !empty($object->expense_fuel_qty) ? dol_escape_htmltag($object->expense_fuel_qty).' L' : '—';
-    print '<span class="dc-expense-row-val'.(!empty($object->expense_fuel_qty) ? '' : ' empty').'">'.$fqty.'</span>';
+    print (!empty($object->expense_fuel_qty) ? '<span class="dc-amount">'.dol_escape_htmltag($object->expense_fuel_qty).' L</span>' : '&#8212;');
 }
-print '</div>';
+print '</div></div>';
 
-// Price per Liter
-print '<div class="dc-expense-row">';
-print '<span class="dc-expense-row-label">'.$langs->trans('PricePerLiter').'</span>';
+print '  <div class="dc-field"><div class="dc-field-label">'.$langs->trans('PricePerLiter').'</div><div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="number" id="expense_fuel_price" name="expense_fuel_price" class="dc-expense-input" value="'.dol_escape_htmltag(isset($object->expense_fuel_price) ? $object->expense_fuel_price : '').'" min="0" step="any" placeholder="0.00" oninput="calcFuelTotal()">';
+    print '<input type="number" id="expense_fuel_price" name="expense_fuel_price" value="'.dol_escape_htmltag(isset($object->expense_fuel_price)?$object->expense_fuel_price:'').'" min="0" step="any" placeholder="0.00" oninput="calcFuelTotal()">';
 } else {
-    $fprice = !empty($object->expense_fuel_price) ? price($object->expense_fuel_price) : '—';
-    print '<span class="dc-expense-row-val'.(!empty($object->expense_fuel_price) ? '' : ' empty').'">'.$fprice.'</span>';
+    print (!empty($object->expense_fuel_price) ? '<span class="dc-amount">'.price($object->expense_fuel_price).'</span>' : '&#8212;');
 }
-print '</div>';
+print '</div></div>';
 
-// Fuel Cost total
-print '<div class="dc-expense-row" style="background:#fffbf0;">';
-print '<span class="dc-expense-row-label" style="color:#d97706;">'.$langs->trans('FuelCostTotal').'</span>';
+print '  <div class="dc-field" style="background:#f7f8fc;"><div class="dc-field-label" style="color:#3c4758;font-weight:700;">'.$langs->trans('Total').'</div><div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="number" id="expense_fuel" name="expense_fuel" class="dc-expense-input" value="'.dol_escape_htmltag(isset($object->expense_fuel) ? $object->expense_fuel : '').'" min="0" step="any" placeholder="0.00" style="background:#fff8ec!important;border-color:#fcd34d!important;font-weight:700!important;" oninput="calcExpenseTotal()">';
+    print '<input type="number" id="expense_fuel" name="expense_fuel" value="'.dol_escape_htmltag(isset($object->expense_fuel)?$object->expense_fuel:'').'" min="0" step="any" placeholder="0.00" oninput="calcExpenseTotal()" style="font-weight:600!important;background:#f7f8fc!important;">';
 } else {
-    print '<span class="dc-expense-row-val" style="color:#d97706;">'.(!empty($object->expense_fuel) ? price($object->expense_fuel) : '<span class="empty">—</span>').'</span>';
+    print (!empty($object->expense_fuel) ? '<span class="dc-amount" style="font-weight:700;">'.price($object->expense_fuel).'</span>' : '&#8212;');
 }
-print '</div>';
+print '</div></div>';
 
-print '</div></div>'; // rows + fuel card
+print '  </div></div>';
 
 /* ── DRIVER ── */
 $driver_sub = $exp_subtotals['driver'];
-print '<div class="dc-expense-card">';
-print '<div class="dc-expense-card-header">';
-print '<div class="dc-expense-card-icon" style="background:rgba(139,92,246,0.12);color:#7c3aed;"><i class="fa fa-user-tie"></i></div>';
-print '<span class="dc-expense-card-title">'.$langs->trans('DriverExpenses').'</span>';
-print '<span class="dc-expense-card-subtotal" id="driver_subtotal">'.($driver_sub > 0 ? price($driver_sub) : '—').'</span>';
-print '</div>';
-print '<div class="dc-expense-rows">';
+print '<div class="dc-card">';
+print '  <div class="dc-card-header">';
+print '    <div class="dc-card-header-icon purple"><i class="fa fa-user-tie"></i></div>';
+print '    <span class="dc-card-title">'.$langs->trans('DriverExpenses').'</span>';
+print '    <span class="dc-expense-subtotal" id="driver_subtotal">'.($driver_sub > 0 ? price($driver_sub) : '&#8212;').'</span>';
+print '  </div>';
+print '  <div class="dc-card-body">';
 
 foreach (array(
-    'expense_driver_salary'    => array('label' => $langs->trans('SalaryDayRate'),  'id' => 'expense_driver_salary'),
-    'expense_driver_overnight' => array('label' => $langs->trans('OvernightFee'),   'id' => 'expense_driver_overnight'),
-    'expense_driver_bonus'     => array('label' => $langs->trans('Bonus'),          'id' => 'expense_driver_bonus'),
-) as $dkey => $dmeta) {
+    'expense_driver_salary'    => $langs->trans('SalaryDayRate'),
+    'expense_driver_overnight' => $langs->trans('OvernightFee'),
+    'expense_driver_bonus'     => $langs->trans('Bonus'),
+) as $dkey => $dlabel) {
     $dval = isset($object->$dkey) ? $object->$dkey : '';
-    print '<div class="dc-expense-row">';
-    print '<span class="dc-expense-row-label">'.dol_escape_htmltag($dmeta['label']).'</span>';
+    print '  <div class="dc-field"><div class="dc-field-label">'.dol_escape_htmltag($dlabel).'</div><div class="dc-field-value">';
     if ($isCreate || $isEdit) {
-        print '<input type="number" id="'.dol_escape_htmltag($dmeta['id']).'" name="'.dol_escape_htmltag($dkey).'" class="dc-expense-input" value="'.dol_escape_htmltag($dval).'" min="0" step="any" placeholder="0.00" oninput="calcDriverTotal()">';
+        print '<input type="number" id="'.dol_escape_htmltag($dkey).'" name="'.dol_escape_htmltag($dkey).'" value="'.dol_escape_htmltag($dval).'" min="0" step="any" placeholder="0.00" oninput="calcDriverTotal()">';
     } else {
-        print '<span class="dc-expense-row-val'.(!empty($dval) ? '' : ' empty').'">'.(!empty($dval) ? price($dval) : '—').'</span>';
+        print (!empty($dval) ? '<span class="dc-amount">'.price($dval).'</span>' : '&#8212;');
     }
-    print '</div>';
+    print '</div></div>';
 }
 
-// Driver total
-print '<div class="dc-expense-row" style="background:#faf5ff;">';
-print '<span class="dc-expense-row-label" style="color:#7c3aed;">'.$langs->trans('Total').'</span>';
+print '  <div class="dc-field" style="background:#f7f8fc;"><div class="dc-field-label" style="color:#3c4758;font-weight:700;">'.$langs->trans('Total').'</div><div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="number" id="expense_driver" name="expense_driver" class="dc-expense-input" value="'.dol_escape_htmltag(isset($object->expense_driver)?$object->expense_driver:'').'" min="0" step="any" placeholder="0.00" style="background:#f5f3ff!important;border-color:#c4b5fd!important;font-weight:700!important;" readonly>';
+    print '<input type="number" id="expense_driver" name="expense_driver" value="'.dol_escape_htmltag(isset($object->expense_driver)?$object->expense_driver:'').'" min="0" step="any" placeholder="0.00" readonly style="font-weight:600!important;background:#f7f8fc!important;">';
 } else {
-    print '<span class="dc-expense-row-val" style="color:#7c3aed;">'.(!empty($object->expense_driver) ? price($object->expense_driver) : '<span class="empty">—</span>').'</span>';
+    print (!empty($object->expense_driver) ? '<span class="dc-amount" style="font-weight:700;">'.price($object->expense_driver).'</span>' : '&#8212;');
 }
-print '</div>';
+print '</div></div>';
 
-print '</div></div>'; // rows + driver card
+print '  </div></div>';
 
 /* ── ROAD ── */
 $road_sub = $exp_subtotals['road'];
-print '<div class="dc-expense-card">';
-print '<div class="dc-expense-card-header">';
-print '<div class="dc-expense-card-icon" style="background:rgba(59,130,246,0.12);color:#2563eb;"><i class="fa fa-road"></i></div>';
-print '<span class="dc-expense-card-title">'.$langs->trans('RoadExpenses').'</span>';
-print '<span class="dc-expense-card-subtotal" id="road_subtotal">'.($road_sub > 0 ? price($road_sub) : '—').'</span>';
-print '</div>';
-print '<div class="dc-expense-rows">';
+print '<div class="dc-card">';
+print '  <div class="dc-card-header">';
+print '    <div class="dc-card-header-icon blue"><i class="fa fa-road"></i></div>';
+print '    <span class="dc-card-title">'.$langs->trans('RoadExpenses').'</span>';
+print '    <span class="dc-expense-subtotal" id="road_subtotal">'.($road_sub > 0 ? price($road_sub) : '&#8212;').'</span>';
+print '  </div>';
+print '  <div class="dc-card-body">';
 
 foreach (array(
-    'expense_road_toll'    => array('label' => $langs->trans('TollFees'),    'id' => 'expense_road_toll'),
-    'expense_road_parking' => array('label' => $langs->trans('ParkingFees'), 'id' => 'expense_road_parking'),
-    'expense_road_other'   => array('label' => $langs->trans('OtherFees'),   'id' => 'expense_road_other'),
-) as $rkey => $rmeta) {
+    'expense_road_toll'    => $langs->trans('TollFees'),
+    'expense_road_parking' => $langs->trans('ParkingFees'),
+    'expense_road_other'   => $langs->trans('OtherFees'),
+) as $rkey => $rlabel) {
     $rval = isset($object->$rkey) ? $object->$rkey : '';
-    print '<div class="dc-expense-row">';
-    print '<span class="dc-expense-row-label">'.dol_escape_htmltag($rmeta['label']).'</span>';
+    print '  <div class="dc-field"><div class="dc-field-label">'.dol_escape_htmltag($rlabel).'</div><div class="dc-field-value">';
     if ($isCreate || $isEdit) {
-        print '<input type="number" id="'.dol_escape_htmltag($rmeta['id']).'" name="'.dol_escape_htmltag($rkey).'" class="dc-expense-input" value="'.dol_escape_htmltag($rval).'" min="0" step="any" placeholder="0.00" oninput="calcRoadTotal()">';
+        print '<input type="number" id="'.dol_escape_htmltag($rkey).'" name="'.dol_escape_htmltag($rkey).'" value="'.dol_escape_htmltag($rval).'" min="0" step="any" placeholder="0.00" oninput="calcRoadTotal()">';
     } else {
-        print '<span class="dc-expense-row-val'.(!empty($rval) ? '' : ' empty').'">'.(!empty($rval) ? price($rval) : '—').'</span>';
+        print (!empty($rval) ? '<span class="dc-amount">'.price($rval).'</span>' : '&#8212;');
     }
-    print '</div>';
+    print '</div></div>';
 }
 
-// Road total
-print '<div class="dc-expense-row" style="background:#eff6ff;">';
-print '<span class="dc-expense-row-label" style="color:#2563eb;">'.$langs->trans('Total').'</span>';
+print '  <div class="dc-field" style="background:#f7f8fc;"><div class="dc-field-label" style="color:#3c4758;font-weight:700;">'.$langs->trans('Total').'</div><div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="number" id="expense_road" name="expense_road" class="dc-expense-input" value="'.dol_escape_htmltag(isset($object->expense_road)?$object->expense_road:'').'" min="0" step="any" placeholder="0.00" style="background:#eff6ff!important;border-color:#93c5fd!important;font-weight:700!important;" readonly>';
+    print '<input type="number" id="expense_road" name="expense_road" value="'.dol_escape_htmltag(isset($object->expense_road)?$object->expense_road:'').'" min="0" step="any" placeholder="0.00" readonly style="font-weight:600!important;background:#f7f8fc!important;">';
 } else {
-    print '<span class="dc-expense-row-val" style="color:#2563eb;">'.(!empty($object->expense_road) ? price($object->expense_road) : '<span class="empty">—</span>').'</span>';
+    print (!empty($object->expense_road) ? '<span class="dc-amount" style="font-weight:700;">'.price($object->expense_road).'</span>' : '&#8212;');
 }
-print '</div>';
+print '</div></div>';
 
-print '</div></div>'; // rows + road card
+print '  </div></div>';
 
 /* ── COMMISSION ── */
 $comm_sub = $exp_subtotals['commission'];
-print '<div class="dc-expense-card">';
-print '<div class="dc-expense-card-header">';
-print '<div class="dc-expense-card-icon" style="background:rgba(22,163,74,0.12);color:#15803d;"><i class="fa fa-coins"></i></div>';
-print '<span class="dc-expense-card-title">'.$langs->trans('CommissionExpenses').'</span>';
-print '<span class="dc-expense-card-subtotal" id="commission_subtotal">'.($comm_sub > 0 ? price($comm_sub) : '—').'</span>';
-print '</div>';
-print '<div class="dc-expense-rows">';
+print '<div class="dc-card">';
+print '  <div class="dc-card-header">';
+print '    <div class="dc-card-header-icon green"><i class="fa fa-coins"></i></div>';
+print '    <span class="dc-card-title">'.$langs->trans('CommissionExpenses').'</span>';
+print '    <span class="dc-expense-subtotal" id="commission_subtotal">'.($comm_sub > 0 ? price($comm_sub) : '&#8212;').'</span>';
+print '  </div>';
+print '  <div class="dc-card-body">';
 
-// Agent Commission
 $cval_agent = isset($object->expense_commission_agent) ? $object->expense_commission_agent : '';
-print '<div class="dc-expense-row">';
-print '<span class="dc-expense-row-label">'.$langs->trans('AgentCommission').'</span>';
+print '  <div class="dc-field"><div class="dc-field-label">'.$langs->trans('AgentCommission').'</div><div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="number" id="expense_commission_agent" name="expense_commission_agent" class="dc-expense-input" value="'.dol_escape_htmltag($cval_agent).'" min="0" step="any" placeholder="0.00" oninput="calcCommissionTotal()">';
+    print '<input type="number" id="expense_commission_agent" name="expense_commission_agent" value="'.dol_escape_htmltag($cval_agent).'" min="0" step="any" placeholder="0.00" oninput="calcCommissionTotal()">';
 } else {
-    print '<span class="dc-expense-row-val'.(!empty($cval_agent) ? '' : ' empty').'">'.(!empty($cval_agent) ? price($cval_agent) : '—').'</span>';
+    print (!empty($cval_agent) ? '<span class="dc-amount">'.price($cval_agent).'</span>' : '&#8212;');
 }
-print '</div>';
+print '</div></div>';
 
-// Tax Rate %
 $cval_tax = isset($object->expense_commission_tax) ? $object->expense_commission_tax : '';
-print '<div class="dc-expense-row">';
-print '<span class="dc-expense-row-label">'.$langs->trans('TaxRate').'</span>';
+print '  <div class="dc-field"><div class="dc-field-label">'.$langs->trans('TaxRate').'</div><div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<div style="display:flex;align-items:center;gap:6px;flex:1;">';
-    print '<input type="number" id="expense_commission_tax" name="expense_commission_tax" class="dc-expense-input" value="'.dol_escape_htmltag($cval_tax).'" min="0" max="100" step="any" placeholder="0" oninput="calcCommissionTotal()" style="max-width:90px!important;color:#6d28d9!important;border-color:rgba(109,40,217,0.3)!important;background:rgba(109,40,217,0.04)!important;font-weight:700!important;">';
-    print '<span style="font-size:13px;font-weight:700;color:#6d28d9;">%</span>';
-    print '<span style="font-size:11.5px;color:#9aa0b4;margin-left:4px;">→ <span id="commission_tax_amount" style="color:#6d28d9;font-weight:600;">0.00</span></span>';
+    print '<div style="display:flex;align-items:center;gap:8px;">';
+    print '<input type="number" id="expense_commission_tax" name="expense_commission_tax" value="'.dol_escape_htmltag($cval_tax).'" min="0" max="100" step="any" placeholder="0" oninput="calcCommissionTotal()" style="max-width:90px!important;">';
+    print '<span style="font-size:13px;font-weight:600;color:#8b92a9;">%</span>';
+    print '<span style="font-size:12px;color:#8b92a9;">&#8594; <span id="commission_tax_amount" style="color:#2d3748;font-weight:600;">0.00</span></span>';
     print '</div>';
 } else {
     if (!empty($cval_tax)) {
         $tax_amount = round((float)$cval_agent * (float)$cval_tax / 100, 2);
-        print '<span class="dc-expense-row-val"><span class="dc-chip dc-tax-badge" style="font-size:12px;">'.dol_escape_htmltag($cval_tax).'%</span>';
-        print '<span style="font-size:12px;color:#6d28d9;margin-left:6px;">= '.price($tax_amount).'</span></span>';
-    } else {
-        print '<span class="dc-expense-row-val empty">—</span>';
-    }
+        print '<span class="dc-chip">'.dol_escape_htmltag($cval_tax).'%</span>&nbsp;<span class="dc-amount">= '.price($tax_amount).'</span>';
+    } else { print '&#8212;'; }
 }
-print '</div>';
+print '</div></div>';
 
-// Other Fees
 $cval_other = isset($object->expense_commission_other) ? $object->expense_commission_other : '';
-print '<div class="dc-expense-row">';
-print '<span class="dc-expense-row-label">'.$langs->trans('OtherFees').'</span>';
+print '  <div class="dc-field"><div class="dc-field-label">'.$langs->trans('OtherFees').'</div><div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="number" id="expense_commission_other" name="expense_commission_other" class="dc-expense-input" value="'.dol_escape_htmltag($cval_other).'" min="0" step="any" placeholder="0.00" oninput="calcCommissionTotal()">';
+    print '<input type="number" id="expense_commission_other" name="expense_commission_other" value="'.dol_escape_htmltag($cval_other).'" min="0" step="any" placeholder="0.00" oninput="calcCommissionTotal()">';
 } else {
-    print '<span class="dc-expense-row-val'.(!empty($cval_other) ? '' : ' empty').'">'.(!empty($cval_other) ? price($cval_other) : '—').'</span>';
+    print (!empty($cval_other) ? '<span class="dc-amount">'.price($cval_other).'</span>' : '&#8212;');
 }
-print '</div>';
+print '</div></div>';
 
-// Commission total
-print '<div class="dc-expense-row" style="background:#f0fdf4;">';
-print '<span class="dc-expense-row-label" style="color:#15803d;">'.$langs->trans('Total').'</span>';
+print '  <div class="dc-field" style="background:#f7f8fc;"><div class="dc-field-label" style="color:#3c4758;font-weight:700;">'.$langs->trans('Total').'</div><div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="number" id="expense_commission" name="expense_commission" class="dc-expense-input" value="'.dol_escape_htmltag(isset($object->expense_commission)?$object->expense_commission:'').'" min="0" step="any" placeholder="0.00" style="background:#f0fdf4!important;border-color:#86efac!important;font-weight:700!important;" readonly>';
+    print '<input type="number" id="expense_commission" name="expense_commission" value="'.dol_escape_htmltag(isset($object->expense_commission)?$object->expense_commission:'').'" min="0" step="any" placeholder="0.00" readonly style="font-weight:600!important;background:#f7f8fc!important;">';
 } else {
-    print '<span class="dc-expense-row-val" style="color:#15803d;">'.(!empty($object->expense_commission) ? price($object->expense_commission) : '<span class="empty">—</span>').'</span>';
+    print (!empty($object->expense_commission) ? '<span class="dc-amount" style="font-weight:700;">'.price($object->expense_commission).'</span>' : '&#8212;');
 }
-print '</div>';
+print '</div></div>';
 
-print '</div></div>'; // rows + commission card
+print '  </div></div>';
 
 print '</div>'; // dc-expense-grid
+print '</div>'; // dc-card-body
 
-// Grand total row
+// Grand total as a standard dc-field
 $exp_total = $exp_subtotals['fuel'] + $exp_subtotals['road'] + $exp_subtotals['driver'] + $exp_subtotals['commission'];
-print '<div class="dc-expense-total-row">';
-print '<span class="dc-expense-total-label"><i class="fa fa-calculator" style="font-size:11px;margin-right:6px;"></i>'.$langs->trans('TotalExpenses').'</span>';
+print '<div class="dc-field" style="background:#f7f8fc;border-top:1px solid #e8eaf0;">';
+print '<div class="dc-field-label" style="color:#3c4758;font-weight:700;"><i class="fa fa-calculator" style="font-size:11px;margin-right:5px;opacity:0.6;"></i>'.$langs->trans('TotalExpenses').'</div>';
+print '<div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<span class="dc-expense-total-val" id="expense_total">0.00</span>';
+    print '<span id="expense_total" style="font-family:\'DM Mono\',monospace;font-size:16px;font-weight:700;color:#1a1f2e;">0.00</span>';
 } else {
-    print '<span class="dc-expense-total-val">'.($exp_total > 0 ? price($exp_total) : '&mdash;').'</span>';
+    print '<span style="font-family:\'DM Mono\',monospace;font-size:16px;font-weight:700;color:#1a1f2e;">'.($exp_total > 0 ? price($exp_total) : '&mdash;').'</span>';
 }
-print '</div>';
+print '</div></div>';
 
 print '</div>'; // dc-card
 // ---- End Expenses Card ----

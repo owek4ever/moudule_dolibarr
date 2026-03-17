@@ -213,8 +213,9 @@ $self = $_SERVER["PHP_SELF"];
 // Count by status
 $cnt_active = 0; $cnt_inactive = 0; $cnt_suspended = 0;
 foreach ($rows as $r) {
-    if ($r->status == 'active') $cnt_active++;
-    elseif ($r->status == 'suspended') $cnt_suspended++;
+    $s = strtolower($r->status);
+    if ($s == 'active') $cnt_active++;
+    elseif ($s == 'suspended' || $s == 'on leave') $cnt_suspended++;
     else $cnt_inactive++;
 }
 ?>
@@ -578,7 +579,6 @@ table.vl-table tbody td.center { text-align: center; }
 
 <div class="vl-wrap">
 
-<!-- Header -->
 <div class="vl-header">
     <div class="vl-header-left">
         <h1><i class="fa fa-users" style="color:#3c4758;margin-right:10px;"></i><?php echo $langs->trans("Drivers List"); ?></h1>
@@ -598,7 +598,6 @@ table.vl-table tbody td.center { text-align: center; }
     </div>
 </div>
 
-<!-- Filter Form -->
 <form method="POST" action="<?php echo $self; ?>">
 <input type="hidden" name="token" value="<?php echo newToken(); ?>">
 <input type="hidden" name="formfilteraction" value="list">
@@ -647,7 +646,6 @@ table.vl-table tbody td.center { text-align: center; }
     </div>
 </div>
 
-<!-- Stats chips -->
 <div class="vl-stats">
     <div class="vl-stat-chip">
         <span class="vl-stat-num"><?php echo $nbtotalofrecords; ?></span> <?php echo $langs->trans('Total'); ?>
@@ -669,7 +667,6 @@ table.vl-table tbody td.center { text-align: center; }
     <?php } ?>
 </div>
 
-<!-- Table -->
 <div class="vl-table-card">
     <div class="vl-table-wrap">
     <table class="vl-table">
@@ -693,7 +690,6 @@ table.vl-table tbody td.center { text-align: center; }
                 $fullName = trim($obj->firstname.' '.($obj->middlename ? $obj->middlename.' ' : '').$obj->lastname);
         ?>
             <tr>
-                <!-- Ref -->
                 <td data-label="<?php echo $langs->trans('Ref'); ?>">
                     <a href="<?php echo $cardUrl; ?>" class="vl-ref-link">
                         <span class="vl-ref-icon"><i class="fa fa-user"></i></span>
@@ -701,7 +697,6 @@ table.vl-table tbody td.center { text-align: center; }
                     </a>
                 </td>
 
-                <!-- Driver name -->
                 <td data-label="<?php echo $langs->trans('Driver'); ?>">
                     <div class="vl-driver-name"><?php echo dol_escape_htmltag($fullName); ?></div>
                     <?php if (!empty($obj->email)) { ?>
@@ -709,27 +704,22 @@ table.vl-table tbody td.center { text-align: center; }
                     <?php } ?>
                 </td>
 
-                <!-- Phone -->
                 <td data-label="<?php echo $langs->trans('Phone'); ?>"><?php echo dol_escape_htmltag($obj->phone ?: '—'); ?></td>
 
-                <!-- Employee ID -->
                 <td data-label="<?php echo $langs->trans('EmployeeID'); ?>">
                     <?php if (!empty($obj->employee_id)) { ?>
                     <span class="vl-mono"><?php echo dol_escape_htmltag($obj->employee_id); ?></span>
                     <?php } else { echo '—'; } ?>
                 </td>
 
-                <!-- License Number -->
                 <td data-label="<?php echo $langs->trans('LicenseNumber'); ?>">
                     <?php if (!empty($obj->license_number)) { ?>
                     <span class="vl-mono"><?php echo dol_escape_htmltag($obj->license_number); ?></span>
                     <?php } else { echo '—'; } ?>
                 </td>
 
-                <!-- Department -->
                 <td data-label="<?php echo $langs->trans('Department'); ?>"><?php echo dol_escape_htmltag($obj->department ?: '—'); ?></td>
 
-                <!-- Assigned Vehicle -->
                 <td data-label="<?php echo $langs->trans('AssignedVehicle'); ?>">
                     <?php if ($obj->vehicle_ref) { ?>
                     <div class="vl-vehicle-chip">
@@ -744,17 +734,15 @@ table.vl-table tbody td.center { text-align: center; }
                     <?php } ?>
                 </td>
 
-                <!-- Status -->
                 <td class="center" data-label="<?php echo $langs->trans('Status'); ?>">
                     <?php
-                    $s = $obj->status;
+                    $s = strtolower($obj->status);
                     if ($s == 'active') echo '<span class="vl-badge active">'.$langs->trans('Active').'</span>';
-                    elseif ($s == 'suspended') echo '<span class="vl-badge suspended">'.$langs->trans('Suspended').'</span>';
+                    elseif ($s == 'suspended' || $s == 'on leave') echo '<span class="vl-badge suspended">'.$langs->trans('Suspended').'</span>';
                     else echo '<span class="vl-badge inactive">'.$langs->trans('Inactive').'</span>';
                     ?>
                 </td>
 
-                <!-- Actions -->
                 <td data-label="<?php echo $langs->trans('Action'); ?>">
                     <div class="vl-actions">
                         <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="<?php echo $langs->trans('View'); ?>"><i class="fa fa-eye"></i></a>
@@ -786,7 +774,6 @@ table.vl-table tbody td.center { text-align: center; }
     </table>
     </div>
 
-    <!-- Pagination -->
     <?php if ($nbtotalofrecords > $limit) {
         $totalpages   = ceil($nbtotalofrecords / $limit);
         $prevpage     = max(0, $page - 1);
@@ -817,9 +804,7 @@ table.vl-table tbody td.center { text-align: center; }
 </div>
 
 </form>
-</div><!-- .vl-wrap -->
-
-<?php
+</div><?php
 if ($resql) { $db->free($resql); }
 llxFooter();
 $db->close();
