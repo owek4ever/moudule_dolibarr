@@ -488,7 +488,7 @@ async function requestFcmPermission() {
         }
 
         // Register service worker
-        const swReg = await navigator.serviceWorker.register('/flotte/firebase-sw.js');
+        const swReg = await navigator.serviceWorker.register('/htdocs/custom/flotte/firebase-sw.js');
         await navigator.serviceWorker.ready;
 
         const messaging = firebase.messaging();

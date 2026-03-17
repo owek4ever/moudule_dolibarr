@@ -274,7 +274,8 @@ print '<div class="fichecenter">';
 .rft select, .rft input { border:1.5px solid #e2e8f0; border-radius:8px; padding:8px 12px; font-size:13px; color:#2d3748; background:#f7f8fc; transition:border-color .15s,background .15s; width:100%; }
 .rft select:focus, .rft input:focus { outline:none; border-color:#667eea; background:#fff; box-shadow:0 0 0 3px rgba(102,126,234,.1); }
 .rft-range       { display:flex; gap:6px; align-items:center; }
-.rft-range span  { font-size:12px; color:#a0aec0; font-weight:600; }
+.rft-range span  { font-size:12px; color:#a0aec0; font-weight:600; flex-shrink:0; }
+.rft-range input { width:auto; flex:1; min-width:0; }
 .rpt-filter-actions { padding:0 22px 18px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 .btn-apply  { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; border-radius:8px; padding:9px 22px; font-size:13px; font-weight:700; cursor:pointer; transition:all .2s; display:inline-flex; align-items:center; gap:6px; }
 .btn-apply:hover { transform:translateY(-1px); box-shadow:0 4px 14px rgba(102,126,234,.45); }
@@ -1500,13 +1501,15 @@ if ($period != 'month') $filter_desc_parts[] = '<i class="fa fa-calendar-alt"></
                 ?>
             </td>
             <td style="text-align:center">
-                <?php if ($rec_type === 'workorder' && !empty($row->priority) && $pricls): ?>
-                    <span class="det-priority <?php echo $pricls; ?>"><?php echo htmlspecialchars($row->priority); ?></span>
-                <?php elseif (!empty($row->status)): ?>
-                    <span class="det-status <?php echo $status_key; ?>"><?php echo htmlspecialchars(ucfirst(str_replace('_',' ',$row->status))); ?></span>
-                <?php else: ?>
-                    <span style="color:#c4c9d8;">—</span>
-                <?php endif; ?>
+                <?php
+                if ($rec_type === 'workorder' && !empty($row->priority) && $pricls) {
+                    echo '<span class="det-priority '.htmlspecialchars($pricls).'">'.htmlspecialchars($row->priority).'</span>';
+                } elseif (!empty($row->status)) {
+                    echo '<span class="det-status '.htmlspecialchars($status_key).'">'.htmlspecialchars(ucfirst(str_replace('_',' ',$row->status))).'</span>';
+                } else {
+                    echo '<span style="color:#c4c9d8;">—</span>';
+                }
+                ?>
             </td>
             <td style="text-align:center">
                 <a href="<?php echo $link; ?>" class="det-action-btn view"><i class="fa fa-eye"></i></a>
