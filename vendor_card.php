@@ -667,7 +667,10 @@ if ($isCreate || $isEdit) {
         'Service'     => $langs->trans('Service'),
         'Other'       => $langs->trans('Other'),
     );
+    print '<div style="display:flex;align-items:center;gap:6px;">';
     print $form->selectarray('type', $typearray, $object->type, 0);
+    print '<a href="'.DOL_URL_ROOT.'/categories/index.php?type=other" target="_blank" title="'.$langs->trans('Categories').'"><i class="fa fa-plus-circle" style="font-size:18px;color:#0d8aff;flex-shrink:0;"></i></a>';
+    print '</div>';
 } else {
     if (!empty($object->type)) {
         print '<span class="dc-badge '.$typeClass.'">'.dol_escape_htmltag($object->type).'</span>';
