@@ -215,7 +215,7 @@ class modFlotte extends DolibarrModules
 		$this->menu = array();
 		$r = 0;
 
-		// ── Top-level menu bar entry ──────────────────────────────────────────
+		// Top-level menu bar entry
 		$this->menu[$r] = array(
 			'fk_menu'  => '',
 			'type'     => 'top',
@@ -233,11 +233,12 @@ class modFlotte extends DolibarrModules
 		);
 		$r++;
 
-		// ── Dashboard (standalone) ────────────────────────────────────────────
+		// Dashboard
 		$this->menu[$r] = array(
 			'fk_menu'  => 'fk_mainmenu=flotte',
 			'type'     => 'left',
 			'titre'    => 'Dashboard',
+			'prefix'   => img_picto('', 'fa-tachometer-alt', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_dashboard',
 			'url'      => '/flotte/flotteindex.php',
@@ -250,13 +251,12 @@ class modFlotte extends DolibarrModules
 		);
 		$r++;
 
-		// ════════════════════════════════════════════════════════════════════
-		// CATEGORY: Fleet
-		// ════════════════════════════════════════════════════════════════════
+		// ── CATEGORY: Fleet ─────────────────────────────────────────────────────
 		$this->menu[$r] = array(
 			'fk_menu'  => 'fk_mainmenu=flotte',
 			'type'     => 'left',
 			'titre'    => 'Fleet',
+			'prefix'   => img_picto('', 'fa-car', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_cat_fleet',
 			'url'      => '',
@@ -273,6 +273,7 @@ class modFlotte extends DolibarrModules
 			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_fleet',
 			'type'     => 'left',
 			'titre'    => 'Vehicles',
+			'prefix'   => img_picto('', 'fa-truck', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_vehicles',
 			'url'      => '/flotte/vehicle_list.php',
@@ -289,6 +290,7 @@ class modFlotte extends DolibarrModules
 			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_fleet',
 			'type'     => 'left',
 			'titre'    => 'Drivers',
+			'prefix'   => img_picto('', 'fa-id-card', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_drivers',
 			'url'      => '/flotte/driver_list.php',
@@ -301,13 +303,12 @@ class modFlotte extends DolibarrModules
 		);
 		$r++;
 
-		// ════════════════════════════════════════════════════════════════════
-		// CATEGORY: Operations
-		// ════════════════════════════════════════════════════════════════════
+		// ── CATEGORY: Operations ────────────────────────────────────────────────
 		$this->menu[$r] = array(
 			'fk_menu'  => 'fk_mainmenu=flotte',
 			'type'     => 'left',
 			'titre'    => 'Operations',
+			'prefix'   => img_picto('', 'fa-briefcase', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_cat_operations',
 			'url'      => '',
@@ -324,6 +325,7 @@ class modFlotte extends DolibarrModules
 			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_operations',
 			'type'     => 'left',
 			'titre'    => 'Customers',
+			'prefix'   => img_picto('', 'fa-users', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_customers',
 			'url'      => '/flotte/customer_list.php',
@@ -340,6 +342,7 @@ class modFlotte extends DolibarrModules
 			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_operations',
 			'type'     => 'left',
 			'titre'    => 'Bookings',
+			'prefix'   => img_picto('', 'fa-calendar-check', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_bookings',
 			'url'      => '/flotte/booking_list.php',
@@ -352,13 +355,12 @@ class modFlotte extends DolibarrModules
 		);
 		$r++;
 
-		// ════════════════════════════════════════════════════════════════════
-		// CATEGORY: Expenses
-		// ════════════════════════════════════════════════════════════════════
+		// ── CATEGORY: Expenses ──────────────────────────────────────────────────
 		$this->menu[$r] = array(
 			'fk_menu'  => 'fk_mainmenu=flotte',
 			'type'     => 'left',
 			'titre'    => 'Expenses',
+			'prefix'   => img_picto('', 'fa-wallet', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_cat_expenses',
 			'url'      => '',
@@ -375,6 +377,7 @@ class modFlotte extends DolibarrModules
 			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_expenses',
 			'type'     => 'left',
 			'titre'    => 'Expenses',
+			'prefix'   => img_picto('', 'fa-receipt', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_expenses',
 			'url'      => '/flotte/expenses_list.php',
@@ -391,6 +394,7 @@ class modFlotte extends DolibarrModules
 			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_expenses',
 			'type'     => 'left',
 			'titre'    => 'Fuel',
+			'prefix'   => img_picto('', 'fa-gas-pump', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_fuel',
 			'url'      => '/flotte/fuel_list.php',
@@ -407,6 +411,7 @@ class modFlotte extends DolibarrModules
 			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_expenses',
 			'type'     => 'left',
 			'titre'    => 'Parts',
+			'prefix'   => img_picto('', 'fa-cogs', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_parts',
 			'url'      => '/flotte/part_list.php',
@@ -423,6 +428,7 @@ class modFlotte extends DolibarrModules
 			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_expenses',
 			'type'     => 'left',
 			'titre'    => 'Vendors',
+			'prefix'   => img_picto('', 'fa-store', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_vendors',
 			'url'      => '/flotte/vendor_list.php',
@@ -435,13 +441,12 @@ class modFlotte extends DolibarrModules
 		);
 		$r++;
 
-		// ════════════════════════════════════════════════════════════════════
-		// CATEGORY: Maintenance
-		// ════════════════════════════════════════════════════════════════════
+		// ── CATEGORY: Maintenance ───────────────────────────────────────────────
 		$this->menu[$r] = array(
 			'fk_menu'  => 'fk_mainmenu=flotte',
 			'type'     => 'left',
 			'titre'    => 'Maintenance',
+			'prefix'   => img_picto('', 'fa-wrench', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_cat_maintenance',
 			'url'      => '',
@@ -458,6 +463,7 @@ class modFlotte extends DolibarrModules
 			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_maintenance',
 			'type'     => 'left',
 			'titre'    => 'WorkOrders',
+			'prefix'   => img_picto('', 'fa-clipboard-list', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_workorders',
 			'url'      => '/flotte/workorder_list.php',
@@ -474,6 +480,7 @@ class modFlotte extends DolibarrModules
 			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_maintenance',
 			'type'     => 'left',
 			'titre'    => 'Inspections',
+			'prefix'   => img_picto('', 'fa-search', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_inspections',
 			'url'      => '/flotte/inspection_list.php',
@@ -486,13 +493,12 @@ class modFlotte extends DolibarrModules
 		);
 		$r++;
 
-		// ════════════════════════════════════════════════════════════════════
-		// CATEGORY: Monitoring
-		// ════════════════════════════════════════════════════════════════════
+		// ── CATEGORY: Monitoring ────────────────────────────────────────────────
 		$this->menu[$r] = array(
 			'fk_menu'  => 'fk_mainmenu=flotte',
 			'type'     => 'left',
 			'titre'    => 'Monitoring',
+			'prefix'   => img_picto('', 'fa-chart-line', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_cat_monitoring',
 			'url'      => '',
@@ -509,6 +515,7 @@ class modFlotte extends DolibarrModules
 			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_monitoring',
 			'type'     => 'left',
 			'titre'    => 'Tracking',
+			'prefix'   => img_picto('', 'fa-map-marker-alt', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_tracking',
 			'url'      => '/flotte/tracking_list.php',
@@ -525,6 +532,7 @@ class modFlotte extends DolibarrModules
 			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_monitoring',
 			'type'     => 'left',
 			'titre'    => 'Reports',
+			'prefix'   => img_picto('', 'fa-file-alt', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_reports',
 			'url'      => '/flotte/reports.php',
@@ -541,6 +549,7 @@ class modFlotte extends DolibarrModules
 			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_monitoring',
 			'type'     => 'left',
 			'titre'    => 'Notifications',
+			'prefix'   => img_picto('', 'fa-bell', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_notifications',
 			'url'      => '/flotte/notification_center.php',
@@ -553,13 +562,12 @@ class modFlotte extends DolibarrModules
 		);
 		$r++;
 
-		// ════════════════════════════════════════════════════════════════════
-		// CATEGORY: Admin
-		// ════════════════════════════════════════════════════════════════════
+		// ── CATEGORY: Admin ─────────────────────────────────────────────────────
 		$this->menu[$r] = array(
 			'fk_menu'  => 'fk_mainmenu=flotte',
 			'type'     => 'left',
 			'titre'    => 'Admin',
+			'prefix'   => img_picto('', 'fa-shield-alt', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_cat_admin',
 			'url'      => '',
@@ -576,6 +584,7 @@ class modFlotte extends DolibarrModules
 			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_admin',
 			'type'     => 'left',
 			'titre'    => 'Notification Settings',
+			'prefix'   => img_picto('', 'fa-sliders-h', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_notification_settings',
 			'url'      => '/flotte/notification_settings.php',
@@ -592,6 +601,7 @@ class modFlotte extends DolibarrModules
 			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_admin',
 			'type'     => 'left',
 			'titre'    => 'Setup',
+			'prefix'   => img_picto('', 'fa-cog', 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_setup',
 			'url'      => '/flotte/admin/setup.php',
@@ -604,6 +614,8 @@ class modFlotte extends DolibarrModules
 		);
 		$r++;
 	}
+
+
 
 	/**
 	 *  Function called when module is enabled.

@@ -220,8 +220,8 @@ foreach ($rows as $r) {
 
 .vl-wrap {
     font-family: 'DM Sans', sans-serif;
-    max-width: 1480px;
-    margin: 0 auto;
+    max-width: 100%;
+    margin: 0;
     padding: 0 4px 40px;
     color: #1a1f2e;
 }
@@ -258,7 +258,7 @@ foreach ($rows as $r) {
     gap: 12px; align-items: flex-end; flex-wrap: wrap;
     box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
-.vl-filter-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 130px; }
+.vl-filter-group { display: flex; flex-direction: column; gap: 5px; flex: 1 1 120px; min-width: 0; }
 .vl-filter-group label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: #9aa0b4; }
 .vl-filter-group input,
 .vl-filter-group select {
@@ -307,7 +307,7 @@ table.vl-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
 table.vl-table thead tr { background: #f7f8fc; border-bottom: 2px solid #e8eaf0; }
 table.vl-table thead th {
     padding: 13px 16px; text-align: left; font-size: 11px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.7px; color: #8b92a9; white-space: nowrap;
+    text-transform: uppercase; letter-spacing: 0.7px; color: #8b92a9; white-space: normal; word-break: break-word;
 }
 table.vl-table thead th a { color: #8b92a9; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: color 0.15s; }
 table.vl-table thead th a:hover { color: #3c4758; }
@@ -415,6 +415,14 @@ table.vl-table tbody td.center { text-align: center; }
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 /* ── 1100px: tighten table columns ── */
+/* Sidebar-aware (≤ 1300px): hide less critical columns */
+@media (max-width: 1300px) {
+    table.vl-table th:nth-child(4),
+    table.vl-table td:nth-child(4),
+    table.vl-table th:nth-child(5),
+    table.vl-table td:nth-child(5) { display: none; }
+}
+
 @media (max-width: 1100px) {
     .vl-wrap { padding: 0 10px 40px; }
     table.vl-table thead th,

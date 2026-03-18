@@ -71,6 +71,41 @@ $contextpage = GETPOST('contextpage','aZ')?GETPOST('contextpage','aZ'):'partcard
 // Security check
 restrictedArea($user, 'flotte');
 
+
+// Ensure tables exist
+$db->query("CREATE TABLE IF NOT EXISTS ".MAIN_DB_PREFIX."flotte_part (
+    rowid           INT AUTO_INCREMENT PRIMARY KEY,
+    ref             VARCHAR(30)      NOT NULL,
+    entity          INT              DEFAULT 1,
+    barcode         VARCHAR(100)     DEFAULT NULL,
+    title           VARCHAR(255)     NOT NULL,
+    number          VARCHAR(100)     DEFAULT NULL,
+    description     TEXT,
+    status          VARCHAR(50)      DEFAULT NULL,
+    availability    TINYINT(1)       DEFAULT 1,
+    fk_vendor       INT              DEFAULT NULL,
+    fk_category     INT              DEFAULT NULL,
+    manufacturer    VARCHAR(100)     DEFAULT NULL,
+    year            INT              DEFAULT NULL,
+    model           VARCHAR(100)     DEFAULT NULL,
+    qty_on_hand     INT              DEFAULT 0,
+    unit_cost       DECIMAL(15,4)    DEFAULT 0,
+    note            TEXT,
+    picture         VARCHAR(255)     DEFAULT NULL,
+    fk_user_author  INT              DEFAULT NULL,
+    fk_user_modif   INT              DEFAULT NULL,
+    date_creation   DATETIME         DEFAULT NULL,
+    tms             TIMESTAMP        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+$db->query("CREATE TABLE IF NOT EXISTS ".MAIN_DB_PREFIX."flotte_part_category (
+    rowid           INT AUTO_INCREMENT PRIMARY KEY,
+    entity          INT              DEFAULT 1,
+    category_name   VARCHAR(100)     NOT NULL,
+    description     TEXT,
+    tms             TIMESTAMP        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
 // Initialize variables
 $object = new stdClass();
 $object->id = 0;

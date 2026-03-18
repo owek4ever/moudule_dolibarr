@@ -229,10 +229,11 @@ foreach ($rows as $r) {
 
 .vl-wrap {
     font-family: 'DM Sans', sans-serif;
-    max-width: 1480px;
-    margin: 0 auto;
+    max-width: 100%;
+    margin: 0;
     padding: 0 4px 40px;
     color: #1a1f2e;
+    box-sizing: border-box;
 }
 
 /* Header */
@@ -290,7 +291,7 @@ foreach ($rows as $r) {
     flex-wrap: wrap;
     box-shadow: 0 1px 4px rgba(0,0,0,0.04);
 }
-.vl-filter-group { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 130px; }
+.vl-filter-group { display: flex; flex-direction: column; gap: 5px; flex: 1 1 120px; min-width: 0; }
 .vl-filter-group label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: #9aa0b4; }
 .vl-filter-group input,
 .vl-filter-group select {
@@ -363,7 +364,8 @@ table.vl-table thead th {
     text-transform: uppercase;
     letter-spacing: 0.7px;
     color: #8b92a9;
-    white-space: nowrap;
+    white-space: normal;
+    word-break: break-word;
 }
 table.vl-table thead th a { color: #8b92a9; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; transition: color 0.15s; }
 table.vl-table thead th a:hover { color: #3c4758; }
@@ -467,6 +469,14 @@ table.vl-table tbody td.center { text-align: center; }
 /* ══════════════════════════════════════
    RESPONSIVE BREAKPOINTS
 ══════════════════════════════════════ */
+
+/* Sidebar-aware (≤ 1300px): hide Department + LicenseNumber */
+@media (max-width: 1300px) {
+    table.vl-table th:nth-child(5),
+    table.vl-table td:nth-child(5),
+    table.vl-table th:nth-child(6),
+    table.vl-table td:nth-child(6) { display: none; }
+}
 
 /* Tablet (≤ 1024px) */
 @media (max-width: 1024px) {

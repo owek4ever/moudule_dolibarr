@@ -236,7 +236,7 @@ foreach ($rows as $r) {
 
 .vl-wrap {
     font-family: 'DM Sans', sans-serif;
-    max-width: 1480px;
+    max-width: 100%;
     margin: 0 auto;
     padding: 0 4px 40px;
     color: #1a1f2e;
