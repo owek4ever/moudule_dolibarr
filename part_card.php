@@ -843,7 +843,10 @@ print '  <div class="dc-field">';
 print '    <div class="dc-field-label">'.$langs->trans('Category').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
+    print '<div style="display:flex;align-items:center;gap:6px;">';
     print $form->selectarray('fk_category', $categories, $object->fk_category, 1);
+    print '<a href="'.DOL_URL_ROOT.'/categories/index.php?type=other" target="_blank" title="'.$langs->trans('Categories').'"><i class="fa fa-plus-circle" style="font-size:18px;color:#0d8aff;flex-shrink:0;"></i></a>';
+    print '</div>';
 } else {
     print (!empty($object->category_name) ? dol_escape_htmltag($object->category_name) : '&mdash;');
 }
