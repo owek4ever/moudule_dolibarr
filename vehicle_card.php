@@ -682,7 +682,10 @@ if ($isCreate || $isEdit) {
         'Bus' => $langs->trans('Bus'),
         'Motorcycle' => $langs->trans('Motorcycle')
     );
+    print '<div style="display:flex;align-items:center;gap:6px;">';
     print $form->selectarray('type', $type_options, (isset($object->type) ? $object->type : ''), 1);
+    print '<a href="'.DOL_URL_ROOT.'/categories/index.php?type=other" target="_blank" title="'.$langs->trans('Categories').'"><i class="fa fa-plus-circle" style="font-size:18px;color:#0d8aff;flex-shrink:0;"></i></a>';
+    print '</div>';
 } else {
     print dol_escape_htmltag($object->type);
 }
