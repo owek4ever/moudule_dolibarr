@@ -214,278 +214,393 @@ class modFlotte extends DolibarrModules
 		// Main menu entries to add
 		$this->menu = array();
 		$r = 0;
-		
-		// Main Fleet Management menu item
+
+		// ── Top-level menu bar entry ──────────────────────────────────────────
 		$this->menu[$r] = array(
-			'fk_menu' => '',          // Parent menu (empty for top level)
-			'type' => 'top',          // Top level menu
-			'titre' => 'flotte',
-			'prefix' => img_picto('', $this->picto, 'class="paddingright pictofixedwidth valignmiddle"'),
+			'fk_menu'  => '',
+			'type'     => 'top',
+			'titre'    => 'flotte',
+			'prefix'   => img_picto('', $this->picto, 'class="paddingright pictofixedwidth valignmiddle"'),
 			'mainmenu' => 'flotte',
 			'leftmenu' => '',
-			'url' => '/flotte/flotteindex.php',
-			'langs' => 'flotte@flotte',
+			'url'      => '/flotte/flotteindex.php',
+			'langs'    => 'flotte@flotte',
 			'position' => 1000,
-			'enabled' => 'isModEnabled("flotte")',
-			'perms' => '$user->hasRight("flotte", "read")',
-			'target' => '',
-			'user' => 2    // Show for all user types
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "read")',
+			'target'   => '',
+			'user'     => 2,
 		);
 		$r++;
 
-		// Dashboard submenu
+		// ── Dashboard (standalone) ────────────────────────────────────────────
 		$this->menu[$r] = array(
-			'fk_menu' => 'fk_mainmenu=flotte',
-			'type' => 'left',
-			'titre' => 'Dashboard',
+			'fk_menu'  => 'fk_mainmenu=flotte',
+			'type'     => 'left',
+			'titre'    => 'Dashboard',
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_dashboard',
-			'url' => '/flotte/flotteindex.php',
-			'langs' => 'flotte@flotte',
+			'url'      => '/flotte/flotteindex.php',
+			'langs'    => 'flotte@flotte',
 			'position' => 100,
-			'enabled' => 'isModEnabled("flotte")',
-			'perms' => '$user->hasRight("flotte", "read")',
-			'target' => '',
-			'user' => 2
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "read")',
+			'target'   => '',
+			'user'     => 2,
 		);
 		$r++;
 
-		// Vehicles submenu
+		// ════════════════════════════════════════════════════════════════════
+		// CATEGORY: Fleet
+		// ════════════════════════════════════════════════════════════════════
 		$this->menu[$r] = array(
-			'fk_menu' => 'fk_mainmenu=flotte',
-			'type' => 'left',
-			'titre' => 'Vehicles',
+			'fk_menu'  => 'fk_mainmenu=flotte',
+			'type'     => 'left',
+			'titre'    => 'Fleet',
+			'mainmenu' => 'flotte',
+			'leftmenu' => 'flotte_cat_fleet',
+			'url'      => '',
+			'langs'    => 'flotte@flotte',
+			'position' => 200,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "read")',
+			'target'   => '',
+			'user'     => 2,
+		);
+		$r++;
+
+		$this->menu[$r] = array(
+			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_fleet',
+			'type'     => 'left',
+			'titre'    => 'Vehicles',
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_vehicles',
-			'url' => '/flotte/vehicle_list.php',
-			'langs' => 'flotte@flotte',
-			'position' => 200,
-			'enabled' => 'isModEnabled("flotte")',
-			'perms' => '$user->hasRight("flotte", "read")',
-			'target' => '',
-			'user' => 2
+			'url'      => '/flotte/vehicle_list.php',
+			'langs'    => 'flotte@flotte',
+			'position' => 210,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "read")',
+			'target'   => '',
+			'user'     => 2,
 		);
 		$r++;
 
-		// Drivers submenu
 		$this->menu[$r] = array(
-			'fk_menu' => 'fk_mainmenu=flotte',
-			'type' => 'left',
-			'titre' => 'Drivers',
+			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_fleet',
+			'type'     => 'left',
+			'titre'    => 'Drivers',
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_drivers',
-			'url' => '/flotte/driver_list.php',
-			'langs' => 'flotte@flotte',
-			'position' => 300,
-			'enabled' => 'isModEnabled("flotte")',
-			'perms' => '$user->hasRight("flotte", "read")',
-			'target' => '',
-			'user' => 2
+			'url'      => '/flotte/driver_list.php',
+			'langs'    => 'flotte@flotte',
+			'position' => 220,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "read")',
+			'target'   => '',
+			'user'     => 2,
 		);
 		$r++;
 
-		// Customers submenu
+		// ════════════════════════════════════════════════════════════════════
+		// CATEGORY: Operations
+		// ════════════════════════════════════════════════════════════════════
 		$this->menu[$r] = array(
-			'fk_menu' => 'fk_mainmenu=flotte',
-			'type' => 'left',
-			'titre' => 'Customers',
+			'fk_menu'  => 'fk_mainmenu=flotte',
+			'type'     => 'left',
+			'titre'    => 'Operations',
+			'mainmenu' => 'flotte',
+			'leftmenu' => 'flotte_cat_operations',
+			'url'      => '',
+			'langs'    => 'flotte@flotte',
+			'position' => 300,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "read")',
+			'target'   => '',
+			'user'     => 2,
+		);
+		$r++;
+
+		$this->menu[$r] = array(
+			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_operations',
+			'type'     => 'left',
+			'titre'    => 'Customers',
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_customers',
-			'url' => '/flotte/customer_list.php',
-			'langs' => 'flotte@flotte',
-			'position' => 400,
-			'enabled' => 'isModEnabled("flotte")',
-			'perms' => '$user->hasRight("flotte", "read")',
-			'target' => '',
-			'user' => 2
+			'url'      => '/flotte/customer_list.php',
+			'langs'    => 'flotte@flotte',
+			'position' => 310,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "read")',
+			'target'   => '',
+			'user'     => 2,
 		);
 		$r++;
 
-		// Bookings submenu
 		$this->menu[$r] = array(
-			'fk_menu' => 'fk_mainmenu=flotte',
-			'type' => 'left',
-			'titre' => 'Bookings',
+			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_operations',
+			'type'     => 'left',
+			'titre'    => 'Bookings',
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_bookings',
-			'url' => '/flotte/booking_list.php',
-			'langs' => 'flotte@flotte',
-			'position' => 500,
-			'enabled' => 'isModEnabled("flotte")',
-			'perms' => '$user->hasRight("flotte", "read")',
-			'target' => '',
-			'user' => 2
+			'url'      => '/flotte/booking_list.php',
+			'langs'    => 'flotte@flotte',
+			'position' => 320,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "read")',
+			'target'   => '',
+			'user'     => 2,
 		);
 		$r++;
 
-		// Fuel submenu
+		// ════════════════════════════════════════════════════════════════════
+		// CATEGORY: Expenses
+		// ════════════════════════════════════════════════════════════════════
 		$this->menu[$r] = array(
-			'fk_menu' => 'fk_mainmenu=flotte',
-			'type' => 'left',
-			'titre' => 'Fuel',
+			'fk_menu'  => 'fk_mainmenu=flotte',
+			'type'     => 'left',
+			'titre'    => 'Expenses',
+			'mainmenu' => 'flotte',
+			'leftmenu' => 'flotte_cat_expenses',
+			'url'      => '',
+			'langs'    => 'flotte@flotte',
+			'position' => 400,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "read")',
+			'target'   => '',
+			'user'     => 2,
+		);
+		$r++;
+
+		$this->menu[$r] = array(
+			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_expenses',
+			'type'     => 'left',
+			'titre'    => 'Expenses',
+			'mainmenu' => 'flotte',
+			'leftmenu' => 'flotte_expenses',
+			'url'      => '/flotte/expenses_list.php',
+			'langs'    => 'flotte@flotte',
+			'position' => 410,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "read")',
+			'target'   => '',
+			'user'     => 2,
+		);
+		$r++;
+
+		$this->menu[$r] = array(
+			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_expenses',
+			'type'     => 'left',
+			'titre'    => 'Fuel',
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_fuel',
-			'url' => '/flotte/fuel_list.php',
-			'langs' => 'flotte@flotte',
-			'position' => 600,
-			'enabled' => 'isModEnabled("flotte")',
-			'perms' => '$user->hasRight("flotte", "read")',
-			'target' => '',
-			'user' => 2
+			'url'      => '/flotte/fuel_list.php',
+			'langs'    => 'flotte@flotte',
+			'position' => 420,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "read")',
+			'target'   => '',
+			'user'     => 2,
 		);
 		$r++;
 
-		// Vendors submenu
 		$this->menu[$r] = array(
-			'fk_menu' => 'fk_mainmenu=flotte',
-			'type' => 'left',
-			'titre' => 'Vendors',
-			'mainmenu' => 'flotte',
-			'leftmenu' => 'flotte_vendors',
-			'url' => '/flotte/vendor_list.php',
-			'langs' => 'flotte@flotte',
-			'position' => 700,
-			'enabled' => 'isModEnabled("flotte")',
-			'perms' => '$user->hasRight("flotte", "read")',
-			'target' => '',
-			'user' => 2
-		);
-		$r++;
-
-		// Parts submenu
-		$this->menu[$r] = array(
-			'fk_menu' => 'fk_mainmenu=flotte',
-			'type' => 'left',
-			'titre' => 'Parts',
+			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_expenses',
+			'type'     => 'left',
+			'titre'    => 'Parts',
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_parts',
-			'url' => '/flotte/part_list.php',
-			'langs' => 'flotte@flotte',
-			'position' => 800,
-			'enabled' => 'isModEnabled("flotte")',
-			'perms' => '$user->hasRight("flotte", "read")',
-			'target' => '',
-			'user' => 2
+			'url'      => '/flotte/part_list.php',
+			'langs'    => 'flotte@flotte',
+			'position' => 430,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "read")',
+			'target'   => '',
+			'user'     => 2,
 		);
 		$r++;
 
-		// Work Orders submenu
 		$this->menu[$r] = array(
-			'fk_menu' => 'fk_mainmenu=flotte',
-			'type' => 'left',
-			'titre' => 'WorkOrders',
+			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_expenses',
+			'type'     => 'left',
+			'titre'    => 'Vendors',
+			'mainmenu' => 'flotte',
+			'leftmenu' => 'flotte_vendors',
+			'url'      => '/flotte/vendor_list.php',
+			'langs'    => 'flotte@flotte',
+			'position' => 440,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "read")',
+			'target'   => '',
+			'user'     => 2,
+		);
+		$r++;
+
+		// ════════════════════════════════════════════════════════════════════
+		// CATEGORY: Maintenance
+		// ════════════════════════════════════════════════════════════════════
+		$this->menu[$r] = array(
+			'fk_menu'  => 'fk_mainmenu=flotte',
+			'type'     => 'left',
+			'titre'    => 'Maintenance',
+			'mainmenu' => 'flotte',
+			'leftmenu' => 'flotte_cat_maintenance',
+			'url'      => '',
+			'langs'    => 'flotte@flotte',
+			'position' => 500,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "read")',
+			'target'   => '',
+			'user'     => 2,
+		);
+		$r++;
+
+		$this->menu[$r] = array(
+			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_maintenance',
+			'type'     => 'left',
+			'titre'    => 'WorkOrders',
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_workorders',
-			'url' => '/flotte/workorder_list.php',
-			'langs' => 'flotte@flotte',
-			'position' => 900,
-			'enabled' => 'isModEnabled("flotte")',
-			'perms' => '$user->hasRight("flotte", "read")',
-			'target' => '',
-			'user' => 2
+			'url'      => '/flotte/workorder_list.php',
+			'langs'    => 'flotte@flotte',
+			'position' => 510,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "read")',
+			'target'   => '',
+			'user'     => 2,
 		);
 		$r++;
 
-		// Inspections submenu
 		$this->menu[$r] = array(
-			'fk_menu' => 'fk_mainmenu=flotte',
-			'type' => 'left',
-			'titre' => 'Inspections',
+			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_maintenance',
+			'type'     => 'left',
+			'titre'    => 'Inspections',
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_inspections',
-			'url' => '/flotte/inspection_list.php',
-			'langs' => 'flotte@flotte',
-			'position' => 1000,
-			'enabled' => 'isModEnabled("flotte")',
-			'perms' => '$user->hasRight("flotte", "read")',
-			'target' => '',
-			'user' => 2
+			'url'      => '/flotte/inspection_list.php',
+			'langs'    => 'flotte@flotte',
+			'position' => 520,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "read")',
+			'target'   => '',
+			'user'     => 2,
 		);
 		$r++;
 
-
-		// Tracking submenu
+		// ════════════════════════════════════════════════════════════════════
+		// CATEGORY: Monitoring
+		// ════════════════════════════════════════════════════════════════════
 		$this->menu[$r] = array(
-			'fk_menu' => 'fk_mainmenu=flotte',
-			'type' => 'left',
-			'titre' => 'Tracking',
+			'fk_menu'  => 'fk_mainmenu=flotte',
+			'type'     => 'left',
+			'titre'    => 'Monitoring',
+			'mainmenu' => 'flotte',
+			'leftmenu' => 'flotte_cat_monitoring',
+			'url'      => '',
+			'langs'    => 'flotte@flotte',
+			'position' => 600,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "read")',
+			'target'   => '',
+			'user'     => 2,
+		);
+		$r++;
+
+		$this->menu[$r] = array(
+			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_monitoring',
+			'type'     => 'left',
+			'titre'    => 'Tracking',
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_tracking',
-			'url' => '/flotte/tracking_list.php',
-			'langs' => 'flotte@flotte',
-			'position' => 1100,
-			'enabled' => 'isModEnabled("flotte")',
-			'perms' => '$user->hasRight("flotte", "read")',
-			'target' => '',
-			'user' => 2
+			'url'      => '/flotte/tracking_list.php',
+			'langs'    => 'flotte@flotte',
+			'position' => 610,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "read")',
+			'target'   => '',
+			'user'     => 2,
 		);
 		$r++;
 
-		// Notifications submenu
 		$this->menu[$r] = array(
-			'fk_menu' => 'fk_mainmenu=flotte',
-			'type' => 'left',
-			'titre' => 'Notifications',
-			'mainmenu' => 'flotte',
-			'leftmenu' => 'flotte_notifications',
-			'url' => '/flotte/notification_center.php',
-			'langs' => 'flotte@flotte',
-			'position' => 1150,
-			'enabled' => 'isModEnabled("flotte")',
-			'perms' => '$user->hasRight("flotte", "read")',
-			'target' => '',
-			'user' => 2
-		);
-		$r++;
-
-		// Reports submenu
-		$this->menu[$r] = array(
-			'fk_menu' => 'fk_mainmenu=flotte',
-			'type' => 'left',
-			'titre' => 'Reports',
+			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_monitoring',
+			'type'     => 'left',
+			'titre'    => 'Reports',
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_reports',
-			'url' => '/flotte/reports.php',
-			'langs' => 'flotte@flotte',
-			'position' => 1140,
-			'enabled' => 'isModEnabled("flotte")',
-			'perms' => '$user->hasRight("flotte", "read")',
-			'target' => '',
-			'user' => 2
+			'url'      => '/flotte/reports.php',
+			'langs'    => 'flotte@flotte',
+			'position' => 620,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "read")',
+			'target'   => '',
+			'user'     => 2,
 		);
 		$r++;
 
-		// Notification Settings submenu
 		$this->menu[$r] = array(
-			'fk_menu' => 'fk_mainmenu=flotte',
-			'type' => 'left',
-			'titre' => 'Notification Settings',
+			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_monitoring',
+			'type'     => 'left',
+			'titre'    => 'Notifications',
+			'mainmenu' => 'flotte',
+			'leftmenu' => 'flotte_notifications',
+			'url'      => '/flotte/notification_center.php',
+			'langs'    => 'flotte@flotte',
+			'position' => 630,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "read")',
+			'target'   => '',
+			'user'     => 2,
+		);
+		$r++;
+
+		// ════════════════════════════════════════════════════════════════════
+		// CATEGORY: Admin
+		// ════════════════════════════════════════════════════════════════════
+		$this->menu[$r] = array(
+			'fk_menu'  => 'fk_mainmenu=flotte',
+			'type'     => 'left',
+			'titre'    => 'Admin',
+			'mainmenu' => 'flotte',
+			'leftmenu' => 'flotte_cat_admin',
+			'url'      => '',
+			'langs'    => 'flotte@flotte',
+			'position' => 700,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "write")',
+			'target'   => '',
+			'user'     => 2,
+		);
+		$r++;
+
+		$this->menu[$r] = array(
+			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_admin',
+			'type'     => 'left',
+			'titre'    => 'Notification Settings',
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_notification_settings',
-			'url' => '/flotte/notification_settings.php',
-			'langs' => 'flotte@flotte',
-			'position' => 1160,
-			'enabled' => 'isModEnabled("flotte")',
-			'perms' => '$user->hasRight("flotte", "write")',
-			'target' => '',
-			'user' => 2
+			'url'      => '/flotte/notification_settings.php',
+			'langs'    => 'flotte@flotte',
+			'position' => 710,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "write")',
+			'target'   => '',
+			'user'     => 2,
 		);
 		$r++;
 
-		// Setup submenu
 		$this->menu[$r] = array(
-			'fk_menu' => 'fk_mainmenu=flotte',
-			'type' => 'left',
-			'titre' => 'Setup',
+			'fk_menu'  => 'fk_mainmenu=flotte,fk_leftmenu=flotte_cat_admin',
+			'type'     => 'left',
+			'titre'    => 'Setup',
 			'mainmenu' => 'flotte',
 			'leftmenu' => 'flotte_setup',
-			'url' => '/flotte/admin/setup.php',
-			'langs' => 'flotte@flotte',
-			'position' => 1200,
-			'enabled' => 'isModEnabled("flotte")',
-			'perms' => '$user->hasRight("flotte", "write")',
-			'target' => '',
-			'user' => 2
+			'url'      => '/flotte/admin/setup.php',
+			'langs'    => 'flotte@flotte',
+			'position' => 720,
+			'enabled'  => 'isModEnabled("flotte")',
+			'perms'    => '$user->hasRight("flotte", "write")',
+			'target'   => '',
+			'user'     => 2,
 		);
 		$r++;
 	}
