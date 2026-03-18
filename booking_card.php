@@ -1746,7 +1746,10 @@ print '</div></div>';
 print '  <div class="dc-field"><div class="dc-field-label">'.$langs->trans('FuelType').'</div><div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $fuel_types = array('gasoline'=>$langs->trans('Gasoline'),'diesel'=>$langs->trans('Diesel'),'lpg'=>'LPG','electric'=>$langs->trans('Electric'),'hybrid'=>$langs->trans('Hybrid'),'other'=>$langs->trans('Other'));
+    print '<div style="display:flex;align-items:center;gap:6px;">';
     print $form->selectarray('expense_fuel_type', $fuel_types, (isset($object->expense_fuel_type) ? $object->expense_fuel_type : ''), 1);
+    print '<a href="'.DOL_URL_ROOT.'/categories/index.php?type=other" target="_blank" title="'.$langs->trans('Categories').'"><i class="fa fa-plus-circle" style="font-size:18px;color:#0d8aff;flex-shrink:0;"></i></a>';
+    print '</div>';
 } else {
     print (!empty($object->expense_fuel_type) ? '<span class="dc-chip">'.dol_escape_htmltag(ucfirst($object->expense_fuel_type)).'</span>' : '&#8212;');
 }
