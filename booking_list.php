@@ -121,6 +121,172 @@ if ($action == 'confirm_delete' && GETPOST('confirm', 'alpha') == 'yes') {
     $action = 'list';
 }
 
+// ── Helper: generate next booking reference ───────────────────────────────
+if (!function_exists('getNextBookingRef')) {
+    function getNextBookingRef($db, $entity) {
+        $prefix = "BOOK-";
+        $sql = "SELECT ref FROM ".MAIN_DB_PREFIX."flotte_booking";
+        $sql .= " WHERE entity = ".(int)$entity;
+        $sql .= " AND ref LIKE '".$prefix."%'";
+        $sql .= " ORDER BY ref DESC LIMIT 1";
+        $resql = $db->query($sql);
+        if ($resql && $db->num_rows($resql) > 0) {
+            $obj = $db->fetch_object($resql);
+            $next_number = (int)str_replace($prefix, '', $obj->ref) + 1;
+        } else {
+            $next_number = 1;
+        }
+        return $prefix.str_pad($next_number, 4, '0', STR_PAD_LEFT);
+    }
+}
+
+// ── Download CSV template ─────────────────────────────────────────────────
+if ($action == 'download_template') {
+    $columns = array(
+        'booking_date','status','departure_address','arriving_address',
+        'distance','customer_ref','vehicle_ref','driver_ref','vendor_ref',
+        'selling_amount','buying_amount'
+    );
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="bookings_import_template.csv"');
+    $out = fopen('php://output', 'w');
+    fputcsv($out, $columns);
+    fputcsv($out, array('2024-06-15','pending','Tunis Centre','Sfax Gare','270','CUST-0001','VEH-0001','DRV-0001','','350','200'));
+    fclose($out);
+    exit;
+}
+
+// ── CSV Import ────────────────────────────────────────────────────────────
+if ($action == 'import_csv' && $user->rights->flotte->write) {
+    if (isset($_FILES['import_file']) && $_FILES['import_file']['error'] == 0) {
+        $ext = strtolower(pathinfo($_FILES['import_file']['name'], PATHINFO_EXTENSION));
+        if ($ext === 'csv') {
+            $handle = fopen($_FILES['import_file']['tmp_name'], 'r');
+            if ($handle) {
+                fgetcsv($handle); // skip header
+                $imported      = 0;
+                $import_errors = array();
+                $row_num       = 1;
+
+                while (($row = fgetcsv($handle)) !== false) {
+                    $row_num++;
+                    if (count($row) < 1) continue;
+
+                    $booking_date     = isset($row[0]) ? trim($row[0]) : '';
+                    $status           = isset($row[1]) ? strtolower(trim($row[1])) : 'pending';
+                    $departure_address= isset($row[2]) ? trim($row[2]) : '';
+                    $arriving_address = isset($row[3]) ? trim($row[3]) : '';
+                    $distance         = isset($row[4]) && $row[4] !== '' ? (int)trim($row[4]) : null;
+                    $customer_ref     = isset($row[5]) ? trim($row[5]) : '';
+                    $vehicle_ref      = isset($row[6]) ? trim($row[6]) : '';
+                    $driver_ref       = isset($row[7]) ? trim($row[7]) : '';
+                    $vendor_ref       = isset($row[8]) ? trim($row[8]) : '';
+                    $selling_amount   = isset($row[9])  && $row[9]  !== '' ? (float)trim($row[9])  : null;
+                    $buying_amount    = isset($row[10]) && $row[10] !== '' ? (float)trim($row[10]) : null;
+
+                    // Validate date
+                    if (empty($booking_date)) {
+                        $import_errors[] = "Row $row_num: booking_date is required.";
+                        continue;
+                    }
+                    // Normalize date to Y-m-d
+                    $ts = strtotime($booking_date);
+                    if ($ts === false) {
+                        $import_errors[] = "Row $row_num: invalid booking_date '$booking_date'.";
+                        continue;
+                    }
+                    $booking_date = date('Y-m-d', $ts);
+
+                    // Validate status
+                    $valid_statuses = array('pending','confirmed','in_progress','completed','cancelled');
+                    if (!in_array($status, $valid_statuses)) {
+                        $status = 'pending';
+                    }
+
+                    // Resolve customer FK
+                    $fk_customer = null;
+                    if (!empty($customer_ref)) {
+                        $rq = $db->query("SELECT rowid FROM ".MAIN_DB_PREFIX."flotte_customer WHERE ref = '".$db->escape($customer_ref)."' AND entity IN (".getEntity('flotte').") LIMIT 1");
+                        if ($rq && $db->num_rows($rq) > 0) {
+                            $fk_customer = (int)$db->fetch_object($rq)->rowid;
+                        }
+                    }
+
+                    // Resolve vehicle FK
+                    $fk_vehicle = null;
+                    if (!empty($vehicle_ref)) {
+                        $rq = $db->query("SELECT rowid FROM ".MAIN_DB_PREFIX."flotte_vehicle WHERE ref = '".$db->escape($vehicle_ref)."' AND entity IN (".getEntity('flotte').") LIMIT 1");
+                        if ($rq && $db->num_rows($rq) > 0) {
+                            $fk_vehicle = (int)$db->fetch_object($rq)->rowid;
+                        }
+                    }
+
+                    // Resolve driver FK
+                    $fk_driver = null;
+                    if (!empty($driver_ref)) {
+                        $rq = $db->query("SELECT rowid FROM ".MAIN_DB_PREFIX."flotte_driver WHERE ref = '".$db->escape($driver_ref)."' AND entity IN (".getEntity('flotte').") LIMIT 1");
+                        if ($rq && $db->num_rows($rq) > 0) {
+                            $fk_driver = (int)$db->fetch_object($rq)->rowid;
+                        }
+                    }
+
+                    // Resolve vendor FK
+                    $fk_vendor = null;
+                    if (!empty($vendor_ref)) {
+                        $rq = $db->query("SELECT rowid FROM ".MAIN_DB_PREFIX."flotte_vendor WHERE ref = '".$db->escape($vendor_ref)."' AND entity IN (".getEntity('flotte').") LIMIT 1");
+                        if ($rq && $db->num_rows($rq) > 0) {
+                            $fk_vendor = (int)$db->fetch_object($rq)->rowid;
+                        }
+                    }
+
+                    $ref = getNextBookingRef($db, $conf->entity);
+
+                    $db->begin();
+                    $sql_ins  = "INSERT INTO ".MAIN_DB_PREFIX."flotte_booking ";
+                    $sql_ins .= "(ref, entity, booking_date, status, departure_address, arriving_address, distance, ";
+                    $sql_ins .= "fk_customer, fk_vehicle, fk_driver, fk_vendor, selling_amount, buying_amount, fk_user_author) VALUES (";
+                    $sql_ins .= "'".$db->escape($ref)."', ".(int)$conf->entity.", ";
+                    $sql_ins .= "'".$db->escape($booking_date)."', ";
+                    $sql_ins .= "'".$db->escape($status)."', ";
+                    $sql_ins .= "'".$db->escape($departure_address)."', ";
+                    $sql_ins .= "'".$db->escape($arriving_address)."', ";
+                    $sql_ins .= ($distance !== null ? (int)$distance : "NULL").", ";
+                    $sql_ins .= ($fk_customer !== null ? (int)$fk_customer : "NULL").", ";
+                    $sql_ins .= ($fk_vehicle  !== null ? (int)$fk_vehicle  : "NULL").", ";
+                    $sql_ins .= ($fk_driver   !== null ? (int)$fk_driver   : "NULL").", ";
+                    $sql_ins .= ($fk_vendor   !== null ? (int)$fk_vendor   : "NULL").", ";
+                    $sql_ins .= ($selling_amount !== null ? (float)$selling_amount : "NULL").", ";
+                    $sql_ins .= ($buying_amount  !== null ? (float)$buying_amount  : "NULL").", ";
+                    $sql_ins .= (int)$user->id.")";
+
+                    if ($db->query($sql_ins)) {
+                        $db->commit();
+                        $imported++;
+                    } else {
+                        $db->rollback();
+                        $import_errors[] = "Row $row_num: DB error — ".$db->lasterror();
+                    }
+                }
+                fclose($handle);
+
+                if ($imported > 0) {
+                    setEventMessages($langs->trans("ImportSuccess", $imported), null, 'mesgs');
+                }
+                if (!empty($import_errors)) {
+                    foreach ($import_errors as $ie) {
+                        setEventMessages($ie, null, 'warnings');
+                    }
+                }
+            }
+        } else {
+            setEventMessages($langs->trans("ErrorOnlyCSVAccepted"), null, 'errors');
+        }
+    }
+    // PRG: redirect to clean URL so a page reload does not re-submit the file
+    header('Location: '.dol_buildpath('/flotte/booking_list.php', 1));
+    exit;
+}
+
 // ── Invoiced lookup (must run before main SQL for filter support) ────────
 $invoiced_customer_ids = array();
 $invoiced_vendor_ids   = array();
@@ -640,6 +806,9 @@ table.vl-table tbody tr.vl-selected td { border-bottom-color: #e9d5ff !important
         </a>
         <?php } ?>
         <?php if ($user->rights->flotte->write) { ?>
+        <button type="button" class="vl-btn vl-btn-secondary" onclick="blOpenImport()">
+            <i class="fa fa-file-import"></i> <?php echo $langs->trans('Import'); ?>
+        </button>
         <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/booking_card.php', 1); ?>?action=create">
             <i class="fa fa-plus"></i> <?php echo $langs->trans('NewBooking'); ?>
         </a>
@@ -1050,6 +1219,208 @@ function createInvoice(type) {
     document.getElementById('invoice-booking-ids').value = ids.join(',');
     document.getElementById('invoice-form').submit();
 }
+</script>
+
+<!-- ═══════════════════════════════════════════════════════
+     IMPORT MODAL
+═══════════════════════════════════════════════════════ -->
+<?php if ($user->rights->flotte->write) { ?>
+<div class="vl-modal-overlay" id="bl-import-modal" onclick="if(event.target===this)blCloseImport()">
+  <div class="vl-modal">
+
+    <div class="vl-modal-header">
+      <div class="vl-modal-header-left">
+        <div class="vl-modal-icon"><i class="fa fa-file-import"></i></div>
+        <div>
+          <p class="vl-modal-title"><?php echo $langs->trans("ImportBookings"); ?></p>
+          <p class="vl-modal-sub"><?php echo $langs->trans("ImportBookingsSubtitle"); ?></p>
+        </div>
+      </div>
+      <button class="vl-modal-close" onclick="blCloseImport()" title="<?php echo $langs->trans('Close'); ?>">&#x2715;</button>
+    </div>
+
+    <div class="vl-modal-body">
+
+      <div class="vl-import-notice">
+        <i class="fa fa-info-circle"></i>
+        <div>
+          <?php echo $langs->trans("ImportNoticeText"); ?>
+          <a href="<?php echo dol_buildpath('/flotte/booking_list.php', 1); ?>?action=download_template&token=<?php echo newToken(); ?>">
+            <i class="fa fa-download"></i> <?php echo $langs->trans("DownloadCSVTemplate"); ?>
+          </a>
+        </div>
+      </div>
+
+      <button type="button" class="vl-fields-toggle" onclick="blToggleFields(this)">
+        <i class="fa fa-table"></i> <?php echo $langs->trans("ShowCSVColumns"); ?> <i class="fa fa-chevron-down" id="bl-fields-chevron"></i>
+      </button>
+      <div id="bl-fields-panel" style="display:none;margin-bottom:14px;">
+        <table class="vl-fields-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th><?php echo $langs->trans("ColumnName"); ?></th>
+              <th><?php echo $langs->trans("Description"); ?></th>
+              <th style="text-align:center;"><?php echo $langs->trans("Required"); ?></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td class="vl-col-name">booking_date</td><td><?php echo $langs->trans("BookingDate"); ?> (YYYY-MM-DD)</td><td style="text-align:center;color:#e53e3e;font-weight:700;">✓</td></tr>
+            <tr><td>2</td><td class="vl-col-name">status</td><td>pending / confirmed / in_progress / completed / cancelled</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>3</td><td class="vl-col-name">departure_address</td><td><?php echo $langs->trans("DepartureAddress"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>4</td><td class="vl-col-name">arriving_address</td><td><?php echo $langs->trans("ArrivingAddress"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>5</td><td class="vl-col-name">distance</td><td><?php echo $langs->trans("Distance"); ?> (km)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>6</td><td class="vl-col-name">customer_ref</td><td><?php echo $langs->trans("CustomerRef"); ?> (e.g. CUST-0001)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>7</td><td class="vl-col-name">vehicle_ref</td><td><?php echo $langs->trans("VehicleRef"); ?> (e.g. VEH-0001)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>8</td><td class="vl-col-name">driver_ref</td><td><?php echo $langs->trans("DriverRef"); ?> (e.g. DRV-0001)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>9</td><td class="vl-col-name">vendor_ref</td><td><?php echo $langs->trans("VendorRef"); ?> (e.g. VND-0001)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>10</td><td class="vl-col-name">selling_amount</td><td><?php echo $langs->trans("SellingAmount"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>11</td><td class="vl-col-name">buying_amount</td><td><?php echo $langs->trans("BuyingAmount"); ?></td><td class="vl-col-opt">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <form method="POST" action="<?php echo dol_buildpath('/flotte/booking_list.php', 1); ?>"
+            enctype="multipart/form-data" id="bl-import-form">
+        <input type="hidden" name="token"  value="<?php echo newToken(); ?>">
+        <input type="hidden" name="action" value="import_csv">
+
+        <div class="vl-dropzone" id="bl-dropzone">
+          <input type="file" name="import_file" id="bl-file-input" accept=".csv,text/csv"
+                 onchange="blFileChosen(this)">
+          <div class="vl-dropzone-icon"><i class="fa fa-cloud-upload-alt"></i></div>
+          <div class="vl-dropzone-text"><?php echo $langs->trans("DropCSVHere"); ?></div>
+          <div class="vl-dropzone-sub"><?php echo $langs->trans("OnlyCSVAccepted"); ?></div>
+          <div class="vl-dropzone-file" id="bl-file-name"></div>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 0;border-top:1px solid #eaecf5;margin-top:18px;gap:10px;flex-wrap:wrap;">
+          <button type="button" class="vl-btn" style="background:#fff;color:#5a6482;border:1.5px solid #d1d5e0;" onclick="blCloseImport()">
+            <i class="fa fa-times"></i> <?php echo $langs->trans("Cancel"); ?>
+          </button>
+          <button type="submit" class="vl-btn vl-btn-primary" id="bl-import-submit" disabled>
+            <i class="fa fa-check"></i> <?php echo $langs->trans("ImportNow"); ?>
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<style>
+/* Modal styles (shared with customer list) */
+.vl-modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 10000;
+    background: rgba(15,20,40,0.45); backdrop-filter: blur(3px);
+    align-items: center; justify-content: center;
+}
+.vl-modal-overlay.open { display: flex; }
+.vl-modal {
+    background: #fff; border-radius: 16px; width: 100%; max-width: 580px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.18); overflow: hidden;
+    max-height: 90vh; display: flex; flex-direction: column;
+}
+.vl-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 22px 24px 18px; border-bottom: 1px solid #eaecf5; flex-shrink: 0;
+}
+.vl-modal-header-left { display: flex; align-items: center; gap: 14px; }
+.vl-modal-icon {
+    width: 42px; height: 42px; background: #f0f2fa; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: #3c4758; font-size: 18px; flex-shrink: 0;
+}
+.vl-modal-title { font-size: 16px; font-weight: 700; color: #1a1f2e; margin: 0 0 2px; }
+.vl-modal-sub   { font-size: 12.5px; color: #7c859c; margin: 0; }
+.vl-modal-close {
+    background: none; border: none; font-size: 18px; color: #9aa0b4;
+    cursor: pointer; padding: 4px 8px; border-radius: 6px; line-height: 1; transition: all 0.15s;
+}
+.vl-modal-close:hover { background: #f0f2fa; color: #3c4758; }
+.vl-modal-body { padding: 22px 24px 24px; overflow-y: auto; }
+.vl-import-notice {
+    display: flex; gap: 12px; background: #f0f6ff; border: 1px solid #c3d9ff;
+    border-radius: 10px; padding: 14px 16px; margin-bottom: 18px;
+    font-size: 13px; color: #2d4a8a; line-height: 1.5;
+}
+.vl-import-notice i { color: #3c7de0; font-size: 16px; margin-top: 1px; flex-shrink: 0; }
+.vl-import-notice a { color: #3c7de0; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; margin-left: 4px; }
+.vl-import-notice a:hover { text-decoration: underline; }
+.vl-fields-toggle {
+    display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px;
+    background: #f7f8fc; border: 1.5px solid #e2e5f0; border-radius: 8px;
+    font-size: 12.5px; font-weight: 600; color: #5a6482; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: all 0.15s; margin-bottom: 12px;
+}
+.vl-fields-toggle:hover { background: #eef0f8; border-color: #c8cce0; }
+.vl-fields-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-bottom: 4px; }
+.vl-fields-table th { background: #f7f8fc; padding: 8px 10px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #8b92a9; border-bottom: 1px solid #e8eaf0; }
+.vl-fields-table td { padding: 8px 10px; border-bottom: 1px solid #f0f2f8; color: #2d3748; }
+.vl-fields-table tr:last-child td { border-bottom: none; }
+.vl-col-name { font-family: 'DM Mono', monospace; font-size: 12px; color: #7c3aed; font-weight: 600; }
+.vl-col-opt  { text-align: center; color: #9aa0b4; }
+.vl-dropzone {
+    position: relative; border: 2px dashed #d1d5e0; border-radius: 12px;
+    padding: 36px 24px; text-align: center; cursor: pointer;
+    transition: all 0.2s; background: #fafbfe;
+}
+.vl-dropzone:hover, .vl-dropzone.drag-over { border-color: #3c4758; background: #f0f2fa; }
+.vl-dropzone.has-file { border-color: #1a7d4a; background: #f0fdf4; }
+.vl-dropzone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.vl-dropzone-icon { font-size: 32px; color: #c4c9d8; margin-bottom: 10px; }
+.vl-dropzone.has-file .vl-dropzone-icon { color: #1a7d4a; }
+.vl-dropzone-text { font-size: 14px; font-weight: 600; color: #3c4758; margin-bottom: 4px; }
+.vl-dropzone-sub  { font-size: 12px; color: #9aa0b4; }
+.vl-dropzone-file { font-size: 13px; font-weight: 600; color: #1a7d4a; margin-top: 8px; }
+</style>
+<?php } ?>
+
+<script>
+function blOpenImport()  { document.getElementById('bl-import-modal').classList.add('open'); }
+function blCloseImport() {
+    document.getElementById('bl-import-modal').classList.remove('open');
+    document.getElementById('bl-import-form').reset();
+    var dz = document.getElementById('bl-dropzone');
+    if (dz) dz.classList.remove('has-file');
+    document.getElementById('bl-file-name').textContent = '';
+    document.getElementById('bl-import-submit').disabled = true;
+}
+function blFileChosen(input) {
+    var dz  = document.getElementById('bl-dropzone');
+    var fn  = document.getElementById('bl-file-name');
+    var btn = document.getElementById('bl-import-submit');
+    if (input.files && input.files.length > 0) {
+        dz.classList.add('has-file');
+        fn.textContent = input.files[0].name;
+        btn.disabled = false;
+    } else {
+        dz.classList.remove('has-file');
+        fn.textContent = '';
+        btn.disabled = true;
+    }
+}
+function blToggleFields(btn) {
+    var panel   = document.getElementById('bl-fields-panel');
+    var chevron = document.getElementById('bl-fields-chevron');
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        chevron.className = 'fa fa-chevron-up';
+    } else {
+        panel.style.display = 'none';
+        chevron.className = 'fa fa-chevron-down';
+    }
+}
+(function(){
+    var dz = document.getElementById('bl-dropzone');
+    if (!dz) return;
+    dz.addEventListener('dragover',  function(e){ e.preventDefault(); dz.classList.add('drag-over'); });
+    dz.addEventListener('dragleave', function(){ dz.classList.remove('drag-over'); });
+    dz.addEventListener('drop',      function(){ dz.classList.remove('drag-over'); });
+})();
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') blCloseImport(); });
 </script>
 
 <?php

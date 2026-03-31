@@ -108,82 +108,197 @@ if (!$user->admin) {
 }
 
 
-// Enter here all parameters in your setup page
+// ============================================================
+// SECTION 1 — General Settings
+// ============================================================
+$formSetup->newItem('GeneralSettings')->setAsTitle();
 
-// Setup conf for selection of an URL
-$item = $formSetup->newItem('FLOTTE_MYPARAM1');
-$item->fieldAttr['placeholder'] = (empty($_SERVER['HTTPS']) ? 'http://' : 'https://') . $_SERVER['HTTP_HOST'];
-$item->cssClass = 'minwidth500';
+// Fleet manager name
+$item = $formSetup->newItem('FLOTTE_FLEET_MANAGER_NAME');
+$item->defaultFieldValue = '';
+$item->fieldAttr['placeholder'] = $langs->trans('FlotteFleetManagerNamePlaceholder');
+$item->cssClass = 'minwidth300';
 
-// Setup conf for selection of a simple string input
-$item = $formSetup->newItem('FLOTTE_MYPARAM2');
-$item->defaultFieldValue = 'default value';
-$item->fieldAttr['placeholder'] = 'A placeholder here';
+// Mileage unit
+$item = $formSetup->newItem('FLOTTE_MILEAGE_UNIT');
+$item->setAsSelect(array(
+	'km'    => $langs->trans('FlotteMileageKm'),
+	'miles' => $langs->trans('FlotteMileageMiles'),
+));
+$item->defaultFieldValue = 'km';
 
-// Setup conf for selection of a simple textarea input but we replace the text of field title
-$item = $formSetup->newItem('FLOTTE_MYPARAM3');
-$item->nameText = $item->getNameText().' more html text ';
+// Default currency
+$item = $formSetup->newItem('FLOTTE_DEFAULT_CURRENCY');
+$item->defaultFieldValue = 'TND';
+$item->fieldAttr['placeholder'] = 'TND';
+$item->cssClass = 'minwidth100';
 
-// Setup conf for a selection of a Thirdparty
-$item = $formSetup->newItem('FLOTTE_MYPARAM4');
-$item->setAsThirdpartyType();
+// ============================================================
+// SECTION 2 — Vehicle Settings
+// ============================================================
+$formSetup->newItem('VehicleSettings')->setAsTitle();
 
-// Setup conf for a selection of a boolean
-$formSetup->newItem('FLOTTE_MYPARAM5')->setAsYesNo();
+// Low fuel alert threshold (%)
+$item = $formSetup->newItem('FLOTTE_LOW_FUEL_THRESHOLD');
+$item->defaultFieldValue = '15';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '1';
+$item->fieldAttr['max']         = '100';
+$item->fieldAttr['placeholder'] = '15';
+$item->helpText = $langs->transnoentities('FlotteLowFuelThresholdHelp');
+$item->cssClass = 'minwidth100';
 
-// Setup conf for a selection of an Email template of type thirdparty
-$formSetup->newItem('FLOTTE_MYPARAM6')->setAsEmailTemplate('thirdparty');
+// Available fuel types
+$item = $formSetup->newItem('FLOTTE_FUEL_TYPES');
+$item->setAsMultiSelect(array(
+	'diesel'   => $langs->trans('FlotteFuelDiesel'),
+	'petrol'   => $langs->trans('FlotteFuelPetrol'),
+	'electric' => $langs->trans('FlotteFuelElectric'),
+	'lpg'      => $langs->trans('FlotteFuelLPG'),
+	'hybrid'   => $langs->trans('FlotteFuelHybrid'),
+));
+$item->defaultFieldValue = 'diesel,petrol';
+$item->helpText = $langs->transnoentities('FlotteFuelTypesHelp');
 
-// Setup conf for a selection of a secured key
-//$formSetup->newItem('FLOTTE_MYPARAM7')->setAsSecureKey();
+// ============================================================
+// SECTION 3 — Maintenance Settings
+// ============================================================
+$formSetup->newItem('MaintenanceSettings')->setAsTitle();
 
-// Setup conf for a selection of a Product
-$formSetup->newItem('FLOTTE_MYPARAM8')->setAsProduct();
+// Default maintenance interval (km)
+$item = $formSetup->newItem('FLOTTE_MAINTENANCE_INTERVAL_KM');
+$item->defaultFieldValue = '10000';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '0';
+$item->fieldAttr['placeholder'] = '10000';
+$item->helpText = $langs->transnoentities('FlotteMaintenanceIntervalHelp');
+$item->cssClass = 'minwidth150';
 
-// Add a title for a new section
-$formSetup->newItem('NewSection')->setAsTitle();
+// Alert days before maintenance due
+$item = $formSetup->newItem('FLOTTE_MAINTENANCE_ALERT_DAYS');
+$item->defaultFieldValue = '14';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '1';
+$item->fieldAttr['placeholder'] = '14';
+$item->helpText = $langs->transnoentities('FlotteMaintenanceAlertDaysHelp');
+$item->cssClass = 'minwidth100';
 
-$TField = array(
-	'test01' => $langs->trans('test01'),
-	'test02' => $langs->trans('test02'),
-	'test03' => $langs->trans('test03'),
-	'test04' => $langs->trans('test04'),
-	'test05' => $langs->trans('test05'),
-	'test06' => $langs->trans('test06'),
-);
+// Default labor cost per hour
+$item = $formSetup->newItem('FLOTTE_DEFAULT_LABOR_COST');
+$item->defaultFieldValue = '0';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '0';
+$item->fieldAttr['step']        = '0.01';
+$item->fieldAttr['placeholder'] = '0.00';
+$item->cssClass = 'minwidth150';
 
-// Setup conf for a simple combo list
-$formSetup->newItem('FLOTTE_MYPARAM9')->setAsSelect($TField);
+// ============================================================
+// SECTION 4 — Fuel Tracking
+// ============================================================
+$formSetup->newItem('FuelTrackingSettings')->setAsTitle();
 
-// Setup conf for a multiselect combo list
-$item = $formSetup->newItem('FLOTTE_MYPARAM10');
-$item->setAsMultiSelect($TField);
-$item->helpText = $langs->transnoentities('FLOTTE_MYPARAM10');
+// Default fuel price per liter
+$item = $formSetup->newItem('FLOTTE_DEFAULT_FUEL_PRICE');
+$item->defaultFieldValue = '0';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '0';
+$item->fieldAttr['step']        = '0.001';
+$item->fieldAttr['placeholder'] = '0.000';
+$item->cssClass = 'minwidth150';
 
-// Setup conf for a category selection
-$formSetup->newItem('FLOTTE_CATEGORY_ID_XXX')->setAsCategory('product');
+// High fuel consumption alert threshold (L/100km)
+$item = $formSetup->newItem('FLOTTE_HIGH_CONSUMPTION_ALERT');
+$item->defaultFieldValue = '15';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '0';
+$item->fieldAttr['step']        = '0.1';
+$item->fieldAttr['placeholder'] = '15';
+$item->helpText = $langs->transnoentities('FlotteHighConsumptionHelp');
+$item->cssClass = 'minwidth100';
 
-// Setup conf FLOTTE_MYPARAM10
-$item = $formSetup->newItem('FLOTTE_MYPARAM10');
-$item->setAsColor();
-$item->defaultFieldValue = '#FF0000';
-//$item->fieldValue = '';
-//$item->fieldAttr = array() ; // fields attribute only for compatible fields like input text
-//$item->fieldOverride = false; // set this var to override field output will override $fieldInputOverride and $fieldOutputOverride too
-//$item->fieldInputOverride = false; // set this var to override field input
-//$item->fieldOutputOverride = false; // set this var to override field output
+// ============================================================
+// SECTION 5 — Booking Settings
+// ============================================================
+$formSetup->newItem('BookingSettings')->setAsTitle();
 
-$item = $formSetup->newItem('FLOTTE_MYPARAM11')->setAsHtml();
-$item->nameText = $item->getNameText().' more html text ';
-$item->fieldInputOverride = '';
-$item->helpText = $langs->transnoentities('HelpMessage');
-$item->cssClass = 'minwidth500';
+// Allow overlapping bookings
+$formSetup->newItem('FLOTTE_ALLOW_OVERLAPPING_BOOKINGS')->setAsYesNo();
 
-$item = $formSetup->newItem('FLOTTE_MYPARAM12');
-$item->fieldOverride = "Value forced, can't be modified";
-$item->cssClass = 'minwidth500';
+// Require approval before confirming a booking
+$formSetup->newItem('FLOTTE_REQUIRE_BOOKING_APPROVAL')->setAsYesNo();
 
-//$item = $formSetup->newItem('FLOTTE_MYPARAM13')->setAsDate();	// Not yet implemented
+// Max booking duration (days)
+$item = $formSetup->newItem('FLOTTE_MAX_BOOKING_DAYS');
+$item->defaultFieldValue = '30';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '1';
+$item->fieldAttr['placeholder'] = '30';
+$item->cssClass = 'minwidth100';
+
+// Default booking status
+$item = $formSetup->newItem('FLOTTE_DEFAULT_BOOKING_STATUS');
+$item->setAsSelect(array(
+	'pending'   => $langs->trans('FlotteStatusPending'),
+	'confirmed' => $langs->trans('FlotteStatusConfirmed'),
+));
+$item->defaultFieldValue = 'pending';
+
+// ============================================================
+// SECTION 6 — Inspection Settings
+// ============================================================
+$formSetup->newItem('InspectionSettings')->setAsTitle();
+
+// Inspection frequency (days)
+$item = $formSetup->newItem('FLOTTE_INSPECTION_FREQUENCY_DAYS');
+$item->defaultFieldValue = '90';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '1';
+$item->fieldAttr['placeholder'] = '90';
+$item->helpText = $langs->transnoentities('FlotteInspectionFrequencyHelp');
+$item->cssClass = 'minwidth100';
+
+// Alert days before inspection due
+$item = $formSetup->newItem('FLOTTE_INSPECTION_ALERT_DAYS');
+$item->defaultFieldValue = '7';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '1';
+$item->fieldAttr['placeholder'] = '7';
+$item->cssClass = 'minwidth100';
+
+// ============================================================
+// SECTION 7 — Notifications
+// ============================================================
+$formSetup->newItem('NotificationSettings')->setAsTitle();
+
+// Enable email notifications
+$formSetup->newItem('FLOTTE_ENABLE_EMAIL_NOTIFICATIONS')->setAsYesNo();
+
+// Notification recipient email
+$item = $formSetup->newItem('FLOTTE_NOTIFICATION_EMAIL');
+$item->defaultFieldValue = '';
+$item->fieldAttr['type']        = 'email';
+$item->fieldAttr['placeholder'] = 'fleet@example.com';
+$item->cssClass = 'minwidth300';
+
+// ============================================================
+// SECTION 8 — Documents & Compliance
+// ============================================================
+$formSetup->newItem('DocumentSettings')->setAsTitle();
+
+// Track insurance expiry
+$formSetup->newItem('FLOTTE_TRACK_INSURANCE_EXPIRY')->setAsYesNo();
+
+// Track vehicle registration expiry
+$formSetup->newItem('FLOTTE_TRACK_REGISTRATION_EXPIRY')->setAsYesNo();
+
+// Alert days before document expiry
+$item = $formSetup->newItem('FLOTTE_DOCUMENT_ALERT_DAYS');
+$item->defaultFieldValue = '30';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '1';
+$item->fieldAttr['placeholder'] = '30';
+$item->helpText = $langs->transnoentities('FlotteDocumentAlertDaysHelp');
+$item->cssClass = 'minwidth100';
 
 // End of definition of parameters
 
@@ -195,8 +310,6 @@ $dirmodels = array_merge(array('/'), (array) $conf->modules_parts['models']);
 
 $moduledir = 'flotte';
 $myTmpObjects = array();
-// TODO Scan list of objects to fill this array
-$myTmpObjects['myobject'] = array('label' => 'MyObject', 'includerefgeneration' => 0, 'includedocgeneration' => 0, 'class' => 'MyObject');
 
 $tmpobjectkey = GETPOST('object', 'aZ09');
 if ($tmpobjectkey && !array_key_exists($tmpobjectkey, $myTmpObjects)) {

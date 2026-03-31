@@ -115,6 +115,152 @@ if ($action == 'confirm_delete' && GETPOST('confirm', 'alpha') == 'yes') {
     $action = 'list';
 }
 
+// ── Helper: generate next driver reference ────────────────────────────────
+if (!function_exists('getNextDriverRef')) {
+    function getNextDriverRef($db) {
+        $prefix = "DRV";
+        $sql = "SELECT MAX(CAST(SUBSTRING(ref, 4) AS UNSIGNED)) as max_ref FROM ".MAIN_DB_PREFIX."flotte_driver WHERE ref LIKE '".$prefix."%'";
+        $resql = $db->query($sql);
+        if ($resql) {
+            $obj = $db->fetch_object($resql);
+            $next_num = ($obj && $obj->max_ref) ? $obj->max_ref + 1 : 1;
+            return $prefix.str_pad($next_num, 4, '0', STR_PAD_LEFT);
+        }
+        return $prefix."0001";
+    }
+}
+
+// ── Download CSV template ─────────────────────────────────────────────────
+if ($action == 'download_template') {
+    $columns = array(
+        'firstname','middlename','lastname','email','phone',
+        'employee_id','contract_number','license_number',
+        'license_issue_date','license_expiry_date','join_date','leave_date',
+        'department','status','gender','address','emergency_contact','vehicle_ref'
+    );
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="drivers_import_template.csv"');
+    $out = fopen('php://output', 'w');
+    fputcsv($out, $columns);
+    // Example row
+    fputcsv($out, array(
+        'John','Michael','Doe','john.doe@example.com','0123456789',
+        'EMP-001','CTR-2024-001','LIC-987654',
+        date('Y-m-d', strtotime('-2 year')), date('Y-m-d', strtotime('+3 year')),
+        date('Y-m-d', strtotime('-1 year')), '',
+        'Logistics','active','male','123 Main Street','Jane Doe +21612345678','VEH-0001'
+    ));
+    fclose($out);
+    exit;
+}
+
+// ── CSV Import ────────────────────────────────────────────────────────────
+if ($action == 'import_csv' && $user->rights->flotte->write) {
+    if (isset($_FILES['import_file']) && $_FILES['import_file']['error'] == 0) {
+        $ext = strtolower(pathinfo($_FILES['import_file']['name'], PATHINFO_EXTENSION));
+        if ($ext === 'csv') {
+            $handle = fopen($_FILES['import_file']['tmp_name'], 'r');
+            if ($handle) {
+                fgetcsv($handle); // skip header
+                $imported      = 0;
+                $import_errors = array();
+                $row_num       = 1;
+
+                // Pre-load vehicle ref → rowid map
+                $vehicle_map = array();
+                $vsql = "SELECT rowid, ref FROM ".MAIN_DB_PREFIX."flotte_vehicle WHERE entity IN (".getEntity('flotte').")";
+                $vres = $db->query($vsql);
+                if ($vres) { while ($vo = $db->fetch_object($vres)) { $vehicle_map[strtoupper(trim($vo->ref))] = $vo->rowid; } }
+
+                while (($row = fgetcsv($handle)) !== false) {
+                    $row_num++;
+                    if (count($row) < 1) continue;
+
+                    $firstname        = isset($row[0])  ? trim($row[0])  : '';
+                    $middlename       = isset($row[1])  ? trim($row[1])  : '';
+                    $lastname         = isset($row[2])  ? trim($row[2])  : '';
+                    $email            = isset($row[3])  ? trim($row[3])  : '';
+                    $phone            = isset($row[4])  ? trim($row[4])  : '';
+                    $employee_id      = isset($row[5])  ? trim($row[5])  : '';
+                    $contract_number  = isset($row[6])  ? trim($row[6])  : '';
+                    $license_number   = isset($row[7])  ? trim($row[7])  : '';
+                    $license_issue    = isset($row[8])  ? trim($row[8])  : '';
+                    $license_expiry   = isset($row[9])  ? trim($row[9])  : '';
+                    $join_date_str    = isset($row[10]) ? trim($row[10]) : '';
+                    $leave_date_str   = isset($row[11]) ? trim($row[11]) : '';
+                    $department       = isset($row[12]) ? trim($row[12]) : '';
+                    $status           = isset($row[13]) ? trim($row[13]) : 'active';
+                    $gender           = isset($row[14]) ? trim($row[14]) : '';
+                    $address          = isset($row[15]) ? trim($row[15]) : '';
+                    $emergency_contact= isset($row[16]) ? trim($row[16]) : '';
+                    $vehicle_ref_str  = isset($row[17]) ? strtoupper(trim($row[17])) : '';
+
+                    // Validate required fields
+                    if (empty($firstname) || empty($lastname)) {
+                        $import_errors[] = $langs->trans("Row").' '.$row_num.': firstname and lastname are required.';
+                        continue;
+                    }
+
+                    // Resolve vehicle FK
+                    $fk_vehicle = (!empty($vehicle_ref_str) && isset($vehicle_map[$vehicle_ref_str])) ? $vehicle_map[$vehicle_ref_str] : null;
+
+                    // Convert dates
+                    $lic_issue_ts  = !empty($license_issue)  ? dol_stringtotime($license_issue)  : 0;
+                    $lic_expiry_ts = !empty($license_expiry) ? dol_stringtotime($license_expiry) : 0;
+                    $join_ts       = !empty($join_date_str)  ? dol_stringtotime($join_date_str)  : 0;
+                    $leave_ts      = !empty($leave_date_str) ? dol_stringtotime($leave_date_str) : 0;
+
+                    $ref = getNextDriverRef($db);
+
+                    $db->begin();
+                    $sql_i  = "INSERT INTO ".MAIN_DB_PREFIX."flotte_driver (";
+                    $sql_i .= "ref, entity, fk_user, firstname, middlename, lastname, address, email, phone, employee_id, contract_number, ";
+                    $sql_i .= "license_number, license_issue_date, license_expiry_date, join_date, leave_date, ";
+                    $sql_i .= "department, status, gender, emergency_contact, fk_vehicle, fk_user_author, datec";
+                    $sql_i .= ") VALUES (";
+                    $sql_i .= "'".$db->escape($ref)."', ".$conf->entity.", NULL, ";
+                    $sql_i .= "'".$db->escape($firstname)."', '".$db->escape($middlename)."', '".$db->escape($lastname)."', ";
+                    $sql_i .= "'".$db->escape($address)."', '".$db->escape($email)."', '".$db->escape($phone)."', ";
+                    $sql_i .= "'".$db->escape($employee_id)."', '".$db->escape($contract_number)."', ";
+                    $sql_i .= "'".$db->escape($license_number)."', ";
+                    $sql_i .= ($lic_issue_ts  > 0 ? "'".$db->idate($lic_issue_ts)."'"  : "NULL").", ";
+                    $sql_i .= ($lic_expiry_ts > 0 ? "'".$db->idate($lic_expiry_ts)."'" : "NULL").", ";
+                    $sql_i .= ($join_ts  > 0 ? "'".$db->idate($join_ts)."'"  : "NULL").", ";
+                    $sql_i .= ($leave_ts > 0 ? "'".$db->idate($leave_ts)."'" : "NULL").", ";
+                    $sql_i .= "'".$db->escape($department)."', '".$db->escape($status)."', '".$db->escape($gender)."', ";
+                    $sql_i .= "'".$db->escape($emergency_contact)."', ";
+                    $sql_i .= ($fk_vehicle ? (int)$fk_vehicle : "NULL").", ";
+                    $sql_i .= $user->id.", '".$db->idate(dol_now())."'";
+                    $sql_i .= ")";
+
+                    $resql_i = $db->query($sql_i);
+                    if ($resql_i) {
+                        $db->commit();
+                        $imported++;
+                    } else {
+                        $db->rollback();
+                        $import_errors[] = $langs->trans("Row").' '.$row_num.': '.$db->lasterror();
+                    }
+                }
+                fclose($handle);
+
+                if ($imported > 0) {
+                    setEventMessages(sprintf($langs->trans("ImportedDriversCount"), $imported), null, 'mesgs');
+                }
+                foreach ($import_errors as $ie) {
+                    setEventMessages($ie, null, 'errors');
+                }
+            }
+        } else {
+            setEventMessages($langs->trans("ErrorOnlyCSVAllowed"), null, 'errors');
+        }
+    } else {
+        setEventMessages($langs->trans("ErrorNoFileUploaded"), null, 'errors');
+    }
+    header('Location: '.$_SERVER['PHP_SELF']);
+    exit;
+}
+
 // Build and execute select
 $sql = 'SELECT t.rowid, t.ref, t.firstname, t.middlename, t.lastname, t.phone, t.email, t.status, t.license_number, t.employee_id, t.department, t.gender, t.join_date, t.fk_vehicle';
 $sql .= ', v.ref as vehicle_ref, v.maker as vehicle_maker, v.model as vehicle_model';
@@ -585,6 +731,125 @@ table.vl-table tbody td.center { text-align: center; }
     .vl-page-btns { flex-wrap: wrap; justify-content: center; }
     .vl-page-btn { min-width: 30px; height: 30px; font-size: 12px; }
 }
+
+/* ── Import button ── */
+.vl-btn-import {
+    background: #3c4758 !important;
+    color: #fff !important;
+    border: none !important;
+}
+.vl-btn-import:hover {
+    background: #2a3346 !important;
+    color: #fff !important;
+    text-decoration: none !important;
+}
+
+/* ── Import Modal ── */
+.vl-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15,20,35,0.45);
+    backdrop-filter: blur(3px);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+.vl-modal-overlay.open { display: flex; }
+.vl-modal {
+    background: #fff;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 600px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+    font-family: 'DM Sans', sans-serif;
+    overflow: hidden;
+    animation: dlModalIn 0.18s ease;
+}
+@keyframes dlModalIn {
+    from { opacity:0; transform: translateY(-14px) scale(0.97); }
+    to   { opacity:1; transform: translateY(0)     scale(1);    }
+}
+.vl-modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 22px 16px;
+    border-bottom: 1px solid #eaecf5;
+    background: #f7f8fc;
+}
+.vl-modal-header-left { display: flex; align-items: center; gap: 11px; }
+.vl-modal-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: rgba(60,71,88,0.1);
+    display: flex; align-items: center; justify-content: center;
+    color: #3c4758; font-size: 16px; flex-shrink: 0;
+}
+.vl-modal-title { font-size: 15px; font-weight: 700; color: #1a1f2e; margin: 0; }
+.vl-modal-sub   { font-size: 12px; color: #9aa0b4; margin: 2px 0 0; }
+.vl-modal-close {
+    background: none; border: none; cursor: pointer;
+    color: #9aa0b4; font-size: 18px; padding: 4px;
+    border-radius: 6px; line-height: 1; transition: color 0.15s, background 0.15s;
+}
+.vl-modal-close:hover { color: #1a1f2e; background: #e8eaf0; }
+.vl-modal-body { padding: 22px; max-height: 65vh; overflow-y: auto; }
+
+.vl-import-notice {
+    background: #f0f4ff;
+    border: 1px solid #c7d4fb;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 12.5px;
+    color: #3c4758;
+    margin-bottom: 18px;
+    display: flex; align-items: flex-start; gap: 10px;
+}
+.vl-import-notice i { flex-shrink: 0; margin-top: 2px; color: #4a6cf7; }
+.vl-import-notice a { color: #4a6cf7; font-weight: 600; text-decoration: underline; }
+
+.vl-fields-table {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+    margin-bottom: 18px; border-radius: 8px; overflow: hidden;
+    border: 1px solid #e8eaf0;
+}
+.vl-fields-table thead tr { background: #f7f8fc; }
+.vl-fields-table th {
+    padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px; color: #8b92a9;
+    border-bottom: 1px solid #e8eaf0;
+}
+.vl-fields-table td { padding: 7px 12px; border-bottom: 1px solid #f2f3f8; color: #2d3748; vertical-align: top; }
+.vl-fields-table tr:last-child td { border-bottom: none; }
+.vl-fields-table tbody tr:nth-child(even) { background: #fafbfe; }
+.vl-col-name { font-family: 'DM Mono', monospace; font-size: 11px; color: #3c4758; font-weight: 500; }
+.vl-col-req  { color: #ef4444; font-weight: 700; font-size: 11px; text-align: center; }
+.vl-col-opt  { color: #9aa0b4; font-size: 11px; text-align: center; }
+
+.vl-fields-toggle {
+    font-size: 12px; color: #4a6cf7; font-weight: 600; cursor: pointer;
+    background: none; border: none; padding: 0; margin-bottom: 12px;
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: 'DM Sans', sans-serif;
+}
+.vl-fields-toggle:hover { text-decoration: underline; }
+
+.vl-dropzone {
+    border: 2px dashed #c8cddf; border-radius: 10px;
+    padding: 28px 20px; text-align: center; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    background: #fafbfe; position: relative;
+}
+.vl-dropzone:hover, .vl-dropzone.drag-over { border-color: #3c4758; background: #f2f4fa; }
+.vl-dropzone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.vl-dropzone-icon  { font-size: 28px; color: #9aa0b4; margin-bottom: 10px; }
+.vl-dropzone-text  { font-size: 13px; font-weight: 600; color: #3c4758; margin-bottom: 4px; }
+.vl-dropzone-sub   { font-size: 11.5px; color: #9aa0b4; }
+.vl-dropzone-file  { font-size: 12.5px; color: #1a7d4a; font-weight: 600; margin-top: 8px; display: none; }
+.vl-dropzone.has-file .vl-dropzone-icon { color: #22c55e; }
+.vl-dropzone.has-file .vl-dropzone-file { display: block; }
+.vl-dropzone.has-file .vl-dropzone-sub  { display: none; }
 </style>
 
 <div class="vl-wrap">
@@ -599,6 +864,11 @@ table.vl-table tbody td.center { text-align: center; }
         <a class="vl-btn vl-btn-secondary" href="<?php echo dol_buildpath('/flotte/driver_list.php', 1); ?>?action=export">
             <i class="fa fa-download"></i> <?php echo $langs->trans('Export'); ?>
         </a>
+        <?php } ?>
+        <?php if ($user->rights->flotte->write) { ?>
+        <button type="button" class="vl-btn vl-btn-import" onclick="dlOpenImport()">
+            <i class="fa fa-file-import"></i> <?php echo $langs->trans('Import'); ?>
+        </button>
         <?php } ?>
         <?php if ($user->rights->flotte->write) { ?>
         <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/driver_card.php', 1); ?>?action=create">
@@ -814,6 +1084,148 @@ table.vl-table tbody td.center { text-align: center; }
 </div>
 
 </form>
+
+<!-- ═══════════════════════════════════════════════════════
+     IMPORT MODAL
+═══════════════════════════════════════════════════════ -->
+<?php if ($user->rights->flotte->write) { ?>
+<div class="vl-modal-overlay" id="dl-import-modal" onclick="if(event.target===this)dlCloseImport()">
+  <div class="vl-modal">
+
+    <div class="vl-modal-header">
+      <div class="vl-modal-header-left">
+        <div class="vl-modal-icon"><i class="fa fa-file-import"></i></div>
+        <div>
+          <p class="vl-modal-title"><?php echo $langs->trans("ImportDrivers"); ?></p>
+          <p class="vl-modal-sub"><?php echo $langs->trans("ImportDriversSubtitle"); ?></p>
+        </div>
+      </div>
+      <button class="vl-modal-close" onclick="dlCloseImport()" title="<?php echo $langs->trans('Close'); ?>">&#x2715;</button>
+    </div>
+
+    <div class="vl-modal-body">
+
+      <div class="vl-import-notice">
+        <i class="fa fa-info-circle"></i>
+        <div>
+          <?php echo $langs->trans("ImportNoticeText"); ?>
+          <a href="<?php echo dol_buildpath('/flotte/driver_list.php', 1); ?>?action=download_template&token=<?php echo newToken(); ?>">
+            <i class="fa fa-download"></i> <?php echo $langs->trans("DownloadCSVTemplate"); ?>
+          </a>
+          <br><small style="color:#5a6482;font-size:11.5px;"><?php echo $langs->trans("ImportDriversNote"); ?></small>
+        </div>
+      </div>
+
+      <button type="button" class="vl-fields-toggle" onclick="dlToggleFields(this)">
+        <i class="fa fa-table"></i> <?php echo $langs->trans("ShowCSVColumns"); ?> <i class="fa fa-chevron-down" id="dl-fields-chevron"></i>
+      </button>
+      <div id="dl-fields-panel" style="display:none;margin-bottom:14px;">
+        <table class="vl-fields-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th><?php echo $langs->trans("ColumnName"); ?></th>
+              <th><?php echo $langs->trans("Description"); ?></th>
+              <th style="text-align:center;"><?php echo $langs->trans("Required"); ?></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td class="vl-col-name">firstname</td><td><?php echo $langs->trans("FirstName"); ?></td><td class="vl-col-req">✓</td></tr>
+            <tr><td>2</td><td class="vl-col-name">middlename</td><td><?php echo $langs->trans("MiddleName"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>3</td><td class="vl-col-name">lastname</td><td><?php echo $langs->trans("LastName"); ?></td><td class="vl-col-req">✓</td></tr>
+            <tr><td>4</td><td class="vl-col-name">email</td><td><?php echo $langs->trans("Email"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>5</td><td class="vl-col-name">phone</td><td><?php echo $langs->trans("Phone"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>6</td><td class="vl-col-name">employee_id</td><td><?php echo $langs->trans("EmployeeID"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>7</td><td class="vl-col-name">contract_number</td><td><?php echo $langs->trans("ContractNumber"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>8</td><td class="vl-col-name">license_number</td><td><?php echo $langs->trans("LicenseNumber"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>9</td><td class="vl-col-name">license_issue_date</td><td><?php echo $langs->trans("LicenseIssueDate"); ?> (YYYY-MM-DD)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>10</td><td class="vl-col-name">license_expiry_date</td><td><?php echo $langs->trans("LicenseExpiryDate"); ?> (YYYY-MM-DD)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>11</td><td class="vl-col-name">join_date</td><td><?php echo $langs->trans("JoinDate"); ?> (YYYY-MM-DD)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>12</td><td class="vl-col-name">leave_date</td><td><?php echo $langs->trans("LeaveDate"); ?> (YYYY-MM-DD)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>13</td><td class="vl-col-name">department</td><td><?php echo $langs->trans("Department"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>14</td><td class="vl-col-name">status</td><td>active / inactive / suspended</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>15</td><td class="vl-col-name">gender</td><td>male / female</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>16</td><td class="vl-col-name">address</td><td><?php echo $langs->trans("Address"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>17</td><td class="vl-col-name">emergency_contact</td><td><?php echo $langs->trans("EmergencyContact"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>18</td><td class="vl-col-name">vehicle_ref</td><td><?php echo $langs->trans("AssignedVehicle"); ?> (e.g. VEH-0001)</td><td class="vl-col-opt">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <form method="POST" action="<?php echo dol_buildpath('/flotte/driver_list.php', 1); ?>"
+            enctype="multipart/form-data" id="dl-import-form">
+        <input type="hidden" name="token"  value="<?php echo newToken(); ?>">
+        <input type="hidden" name="action" value="import_csv">
+
+        <div class="vl-dropzone" id="dl-dropzone">
+          <input type="file" name="import_file" id="dl-file-input" accept=".csv,text/csv"
+                 onchange="dlFileChosen(this)">
+          <div class="vl-dropzone-icon"><i class="fa fa-cloud-upload-alt"></i></div>
+          <div class="vl-dropzone-text"><?php echo $langs->trans("DropCSVHere"); ?></div>
+          <div class="vl-dropzone-sub"><?php echo $langs->trans("OnlyCSVAccepted"); ?></div>
+          <div class="vl-dropzone-file" id="dl-file-name"></div>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 0;border-top:1px solid #eaecf5;margin-top:18px;gap:10px;flex-wrap:wrap;">
+          <button type="button" class="vl-btn" style="background:#fff;color:#5a6482;border:1.5px solid #d1d5e0;" onclick="dlCloseImport()">
+            <i class="fa fa-times"></i> <?php echo $langs->trans("Cancel"); ?>
+          </button>
+          <button type="submit" class="vl-btn vl-btn-primary" id="dl-import-submit" disabled>
+            <i class="fa fa-check"></i> <?php echo $langs->trans("ImportNow"); ?>
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+<?php } ?>
+
+<script>
+function dlOpenImport()  { document.getElementById('dl-import-modal').classList.add('open'); }
+function dlCloseImport() {
+    document.getElementById('dl-import-modal').classList.remove('open');
+    document.getElementById('dl-import-form').reset();
+    var dz = document.getElementById('dl-dropzone');
+    if (dz) dz.classList.remove('has-file');
+    document.getElementById('dl-file-name').textContent = '';
+    document.getElementById('dl-import-submit').disabled = true;
+}
+function dlFileChosen(input) {
+    var dz  = document.getElementById('dl-dropzone');
+    var fn  = document.getElementById('dl-file-name');
+    var btn = document.getElementById('dl-import-submit');
+    if (input.files && input.files.length > 0) {
+        dz.classList.add('has-file');
+        fn.textContent = input.files[0].name;
+        btn.disabled = false;
+    } else {
+        dz.classList.remove('has-file');
+        fn.textContent = '';
+        btn.disabled = true;
+    }
+}
+function dlToggleFields(btn) {
+    var panel   = document.getElementById('dl-fields-panel');
+    var chevron = document.getElementById('dl-fields-chevron');
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        chevron.className = 'fa fa-chevron-up';
+    } else {
+        panel.style.display = 'none';
+        chevron.className = 'fa fa-chevron-down';
+    }
+}
+(function(){
+    var dz = document.getElementById('dl-dropzone');
+    if (!dz) return;
+    dz.addEventListener('dragover',  function(e){ e.preventDefault(); dz.classList.add('drag-over'); });
+    dz.addEventListener('dragleave', function(){ dz.classList.remove('drag-over'); });
+    dz.addEventListener('drop',      function(){ dz.classList.remove('drag-over'); });
+})();
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') dlCloseImport(); });
+</script>
+
 </div><?php
 if ($resql) { $db->free($resql); }
 llxFooter();

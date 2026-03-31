@@ -104,6 +104,18 @@ function getNextFuelRef($db, $entity) {
     return $prefix.str_pad($next_number, 4, '0', STR_PAD_LEFT);
 }
 
+// Helper: generate next expense ref (mirrors the one in expenses_list.php)
+if (!function_exists('getNextExpenseRef')) {
+    function getNextExpenseRef($db, $entity) {
+        $year = date('Y');
+        $sql  = "SELECT MAX(CAST(SUBSTRING(ref, 9) AS UNSIGNED)) AS mx FROM ".MAIN_DB_PREFIX."flotte_expense WHERE ref LIKE 'EXP-".$year."-%' AND entity = ".((int)$entity);
+        $res  = $db->query($sql);
+        $mx   = 0;
+        if ($res) { $obj = $db->fetch_object($res); $mx = (int)$obj->mx; }
+        return 'EXP-'.$year.'-'.str_pad($mx + 1, 4, '0', STR_PAD_LEFT);
+    }
+}
+
 // Get parameters
 $id = GETPOST('id', 'int');
 $action = GETPOST('action', 'aZ09') ? GETPOST('action', 'aZ09') : 'view';
@@ -251,6 +263,25 @@ if ($action == 'add') {
         $result = $db->query($sql);
         if ($result) {
             $id = $db->last_insert_id(MAIN_DB_PREFIX."flotte_fuel");
+
+            // ── Auto-create matching expense record ──────────────────────────
+            $exp_ref    = getNextExpenseRef($db, $conf->entity);
+            $exp_amount = round($qty_numeric * $cost_unit_numeric, 2);
+
+            $sql_exp  = "INSERT INTO ".MAIN_DB_PREFIX."flotte_expense ";
+            $sql_exp .= "(ref, entity, expense_date, category, amount, notes, ";
+            $sql_exp .= "fuel_qty, fuel_price, fuel_type, source, date_creation, fk_user_creat) VALUES (";
+            $sql_exp .= "'".$db->escape($exp_ref)."', ".(int)$conf->entity.", ";
+            $sql_exp .= "'".$db->escape($date)."', 'fuel', ".(float)$exp_amount.", ";
+            $sql_exp .= "'".$db->escape($note)."', ";
+            $sql_exp .= ($qty_numeric      > 0 ? (float)$qty_numeric      : "NULL").", ";
+            $sql_exp .= ($cost_unit_numeric > 0 ? (float)$cost_unit_numeric : "NULL").", ";
+            $sql_exp .= (!empty($fuel_source) ? "'".$db->escape($fuel_source)."'" : "NULL").", ";
+            $sql_exp .= "'fuel', NOW(), ".(int)$user->id.")";
+
+            $db->query($sql_exp); // best-effort — don't fail the fuel save if this errors
+            // ────────────────────────────────────────────────────────────────
+
             $db->commit();
             $action = 'view';
             setEventMessages($langs->trans("FuelRecordCreatedSuccessfully"), null, 'mesgs');

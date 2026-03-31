@@ -107,6 +107,136 @@ if ($action == 'confirm_delete' && $confirm == 'yes' && $user->rights->flotte->w
     }
 }
 
+// ── Helper: generate next part reference ─────────────────────────────────
+if (!function_exists('getNextPartRef')) {
+    function getNextPartRef($db, $entity) {
+        $prefix = "PART-";
+        $sql = "SELECT ref FROM ".MAIN_DB_PREFIX."flotte_part";
+        $sql .= " WHERE entity = ".(int)$entity;
+        $sql .= " AND ref LIKE '".$prefix."%'";
+        $sql .= " ORDER BY ref DESC LIMIT 1";
+        $resql = $db->query($sql);
+        if ($resql && $db->num_rows($resql) > 0) {
+            $obj = $db->fetch_object($resql);
+            $next_number = (int)str_replace($prefix, '', $obj->ref) + 1;
+        } else {
+            $next_number = 1;
+        }
+        return $prefix.str_pad($next_number, 4, '0', STR_PAD_LEFT);
+    }
+}
+
+// ── Download CSV template ─────────────────────────────────────────────────
+if ($action == 'download_template') {
+    $columns = array(
+        'title','number','barcode','manufacturer','model','year',
+        'status','availability','qty_on_hand','unit_cost','vendor_name','description','note'
+    );
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="parts_import_template.csv"');
+    $out = fopen('php://output', 'w');
+    fputcsv($out, $columns);
+    fputcsv($out, array('Air Filter','AF-1234','8901234567890','Bosch','Clio','2019','Active','1','10','12.50','Bosch Vendor','OEM air filter',''));
+    fclose($out);
+    exit;
+}
+
+// ── CSV Import ────────────────────────────────────────────────────────────
+if ($action == 'import_csv' && $user->rights->flotte->write) {
+    if (isset($_FILES['import_file']) && $_FILES['import_file']['error'] == 0) {
+        $ext = strtolower(pathinfo($_FILES['import_file']['name'], PATHINFO_EXTENSION));
+        if ($ext === 'csv') {
+            $handle = fopen($_FILES['import_file']['tmp_name'], 'r');
+            if ($handle) {
+                fgetcsv($handle); // skip header row
+                $imported      = 0;
+                $import_errors = array();
+                $row_num       = 1;
+
+                while (($row = fgetcsv($handle)) !== false) {
+                    $row_num++;
+                    if (count($row) < 1) continue;
+
+                    $title        = isset($row[0])  ? trim($row[0])  : '';
+                    $number       = isset($row[1])  ? trim($row[1])  : '';
+                    $barcode      = isset($row[2])  ? trim($row[2])  : '';
+                    $manufacturer = isset($row[3])  ? trim($row[3])  : '';
+                    $model        = isset($row[4])  ? trim($row[4])  : '';
+                    $year         = isset($row[5])  && $row[5] !== '' ? (int)trim($row[5]) : null;
+                    $status       = isset($row[6])  ? trim($row[6])  : 'Active';
+                    $availability = isset($row[7])  && $row[7] !== '' ? (int)trim($row[7]) : 1;
+                    $qty_on_hand  = isset($row[8])  && $row[8] !== '' ? (float)trim($row[8]) : 0;
+                    $unit_cost    = isset($row[9])  && $row[9] !== '' ? (float)trim($row[9]) : null;
+                    $vendor_name  = isset($row[10]) ? trim($row[10]) : '';
+                    $description  = isset($row[11]) ? trim($row[11]) : '';
+                    $note         = isset($row[12]) ? trim($row[12]) : '';
+
+                    if (empty($title)) {
+                        $import_errors[] = "Row $row_num: title is required.";
+                        continue;
+                    }
+
+                    // Validate status
+                    $valid_statuses = array('Active','Inactive','Maintenance','Discontinued');
+                    if (!in_array($status, $valid_statuses)) $status = 'Active';
+                    $availability = ($availability == 1) ? 1 : 0;
+
+                    // Resolve vendor FK by name
+                    $fk_vendor = null;
+                    if (!empty($vendor_name)) {
+                        $rq = $db->query("SELECT rowid FROM ".MAIN_DB_PREFIX."flotte_vendor WHERE name = '".$db->escape($vendor_name)."' AND entity IN (".getEntity('flotte').") LIMIT 1");
+                        if ($rq && $db->num_rows($rq) > 0) {
+                            $fk_vendor = (int)$db->fetch_object($rq)->rowid;
+                        }
+                    }
+
+                    $ref = getNextPartRef($db, $conf->entity);
+
+                    $db->begin();
+                    $sql_ins  = "INSERT INTO ".MAIN_DB_PREFIX."flotte_part ";
+                    $sql_ins .= "(ref, entity, title, number, barcode, manufacturer, model, year, ";
+                    $sql_ins .= "status, availability, qty_on_hand, unit_cost, fk_vendor, description, note) VALUES (";
+                    $sql_ins .= "'".$db->escape($ref)."', ".(int)$conf->entity.", ";
+                    $sql_ins .= "'".$db->escape($title)."', ";
+                    $sql_ins .= (!empty($number)       ? "'".$db->escape($number)."'"       : "NULL").", ";
+                    $sql_ins .= (!empty($barcode)      ? "'".$db->escape($barcode)."'"      : "NULL").", ";
+                    $sql_ins .= (!empty($manufacturer) ? "'".$db->escape($manufacturer)."'" : "NULL").", ";
+                    $sql_ins .= (!empty($model)        ? "'".$db->escape($model)."'"        : "NULL").", ";
+                    $sql_ins .= ($year !== null        ? (int)$year                         : "NULL").", ";
+                    $sql_ins .= "'".$db->escape($status)."', ";
+                    $sql_ins .= (int)$availability.", ";
+                    $sql_ins .= (float)$qty_on_hand.", ";
+                    $sql_ins .= ($unit_cost !== null   ? (float)$unit_cost                  : "NULL").", ";
+                    $sql_ins .= ($fk_vendor !== null   ? (int)$fk_vendor                    : "NULL").", ";
+                    $sql_ins .= "'".$db->escape($description)."', ";
+                    $sql_ins .= "'".$db->escape($note)."'";
+                    $sql_ins .= ")";
+
+                    if ($db->query($sql_ins)) {
+                        $db->commit();
+                        $imported++;
+                    } else {
+                        $db->rollback();
+                        $import_errors[] = "Row $row_num: DB error — ".$db->lasterror();
+                    }
+                }
+                fclose($handle);
+
+                if ($imported > 0) {
+                    setEventMessages($langs->trans("ImportSuccess", $imported), null, 'mesgs');
+                }
+                foreach ($import_errors as $ie) {
+                    setEventMessages($ie, null, 'warnings');
+                }
+            }
+        } else {
+            setEventMessages($langs->trans("ErrorOnlyCSVAccepted"), null, 'errors');
+        }
+    }
+    header('Location: '.dol_buildpath('/flotte/part_list.php', 1));
+    exit;
+}
+
 // Build and execute select
 $sql = 'SELECT t.rowid, t.ref, t.barcode, t.title, t.number, t.description, t.status, t.availability,';
 $sql .= ' t.fk_vendor, t.manufacturer, t.year, t.model, t.qty_on_hand, t.unit_cost, t.note, t.picture,';
@@ -588,6 +718,9 @@ table.vl-table tbody td.right  { text-align: right; }
         </a>
         <?php } ?>
         <?php if ($user->rights->flotte->write) { ?>
+        <button type="button" class="vl-btn vl-btn-secondary" onclick="plOpenImport()">
+            <i class="fa fa-file-import"></i> <?php echo $langs->trans("Import"); ?>
+        </button>
         <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/part_card.php', 1); ?>?action=create">
             <i class="fa fa-plus"></i> <?php echo $langs->trans("NewPart"); ?>
         </a>
@@ -851,6 +984,176 @@ table.vl-table tbody td.right  { text-align: right; }
 
 </form>
 </div><!-- .vl-wrap -->
+
+<?php if ($user->rights->flotte->write) { ?>
+<!-- ═══════════════════════════════════════════════════════
+     IMPORT MODAL
+═══════════════════════════════════════════════════════ -->
+<div class="vl-modal-overlay" id="pl-import-modal" onclick="if(event.target===this)plCloseImport()">
+  <div class="vl-modal">
+
+    <div class="vl-modal-header">
+      <div class="vl-modal-header-left">
+        <div class="vl-modal-icon"><i class="fa fa-file-import"></i></div>
+        <div>
+          <p class="vl-modal-title"><?php echo $langs->trans("ImportParts"); ?></p>
+          <p class="vl-modal-sub"><?php echo $langs->trans("ImportPartsSubtitle"); ?></p>
+        </div>
+      </div>
+      <button class="vl-modal-close" onclick="plCloseImport()" title="<?php echo $langs->trans('Close'); ?>">&#x2715;</button>
+    </div>
+
+    <div class="vl-modal-body">
+
+      <div class="vl-import-notice">
+        <i class="fa fa-info-circle"></i>
+        <div>
+          <?php echo $langs->trans("ImportNoticeText"); ?>
+          <a href="<?php echo dol_buildpath('/flotte/part_list.php', 1); ?>?action=download_template&token=<?php echo newToken(); ?>">
+            <i class="fa fa-download"></i> <?php echo $langs->trans("DownloadCSVTemplate"); ?>
+          </a>
+        </div>
+      </div>
+
+      <button type="button" class="vl-fields-toggle" onclick="plToggleFields(this)">
+        <i class="fa fa-table"></i> <?php echo $langs->trans("ShowCSVColumns"); ?> <i class="fa fa-chevron-down" id="pl-fields-chevron"></i>
+      </button>
+      <div id="pl-fields-panel" style="display:none;margin-bottom:14px;">
+        <table class="vl-fields-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th><?php echo $langs->trans("ColumnName"); ?></th>
+              <th><?php echo $langs->trans("Description"); ?></th>
+              <th style="text-align:center;"><?php echo $langs->trans("Required"); ?></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td class="vl-col-name">title</td><td><?php echo $langs->trans("PartTitle"); ?></td><td style="text-align:center;color:#e53e3e;font-weight:700;">✓</td></tr>
+            <tr><td>2</td><td class="vl-col-name">number</td><td><?php echo $langs->trans("PartNumber"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>3</td><td class="vl-col-name">barcode</td><td><?php echo $langs->trans("Barcode"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>4</td><td class="vl-col-name">manufacturer</td><td><?php echo $langs->trans("Manufacturer"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>5</td><td class="vl-col-name">model</td><td><?php echo $langs->trans("Model"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>6</td><td class="vl-col-name">year</td><td><?php echo $langs->trans("Year"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>7</td><td class="vl-col-name">status</td><td>Active / Inactive / Maintenance / Discontinued</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>8</td><td class="vl-col-name">availability</td><td>1 = <?php echo $langs->trans("Available"); ?>, 0 = <?php echo $langs->trans("NotAvailable"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>9</td><td class="vl-col-name">qty_on_hand</td><td><?php echo $langs->trans("Stock"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>10</td><td class="vl-col-name">unit_cost</td><td><?php echo $langs->trans("UnitCost"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>11</td><td class="vl-col-name">vendor_name</td><td><?php echo $langs->trans("Vendor"); ?> (exact name)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>12</td><td class="vl-col-name">description</td><td><?php echo $langs->trans("Description"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>13</td><td class="vl-col-name">note</td><td><?php echo $langs->trans("Notes"); ?></td><td class="vl-col-opt">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <form method="POST" action="<?php echo dol_buildpath('/flotte/part_list.php', 1); ?>"
+            enctype="multipart/form-data" id="pl-import-form">
+        <input type="hidden" name="token"  value="<?php echo newToken(); ?>">
+        <input type="hidden" name="action" value="import_csv">
+
+        <div class="vl-dropzone" id="pl-dropzone">
+          <input type="file" name="import_file" id="pl-file-input" accept=".csv,text/csv"
+                 onchange="plFileChosen(this)">
+          <div class="vl-dropzone-icon"><i class="fa fa-cloud-upload-alt"></i></div>
+          <div class="vl-dropzone-text"><?php echo $langs->trans("DropCSVHere"); ?></div>
+          <div class="vl-dropzone-sub"><?php echo $langs->trans("OnlyCSVAccepted"); ?></div>
+          <div class="vl-dropzone-file" id="pl-file-name"></div>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 0;border-top:1px solid #eaecf5;margin-top:18px;gap:10px;flex-wrap:wrap;">
+          <button type="button" class="vl-btn" style="background:#fff;color:#5a6482;border:1.5px solid #d1d5e0;" onclick="plCloseImport()">
+            <i class="fa fa-times"></i> <?php echo $langs->trans("Cancel"); ?>
+          </button>
+          <button type="submit" class="vl-btn vl-btn-primary" id="pl-import-submit" disabled>
+            <i class="fa fa-check"></i> <?php echo $langs->trans("ImportNow"); ?>
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<style>
+.vl-modal-overlay { display:none;position:fixed;inset:0;z-index:10000;background:rgba(15,20,40,0.45);backdrop-filter:blur(3px);align-items:center;justify-content:center; }
+.vl-modal-overlay.open { display:flex; }
+.vl-modal { background:#fff;border-radius:16px;width:100%;max-width:600px;box-shadow:0 24px 64px rgba(0,0,0,0.18);overflow:hidden;max-height:92vh;display:flex;flex-direction:column; }
+.vl-modal-header { display:flex;align-items:center;justify-content:space-between;padding:22px 24px 18px;border-bottom:1px solid #eaecf5;flex-shrink:0; }
+.vl-modal-header-left { display:flex;align-items:center;gap:14px; }
+.vl-modal-icon { width:42px;height:42px;background:rgba(60,71,88,0.1);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#3c4758;font-size:18px;flex-shrink:0; }
+.vl-modal-title { font-size:16px;font-weight:700;color:#1a1f2e;margin:0 0 2px; }
+.vl-modal-sub { font-size:12.5px;color:#7c859c;margin:0; }
+.vl-modal-close { background:none;border:none;font-size:18px;color:#9aa0b4;cursor:pointer;padding:4px 8px;border-radius:6px;line-height:1;transition:all 0.15s; }
+.vl-modal-close:hover { background:#f0f2fa;color:#3c4758; }
+.vl-modal-body { padding:22px 24px 24px;overflow-y:auto; }
+.vl-import-notice { display:flex;gap:12px;background:#f0f6ff;border:1px solid #c3d9ff;border-radius:10px;padding:14px 16px;margin-bottom:18px;font-size:13px;color:#2d4a8a;line-height:1.5; }
+.vl-import-notice i { color:#3c7de0;font-size:16px;margin-top:1px;flex-shrink:0; }
+.vl-import-notice a { color:#3c7de0;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;gap:5px;margin-left:4px; }
+.vl-import-notice a:hover { text-decoration:underline; }
+.vl-fields-toggle { display:inline-flex;align-items:center;gap:7px;padding:8px 14px;background:#f7f8fc;border:1.5px solid #e2e5f0;border-radius:8px;font-size:12.5px;font-weight:600;color:#5a6482;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all 0.15s;margin-bottom:12px; }
+.vl-fields-toggle:hover { background:#eef0f8;border-color:#c8cce0; }
+.vl-fields-table { width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:4px; }
+.vl-fields-table th { background:#f7f8fc;padding:8px 10px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#8b92a9;border-bottom:1px solid #e8eaf0; }
+.vl-fields-table td { padding:8px 10px;border-bottom:1px solid #f0f2f8;color:#2d3748; }
+.vl-fields-table tr:last-child td { border-bottom:none; }
+.vl-col-name { font-family:'DM Mono',monospace;font-size:12px;color:#3c4758;font-weight:600; }
+.vl-col-opt  { text-align:center;color:#9aa0b4; }
+.vl-dropzone { position:relative;border:2px dashed #d1d5e0;border-radius:12px;padding:36px 24px;text-align:center;cursor:pointer;transition:all 0.2s;background:#fafbfe; }
+.vl-dropzone:hover,.vl-dropzone.drag-over { border-color:#3c4758;background:#f5f6fb; }
+.vl-dropzone.has-file { border-color:#1a7d4a;background:#f0fdf4; }
+.vl-dropzone input[type="file"] { position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%; }
+.vl-dropzone-icon { font-size:32px;color:#c4c9d8;margin-bottom:10px; }
+.vl-dropzone.has-file .vl-dropzone-icon { color:#1a7d4a; }
+.vl-dropzone-text { font-size:14px;font-weight:600;color:#3c4758;margin-bottom:4px; }
+.vl-dropzone-sub  { font-size:12px;color:#9aa0b4; }
+.vl-dropzone-file { font-size:13px;font-weight:600;color:#1a7d4a;margin-top:8px; }
+</style>
+
+<script>
+function plOpenImport()  { document.getElementById('pl-import-modal').classList.add('open'); }
+function plCloseImport() {
+    document.getElementById('pl-import-modal').classList.remove('open');
+    document.getElementById('pl-import-form').reset();
+    var dz = document.getElementById('pl-dropzone');
+    if (dz) dz.classList.remove('has-file');
+    document.getElementById('pl-file-name').textContent = '';
+    document.getElementById('pl-import-submit').disabled = true;
+}
+function plFileChosen(input) {
+    var dz  = document.getElementById('pl-dropzone');
+    var fn  = document.getElementById('pl-file-name');
+    var btn = document.getElementById('pl-import-submit');
+    if (input.files && input.files.length > 0) {
+        dz.classList.add('has-file');
+        fn.textContent = input.files[0].name;
+        btn.disabled = false;
+    } else {
+        dz.classList.remove('has-file');
+        fn.textContent = '';
+        btn.disabled = true;
+    }
+}
+function plToggleFields(btn) {
+    var panel   = document.getElementById('pl-fields-panel');
+    var chevron = document.getElementById('pl-fields-chevron');
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        chevron.className = 'fa fa-chevron-up';
+    } else {
+        panel.style.display = 'none';
+        chevron.className = 'fa fa-chevron-down';
+    }
+}
+(function(){
+    var dz = document.getElementById('pl-dropzone');
+    if (!dz) return;
+    dz.addEventListener('dragover',  function(e){ e.preventDefault(); dz.classList.add('drag-over'); });
+    dz.addEventListener('dragleave', function(){ dz.classList.remove('drag-over'); });
+    dz.addEventListener('drop',      function(){ dz.classList.remove('drag-over'); });
+})();
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') plCloseImport(); });
+</script>
+<?php } ?>
 
 <?php
 if ($resql) { $db->free($resql); }

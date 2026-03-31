@@ -71,12 +71,12 @@ class modFlotte extends DolibarrModules
 		$this->descriptionlong = "FlotteDescription";
 
 		// Author
-		$this->editor_name = 'company';
-		$this->editor_url = '';		// Must be an external online web site
+		$this->editor_name = 'Optimalogistic';
+		$this->editor_url = 'https://www.optimalogistic.com';		// Must be an external online web site
 		$this->editor_squarred_logo = '';					// Must be image filename into the module/img directory followed with @modulename. Example: 'myimage.png@flotte'
 
 		// Possible values for version are: 'development', 'experimental', 'dolibarr', 'dolibarr_deprecated', 'experimental_deprecated' or a version string like 'x.y.z'
-		$this->version = '1.0';
+		$this->version = '1.0.9';
 		// Url to the file with your last numberversion of this module
 		//$this->url_last_version = 'http://www.example.com/versionmodule.txt';
 
@@ -615,6 +615,70 @@ class modFlotte extends DolibarrModules
 		$r++;
 	}
 
+
+
+	/**
+	 * Return long description of module (HTML)
+	 *
+	 * @return string HTML description
+	 */
+	public function getDescLong()
+	{
+		$logo = 'data:image/jpeg;base64,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';
+
+		$html = '<div style="font-family:Arial,sans-serif;max-width:700px;padding:10px;">';
+
+		// Logo
+		$html .= '<div style="text-align:center;margin-bottom:20px;">';
+		$html .= '<img src="'.$logo.'" alt="Optimalogistic" style="max-width:200px;" />';
+		$html .= '</div>';
+
+		// Title
+		$html .= '<h2 style="color:#6B2FA0;">Flotte — Fleet Management Module</h2>';
+
+		// About
+		$html .= '<h3 style="color:#E05C00;">About</h3>';
+		$html .= '<p>The <strong>Flotte</strong> module is a comprehensive <strong>fleet management system</strong> developed by <strong>Optimalogistic</strong> for Dolibarr ERP. ';
+		$html .= 'It is designed to help businesses efficiently manage their vehicle fleets, from day-to-day operations to long-term maintenance planning.</p>';
+
+		// Purpose
+		$html .= '<h3 style="color:#E05C00;">Purpose</h3>';
+		$html .= '<p>Flotte centralises all fleet-related data in one place, giving your team full visibility and control over:</p>';
+		$html .= '<ul>';
+		$html .= '<li><strong>Vehicle management</strong> — track all vehicles, their status, mileage, and ownership details.</li>';
+		$html .= '<li><strong>Driver management</strong> — assign drivers to vehicles and monitor their records.</li>';
+		$html .= '<li><strong>Fuel tracking</strong> — log fuel consumption and costs per vehicle.</li>';
+		$html .= '<li><strong>Maintenance &amp; work orders</strong> — schedule and track repair and maintenance tasks.</li>';
+		$html .= '<li><strong>Inspections</strong> — perform and record periodic vehicle inspections.</li>';
+		$html .= '<li><strong>Bookings</strong> — manage vehicle reservations and assignments.</li>';
+		$html .= '<li><strong>Monitoring &amp; reporting</strong> — real-time tracking, performance reports, and automated notifications.</li>';
+		$html .= '</ul>';
+
+		// Installation
+		$html .= '<h3 style="color:#E05C00;">Installation</h3>';
+		$html .= '<ol>';
+		$html .= '<li>Download the module ZIP file <strong>module_flotte-x.x.x.zip</strong>.</li>';
+		$html .= '<li>Log in to your Dolibarr administration panel.</li>';
+		$html .= '<li>Go to <strong>Setup → Modules/Applications → Deploy/install external app or module</strong>.</li>';
+		$html .= '<li>Upload the ZIP file and click <strong>Install</strong>.</li>';
+		$html .= '<li>Once installed, go to <strong>Setup → Modules/Applications</strong>, find <em>Flotte</em> and enable it.</li>';
+		$html .= '<li>Configure the module under <strong>Flotte → Admin → Setup</strong>.</li>';
+		$html .= '</ol>';
+
+		// Contact
+		$html .= '<h3 style="color:#E05C00;">Contact &amp; Support</h3>';
+		$html .= '<table style="border-collapse:collapse;">';
+		$html .= '<tr><td style="padding:4px 10px 4px 0;"><strong>Developer</strong></td><td>Optimalogistic</td></tr>';
+		$html .= '<tr><td style="padding:4px 10px 4px 0;"><strong>Tel / WhatsApp</strong></td><td><a href="tel:+21628716111">+216 28 716 111</a></td></tr>';
+		$html .= '<tr><td style="padding:4px 10px 4px 0;"><strong>Tel / WhatsApp</strong></td><td><a href="tel:+21628716111">+216 28 812 236</a></td></tr>';
+		$html .= '<tr><td style="padding:4px 10px 4px 0;"><strong>Email</strong></td><td><a href="mailto:info@optimalogistic.com">info@optimalogistic.com</a></td></tr>';
+		$html .= '<tr><td style="padding:4px 10px 4px 0;"><strong>Website</strong></td><td><a href="https://www.optimalogistic.com" target="_blank">www.optimalogistic.com</a></td></tr>';
+		$html .= '</table>';
+
+		$html .= '</div>';
+
+		return $html;
+	}
 
 
 	/**

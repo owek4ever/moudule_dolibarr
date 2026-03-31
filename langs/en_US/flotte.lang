@@ -59,3 +59,81 @@ NoDataAvailable = No data available for this period
 #
 MyWidget = My widget
 MyWidgetDescription = My widget description
+
+#
+# Setup page — General Settings
+#
+GeneralSettings = General Settings
+FLOTTE_FLEET_MANAGER_NAME = Fleet Manager Name
+FlotteFleetManagerNamePlaceholder = e.g. John Smith
+FLOTTE_MILEAGE_UNIT = Mileage Unit
+FlotteMileageKm = Kilometres (km)
+FlotteMileageMiles = Miles (mi)
+FLOTTE_DEFAULT_CURRENCY = Default Currency
+
+#
+# Setup page — Vehicle Settings
+#
+VehicleSettings = Vehicle Settings
+FLOTTE_LOW_FUEL_THRESHOLD = Low Fuel Alert Threshold (%)
+FlotteLowFuelThresholdHelp = Send an alert when a vehicle's fuel level falls below this percentage.
+FLOTTE_FUEL_TYPES = Available Fuel Types
+FlotteFuelTypesHelp = Select all fuel types used in your fleet.
+FlotteFuelDiesel = Diesel
+FlotteFuelPetrol = Petrol / Gasoline
+FlotteFuelElectric = Electric
+FlotteFuelLPG = LPG / Gas
+FlotteFuelHybrid = Hybrid
+
+#
+# Setup page — Maintenance Settings
+#
+MaintenanceSettings = Maintenance Settings
+FLOTTE_MAINTENANCE_INTERVAL_KM = Default Maintenance Interval (km)
+FlotteMaintenanceIntervalHelp = Distance in km after which a maintenance service is recommended.
+FLOTTE_MAINTENANCE_ALERT_DAYS = Alert Days Before Maintenance Due
+FlotteMaintenanceAlertDaysHelp = Number of days before a scheduled maintenance to trigger an alert.
+FLOTTE_DEFAULT_LABOR_COST = Default Labor Cost per Hour
+
+#
+# Setup page — Fuel Tracking
+#
+FuelTrackingSettings = Fuel Tracking
+FLOTTE_DEFAULT_FUEL_PRICE = Default Fuel Price per Litre
+FLOTTE_HIGH_CONSUMPTION_ALERT = High Consumption Alert (L/100km)
+FlotteHighConsumptionHelp = Trigger an alert when a vehicle's fuel consumption exceeds this threshold.
+
+#
+# Setup page — Booking Settings
+#
+BookingSettings = Booking Settings
+FLOTTE_ALLOW_OVERLAPPING_BOOKINGS = Allow Overlapping Bookings
+FLOTTE_REQUIRE_BOOKING_APPROVAL = Require Approval Before Confirming
+FLOTTE_MAX_BOOKING_DAYS = Maximum Booking Duration (days)
+FLOTTE_DEFAULT_BOOKING_STATUS = Default Booking Status
+FlotteStatusPending = Pending
+FlotteStatusConfirmed = Confirmed
+
+#
+# Setup page — Inspection Settings
+#
+InspectionSettings = Inspection Settings
+FLOTTE_INSPECTION_FREQUENCY_DAYS = Inspection Frequency (days)
+FlotteInspectionFrequencyHelp = How often (in days) each vehicle should be inspected.
+FLOTTE_INSPECTION_ALERT_DAYS = Alert Days Before Inspection Due
+
+#
+# Setup page — Notification Settings
+#
+NotificationSettings = Notification Settings
+FLOTTE_ENABLE_EMAIL_NOTIFICATIONS = Enable Email Notifications
+FLOTTE_NOTIFICATION_EMAIL = Notification Recipient Email
+
+#
+# Setup page — Documents & Compliance
+#
+DocumentSettings = Documents & Compliance
+FLOTTE_TRACK_INSURANCE_EXPIRY = Track Insurance Expiry
+FLOTTE_TRACK_REGISTRATION_EXPIRY = Track Vehicle Registration Expiry
+FLOTTE_DOCUMENT_ALERT_DAYS = Alert Days Before Document Expiry
+FlotteDocumentAlertDaysHelp = Number of days before a document expiry date to send an alert.

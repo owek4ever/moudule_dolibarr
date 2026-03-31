@@ -104,6 +104,142 @@ if ($action == 'confirm_delete' && GETPOST('confirm', 'alpha') == 'yes') {
     $action = 'list';
 }
 
+// ── Helper: generate next vehicle reference ───────────────────────────────
+if (!function_exists('getNextVehicleRef')) {
+    function getNextVehicleRef($db, $entity) {
+        $prefix = "VEH-";
+        $sql = "SELECT ref FROM ".MAIN_DB_PREFIX."flotte_vehicle";
+        $sql .= " WHERE entity = ".(int)$entity;
+        $sql .= " AND ref LIKE '".$prefix."%'";
+        $sql .= " ORDER BY ref DESC LIMIT 1";
+        $resql = $db->query($sql);
+        if ($resql && $db->num_rows($resql) > 0) {
+            $obj = $db->fetch_object($resql);
+            $next_number = (int)str_replace($prefix, '', $obj->ref) + 1;
+        } else {
+            $next_number = 1;
+        }
+        return $prefix.str_pad($next_number, 4, '0', STR_PAD_LEFT);
+    }
+}
+
+// ── Download CSV template ──────────────────────────────────────────────────
+if ($action == 'download_template') {
+    $columns = array(
+        'maker','model','type','year','license_plate','vin','color',
+        'initial_mileage','in_service','department','engine_type','horsepower',
+        'registration_expiry','license_expiry','insurance_expiry',
+        'length_cm','width_cm','height_cm','max_weight_kg','ground_height_cm'
+    );
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="vehicles_import_template.csv"');
+    $out = fopen('php://output', 'w');
+    fputcsv($out, $columns);
+    // One example row
+    fputcsv($out, array('Toyota','Corolla','Sedan','2022','123 TUN 456','1HGBH41JXMN109186','White','15000','1','Logistics','Gasoline','120',date('Y-m-d', strtotime('+1 year')),date('Y-m-d', strtotime('+2 year')),date('Y-m-d', strtotime('+1 year')),'450','175','145','1500','15'));
+    fclose($out);
+    exit;
+}
+
+// ── CSV Import ────────────────────────────────────────────────────────────
+if ($action == 'import_csv' && $user->rights->flotte->write) {
+    if (isset($_FILES['import_file']) && $_FILES['import_file']['error'] == 0) {
+        // Only accept CSV / plain text
+        $allowed_mime = array('text/csv','text/plain','application/csv','application/vnd.ms-excel');
+        $ext = strtolower(pathinfo($_FILES['import_file']['name'], PATHINFO_EXTENSION));
+        if ($ext === 'csv') {
+            $handle = fopen($_FILES['import_file']['tmp_name'], 'r');
+            if ($handle) {
+                fgetcsv($handle); // skip header row
+                $imported    = 0;
+                $import_errors = array();
+                $row_num     = 1;
+
+                while (($row = fgetcsv($handle)) !== false) {
+                    $row_num++;
+                    if (count($row) < 2) continue;
+
+                    $maker             = isset($row[0])  ? trim($row[0])       : '';
+                    $model             = isset($row[1])  ? trim($row[1])       : '';
+                    $type              = isset($row[2])  ? trim($row[2])       : '';
+                    $year              = isset($row[3])  && $row[3] !== '' ? (int)trim($row[3])  : null;
+                    $license_plate     = isset($row[4])  ? trim($row[4])       : '';
+                    $vin               = isset($row[5])  ? trim($row[5])       : '';
+                    $color             = isset($row[6])  ? trim($row[6])       : '';
+                    $initial_mileage   = isset($row[7])  && $row[7] !== '' ? (int)trim($row[7])  : null;
+                    $in_service        = isset($row[8])  && $row[8] !== '' ? (int)trim($row[8])  : 1;
+                    $department        = isset($row[9])  ? trim($row[9])       : '';
+                    $engine_type       = isset($row[10]) ? trim($row[10])      : '';
+                    $horsepower        = isset($row[11]) ? trim($row[11])      : '';
+                    $registration_expiry = isset($row[12]) ? trim($row[12])   : '';
+                    $license_expiry    = isset($row[13]) ? trim($row[13])      : '';
+                    $insurance_expiry  = isset($row[14]) ? trim($row[14])      : '';
+                    $length_cm         = isset($row[15]) ? trim($row[15])      : '';
+                    $width_cm          = isset($row[16]) ? trim($row[16])      : '';
+                    $height_cm         = isset($row[17]) ? trim($row[17])      : '';
+                    $max_weight_kg     = isset($row[18]) ? trim($row[18])      : '';
+                    $ground_height_cm  = isset($row[19]) ? trim($row[19])      : '';
+
+                    // Auto-generate unique reference
+                    $ref = getNextVehicleRef($db, $conf->entity);
+
+                    // Convert dates
+                    $reg_ts = (!empty($registration_expiry)) ? dol_stringtotime($registration_expiry) : 0;
+                    $lic_ts = (!empty($license_expiry))      ? dol_stringtotime($license_expiry)       : 0;
+                    $ins_ts = (!empty($insurance_expiry))    ? dol_stringtotime($insurance_expiry)     : 0;
+
+                    $db->begin();
+                    $sql_i  = "INSERT INTO ".MAIN_DB_PREFIX."flotte_vehicle (";
+                    $sql_i .= "ref, entity, maker, model, type, year, initial_mileage, registration_expiry, in_service, department, ";
+                    $sql_i .= "engine_type, horsepower, color, vin, license_plate, license_expiry, ";
+                    $sql_i .= "length_cm, width_cm, height_cm, max_weight_kg, ground_height_cm, insurance_expiry, fk_user_author";
+                    $sql_i .= ") VALUES (";
+                    $sql_i .= "'".$db->escape($ref)."', ".getEntity('flotte').", '".$db->escape($maker)."', '".$db->escape($model)."', ";
+                    $sql_i .= "'".$db->escape($type)."', ".($year   !== null ? $year           : "NULL").", ";
+                    $sql_i .= ($initial_mileage !== null ? $initial_mileage : "NULL").", ";
+                    $sql_i .= ($reg_ts > 0 ? "'".$db->idate($reg_ts)."'" : "NULL").", ";
+                    $sql_i .= (int)$in_service.", '".$db->escape($department)."', '".$db->escape($engine_type)."', ";
+                    $sql_i .= "'".$db->escape($horsepower)."', '".$db->escape($color)."', '".$db->escape($vin)."', ";
+                    $sql_i .= "'".$db->escape($license_plate)."', ";
+                    $sql_i .= ($lic_ts > 0 ? "'".$db->idate($lic_ts)."'" : "NULL").", ";
+                    $sql_i .= ($length_cm        !== '' ? "'".$db->escape($length_cm)."'"       : "NULL").", ";
+                    $sql_i .= ($width_cm         !== '' ? "'".$db->escape($width_cm)."'"        : "NULL").", ";
+                    $sql_i .= ($height_cm        !== '' ? "'".$db->escape($height_cm)."'"       : "NULL").", ";
+                    $sql_i .= ($max_weight_kg    !== '' ? "'".$db->escape($max_weight_kg)."'"   : "NULL").", ";
+                    $sql_i .= ($ground_height_cm !== '' ? "'".$db->escape($ground_height_cm)."'": "NULL").", ";
+                    $sql_i .= ($ins_ts > 0 ? "'".$db->idate($ins_ts)."'" : "NULL").", ";
+                    $sql_i .= $user->id.")";
+
+                    $resql_i = $db->query($sql_i);
+                    if ($resql_i) {
+                        $db->commit();
+                        $imported++;
+                    } else {
+                        $db->rollback();
+                        $import_errors[] = $langs->trans("Row").' '.$row_num.': '.$db->lasterror();
+                    }
+                }
+                fclose($handle);
+
+                if ($imported > 0) {
+                    setEventMessages(sprintf($langs->trans("ImportedVehiclesCount"), $imported), null, 'mesgs');
+                }
+                if (!empty($import_errors)) {
+                    foreach ($import_errors as $ie) {
+                        setEventMessages($ie, null, 'errors');
+                    }
+                }
+            }
+        } else {
+            setEventMessages($langs->trans("ErrorOnlyCSVAllowed"), null, 'errors');
+        }
+    } else {
+        setEventMessages($langs->trans("ErrorNoFileUploaded"), null, 'errors');
+    }
+    header('Location: '.$_SERVER['PHP_SELF']);
+    exit;
+}
+
 // Build and execute select
 $sql = 'SELECT t.rowid, t.ref, t.maker, t.model, t.type, t.year, t.license_plate, t.color, t.vin, t.in_service, t.initial_mileage, t.registration_expiry, t.license_expiry';
 $sql .= ' FROM '.MAIN_DB_PREFIX.'flotte_vehicle as t';
@@ -828,6 +964,168 @@ table.vl-table tbody td.right  { text-align: right; }
         max-width: 160px;
     }
 }
+
+/* ── Import button ── */
+.vl-btn-import {
+    background: #3c4758 !important;
+    color: #fff !important;
+    border: none !important;
+}
+.vl-btn-import:hover {
+    background: #2a3346 !important;
+    color: #fff !important;
+    text-decoration: none !important;
+}
+
+/* ── Import Modal ── */
+.vl-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15,20,35,0.45);
+    backdrop-filter: blur(3px);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+.vl-modal-overlay.open { display: flex; }
+.vl-modal {
+    background: #fff;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 580px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+    font-family: 'DM Sans', sans-serif;
+    overflow: hidden;
+    animation: vlModalIn 0.18s ease;
+}
+@keyframes vlModalIn {
+    from { opacity:0; transform: translateY(-14px) scale(0.97); }
+    to   { opacity:1; transform: translateY(0)     scale(1);    }
+}
+.vl-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 22px 16px;
+    border-bottom: 1px solid #eaecf5;
+    background: #f7f8fc;
+}
+.vl-modal-header-left { display: flex; align-items: center; gap: 11px; }
+.vl-modal-icon {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: rgba(60,71,88,0.1);
+    display: flex; align-items: center; justify-content: center;
+    color: #3c4758; font-size: 16px; flex-shrink: 0;
+}
+.vl-modal-title { font-size: 15px; font-weight: 700; color: #1a1f2e; margin: 0; }
+.vl-modal-sub   { font-size: 12px; color: #9aa0b4; margin: 2px 0 0; }
+.vl-modal-close {
+    background: none; border: none; cursor: pointer;
+    color: #9aa0b4; font-size: 18px; padding: 4px;
+    border-radius: 6px; line-height: 1; transition: color 0.15s, background 0.15s;
+}
+.vl-modal-close:hover { color: #1a1f2e; background: #e8eaf0; }
+.vl-modal-body  { padding: 22px; max-height: 65vh; overflow-y: auto; }
+.vl-modal-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 22px;
+    border-top: 1px solid #eaecf5;
+    gap: 10px; flex-wrap: wrap;
+}
+
+/* Template download notice */
+.vl-import-notice {
+    background: #f0f4ff;
+    border: 1px solid #c7d4fb;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 12.5px;
+    color: #3c4758;
+    margin-bottom: 18px;
+    display: flex; align-items: flex-start; gap: 10px;
+}
+.vl-import-notice i { flex-shrink: 0; margin-top: 2px; color: #4a6cf7; }
+.vl-import-notice a { color: #4a6cf7; font-weight: 600; text-decoration: underline; }
+
+/* Fields info table */
+.vl-fields-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-bottom: 18px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #e8eaf0;
+}
+.vl-fields-table thead tr {
+    background: #f7f8fc;
+}
+.vl-fields-table th {
+    padding: 8px 12px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #8b92a9;
+    border-bottom: 1px solid #e8eaf0;
+}
+.vl-fields-table td {
+    padding: 7px 12px;
+    border-bottom: 1px solid #f2f3f8;
+    color: #2d3748;
+    vertical-align: top;
+}
+.vl-fields-table tr:last-child td { border-bottom: none; }
+.vl-fields-table tbody tr:nth-child(even) { background: #fafbfe; }
+.vl-col-name { font-family: 'DM Mono', monospace; font-size: 11px; color: #3c4758; font-weight: 500; }
+.vl-col-req  { color: #ef4444; font-weight: 700; font-size: 11px; text-align: center; }
+.vl-col-opt  { color: #9aa0b4; font-size: 11px; text-align: center; }
+
+/* Fields toggle */
+.vl-fields-toggle {
+    font-size: 12px;
+    color: #4a6cf7;
+    font-weight: 600;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    margin-bottom: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'DM Sans', sans-serif;
+}
+.vl-fields-toggle:hover { text-decoration: underline; }
+
+/* Drop zone */
+.vl-dropzone {
+    border: 2px dashed #c8cddf;
+    border-radius: 10px;
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    background: #fafbfe;
+    position: relative;
+}
+.vl-dropzone:hover, .vl-dropzone.drag-over {
+    border-color: #3c4758;
+    background: #f2f4fa;
+}
+.vl-dropzone input[type=file] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.vl-dropzone-icon { font-size: 28px; color: #9aa0b4; margin-bottom: 10px; }
+.vl-dropzone-text { font-size: 13px; font-weight: 600; color: #3c4758; margin-bottom: 4px; }
+.vl-dropzone-sub  { font-size: 11.5px; color: #9aa0b4; }
+.vl-dropzone-file { font-size: 12.5px; color: #1a7d4a; font-weight: 600; margin-top: 8px; display: none; }
+.vl-dropzone.has-file .vl-dropzone-icon { color: #22c55e; }
+.vl-dropzone.has-file .vl-dropzone-file { display: block; }
+.vl-dropzone.has-file .vl-dropzone-sub  { display: none; }
 </style>
 
 <div class="vl-wrap">
@@ -843,6 +1141,11 @@ table.vl-table tbody td.right  { text-align: right; }
         <a class="vl-btn vl-btn-secondary" href="<?php echo dol_buildpath('/flotte/vehicle_list.php', 1); ?>?action=export">
             <i class="fa fa-download"></i> <?php echo $langs->trans("Export"); ?>
         </a>
+        <?php } ?>
+        <?php if ($user->rights->flotte->write) { ?>
+        <button type="button" class="vl-btn vl-btn-import" onclick="vlOpenImport()">
+            <i class="fa fa-file-import"></i> <?php echo $langs->trans("Import"); ?>
+        </button>
         <?php } ?>
         <?php if ($user->rights->flotte->write) { ?>
         <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/vehicle_card.php', 1); ?>?action=create">
@@ -1058,6 +1361,160 @@ foreach ($rows as $r) { if ($r->in_service) $total_in++; else $total_out++; }
 </div>
 
 </form>
+
+<!-- ═══════════════════════════════════════════════════════
+     IMPORT MODAL
+═══════════════════════════════════════════════════════ -->
+<?php if ($user->rights->flotte->write) { ?>
+<div class="vl-modal-overlay" id="vl-import-modal" onclick="if(event.target===this)vlCloseImport()">
+  <div class="vl-modal">
+
+    <!-- Header -->
+    <div class="vl-modal-header">
+      <div class="vl-modal-header-left">
+        <div class="vl-modal-icon"><i class="fa fa-file-import"></i></div>
+        <div>
+          <p class="vl-modal-title"><?php echo $langs->trans("ImportVehicles"); ?></p>
+          <p class="vl-modal-sub"><?php echo $langs->trans("ImportVehiclesSubtitle"); ?></p>
+        </div>
+      </div>
+      <button class="vl-modal-close" onclick="vlCloseImport()" title="<?php echo $langs->trans('Close'); ?>">&#x2715;</button>
+    </div>
+
+    <!-- Body -->
+    <div class="vl-modal-body">
+
+      <!-- Template notice -->
+      <div class="vl-import-notice">
+        <i class="fa fa-info-circle"></i>
+        <div>
+          <?php echo $langs->trans("ImportNoticeText"); ?>
+          <a href="<?php echo dol_buildpath('/flotte/vehicle_list.php', 1); ?>?action=download_template&token=<?php echo newToken(); ?>">
+            <i class="fa fa-download"></i> <?php echo $langs->trans("DownloadCSVTemplate"); ?>
+          </a>
+        </div>
+      </div>
+
+      <!-- Fields reference (collapsible) -->
+      <button type="button" class="vl-fields-toggle" onclick="vlToggleFields(this)">
+        <i class="fa fa-table"></i> <?php echo $langs->trans("ShowCSVColumns"); ?> <i class="fa fa-chevron-down" id="vl-fields-chevron"></i>
+      </button>
+      <div id="vl-fields-panel" style="display:none;margin-bottom:14px;">
+        <table class="vl-fields-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th><?php echo $langs->trans("ColumnName"); ?></th>
+              <th><?php echo $langs->trans("Description"); ?></th>
+              <th style="text-align:center;"><?php echo $langs->trans("Required"); ?></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td class="vl-col-name">maker</td><td><?php echo $langs->trans("VehicleMaker"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>2</td><td class="vl-col-name">model</td><td><?php echo $langs->trans("VehicleModel"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>3</td><td class="vl-col-name">type</td><td><?php echo $langs->trans("VehicleType"); ?> (Sedan, SUV…)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>4</td><td class="vl-col-name">year</td><td><?php echo $langs->trans("Year"); ?> (e.g. 2022)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>5</td><td class="vl-col-name">license_plate</td><td><?php echo $langs->trans("LicensePlate"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>6</td><td class="vl-col-name">vin</td><td><?php echo $langs->trans("VIN"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>7</td><td class="vl-col-name">color</td><td><?php echo $langs->trans("Color"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>8</td><td class="vl-col-name">initial_mileage</td><td><?php echo $langs->trans("Mileage"); ?> (km)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>9</td><td class="vl-col-name">in_service</td><td><?php echo $langs->trans("Status"); ?> (1 = <?php echo $langs->trans("InService"); ?>, 0 = <?php echo $langs->trans("OutOfService"); ?>)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>10</td><td class="vl-col-name">department</td><td><?php echo $langs->trans("Department"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>11</td><td class="vl-col-name">engine_type</td><td><?php echo $langs->trans("EngineType"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>12</td><td class="vl-col-name">horsepower</td><td><?php echo $langs->trans("Horsepower"); ?></td><td class="vl-col-opt">—</td></tr>
+            <tr><td>13</td><td class="vl-col-name">registration_expiry</td><td><?php echo $langs->trans("RegistrationExpiry"); ?> (YYYY-MM-DD)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>14</td><td class="vl-col-name">license_expiry</td><td><?php echo $langs->trans("LicenseExpiry"); ?> (YYYY-MM-DD)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>15</td><td class="vl-col-name">insurance_expiry</td><td><?php echo $langs->trans("InsuranceExpiry"); ?> (YYYY-MM-DD)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>16</td><td class="vl-col-name">length_cm</td><td><?php echo $langs->trans("Length"); ?> (cm)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>17</td><td class="vl-col-name">width_cm</td><td><?php echo $langs->trans("Width"); ?> (cm)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>18</td><td class="vl-col-name">height_cm</td><td><?php echo $langs->trans("Height"); ?> (cm)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>19</td><td class="vl-col-name">max_weight_kg</td><td><?php echo $langs->trans("MaxWeight"); ?> (kg)</td><td class="vl-col-opt">—</td></tr>
+            <tr><td>20</td><td class="vl-col-name">ground_height_cm</td><td><?php echo $langs->trans("GroundHeight"); ?> (cm)</td><td class="vl-col-opt">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- File upload form -->
+      <form method="POST" action="<?php echo dol_buildpath('/flotte/vehicle_list.php', 1); ?>"
+            enctype="multipart/form-data" id="vl-import-form">
+        <input type="hidden" name="token"  value="<?php echo newToken(); ?>">
+        <input type="hidden" name="action" value="import_csv">
+
+        <div class="vl-dropzone" id="vl-dropzone">
+          <input type="file" name="import_file" id="vl-file-input" accept=".csv,text/csv"
+                 onchange="vlFileChosen(this)">
+          <div class="vl-dropzone-icon"><i class="fa fa-cloud-upload-alt"></i></div>
+          <div class="vl-dropzone-text"><?php echo $langs->trans("DropCSVHere"); ?></div>
+          <div class="vl-dropzone-sub"><?php echo $langs->trans("OnlyCSVAccepted"); ?></div>
+          <div class="vl-dropzone-file" id="vl-file-name"></div>
+        </div>
+
+        <!-- Footer inside form -->
+        <div class="vl-modal-footer" style="padding:14px 0 0;border-top:1px solid #eaecf5;margin-top:18px;">
+          <button type="button" class="vl-btn" style="background:#fff;color:#5a6482;border:1.5px solid #d1d5e0;" onclick="vlCloseImport()">
+            <i class="fa fa-times"></i> <?php echo $langs->trans("Cancel"); ?>
+          </button>
+          <button type="submit" class="vl-btn vl-btn-primary" id="vl-import-submit" disabled>
+            <i class="fa fa-check"></i> <?php echo $langs->trans("ImportNow"); ?>
+          </button>
+        </div>
+      </form>
+
+    </div><!-- /modal-body -->
+  </div><!-- /vl-modal -->
+</div><!-- /overlay -->
+<?php } ?>
+
+<script>
+function vlOpenImport()  { document.getElementById('vl-import-modal').classList.add('open'); }
+function vlCloseImport() {
+    document.getElementById('vl-import-modal').classList.remove('open');
+    // Reset form
+    document.getElementById('vl-import-form').reset();
+    var dz = document.getElementById('vl-dropzone');
+    if (dz) { dz.classList.remove('has-file'); }
+    document.getElementById('vl-file-name').textContent = '';
+    document.getElementById('vl-import-submit').disabled = true;
+}
+function vlFileChosen(input) {
+    var dz  = document.getElementById('vl-dropzone');
+    var fn  = document.getElementById('vl-file-name');
+    var btn = document.getElementById('vl-import-submit');
+    if (input.files && input.files.length > 0) {
+        dz.classList.add('has-file');
+        fn.textContent = input.files[0].name;
+        btn.disabled = false;
+    } else {
+        dz.classList.remove('has-file');
+        fn.textContent = '';
+        btn.disabled = true;
+    }
+}
+function vlToggleFields(btn) {
+    var panel   = document.getElementById('vl-fields-panel');
+    var chevron = document.getElementById('vl-fields-chevron');
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        chevron.className = 'fa fa-chevron-up';
+    } else {
+        panel.style.display = 'none';
+        chevron.className = 'fa fa-chevron-down';
+    }
+}
+// Drag-over highlight
+(function(){
+    var dz = document.getElementById('vl-dropzone');
+    if (!dz) return;
+    dz.addEventListener('dragover',  function(e){ e.preventDefault(); dz.classList.add('drag-over'); });
+    dz.addEventListener('dragleave', function(){ dz.classList.remove('drag-over'); });
+    dz.addEventListener('drop',      function(){ dz.classList.remove('drag-over'); });
+})();
+// Close on Escape
+document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') vlCloseImport();
+});
+</script>
+
 </div><!-- .vl-wrap -->
 
 <?php
