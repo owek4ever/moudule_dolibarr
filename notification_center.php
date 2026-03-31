@@ -420,9 +420,16 @@ if (!$svc->isConfigured()) :
 // Replace with your Firebase config values from notification_settings.php
 const FIREBASE_CONFIG = <?php
     $cfg = $svc->getConfig();
+    // Full Firebase app config — hardcoded to match the service worker.
+    // Only vapidKey comes from the DB (it's the Web Push certificate key).
     echo json_encode(array(
-        'vapidKey'  => $cfg['vapid_key'] ?? '',
-        'projectId' => $cfg['project_id'] ?? '',
+        'apiKey'            => 'AIzaSyCxUJHdA0_jMxlut9lQxE69Nit91lwwJDw',
+        'authDomain'        => 'dolibarr-flotte.firebaseapp.com',
+        'projectId'         => 'dolibarr-flotte',
+        'storageBucket'     => 'dolibarr-flotte.firebasestorage.app',
+        'messagingSenderId' => '262203283893',
+        'appId'             => '1:262203283893:web:11766cd9f79e099edca1fc',
+        'vapidKey'          => $cfg['vapid_key'] ?? '',
     ));
 ?>;
 
@@ -457,6 +464,13 @@ checkFcmStatus();
 async function requestFcmPermission() {
     const resultEl = document.getElementById('register-result');
     const label    = document.getElementById('device-label').value || 'Browser';
+    let lastStep   = 'init';
+
+    function step(msg) {
+        lastStep = msg;
+        resultEl.innerHTML = '⏳ ' + msg;
+    }
+
     resultEl.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Requesting permission…';
 
     try {
@@ -466,33 +480,43 @@ async function requestFcmPermission() {
             return;
         }
 
+        // ── Step 1: VAPID key check ──
         if (!FIREBASE_CONFIG.vapidKey) {
-            resultEl.innerHTML = '⚠️ VAPID key not configured.';
+            resultEl.innerHTML = '⚠️ VAPID key not configured — go to Settings and paste the Web Push key pair from Firebase Console.';
             return;
         }
+        if (FIREBASE_CONFIG.vapidKey.length < 80) {
+            resultEl.innerHTML = '⚠️ VAPID key looks wrong (length: ' + FIREBASE_CONFIG.vapidKey.length + ', expected ~88). Check notification settings.';
+            return;
+        }
+        step('[1/4] VAPID key OK (' + FIREBASE_CONFIG.vapidKey.length + ' chars)…');
 
-        // Load Firebase compat SDK (must match service worker)
+        // ── Step 2: Load Firebase SDK ──
         await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js');
         await loadScript('https://www.gstatic.com/firebasejs/9.23.0/firebase-messaging-compat.js');
+        step('[2/4] Firebase SDK loaded…');
 
-        // Avoid duplicate app initialization
+        // ── Step 3: Init Firebase app ──
         if (!firebase.apps.length) {
             firebase.initializeApp({
-                apiKey:            "AIzaSyCxUJHdA0_jMxlut9lQxE69Nit91lwwJDw",
-                authDomain:        "dolibarr-flotte.firebaseapp.com",
-                projectId:         "dolibarr-flotte",
-                storageBucket:     "dolibarr-flotte.firebasestorage.app",
-                messagingSenderId: "262203283893",
-                appId:             "1:262203283893:web:11766cd9f79e099edca1fc"
+                apiKey:            FIREBASE_CONFIG.apiKey,
+                authDomain:        FIREBASE_CONFIG.authDomain,
+                projectId:         FIREBASE_CONFIG.projectId,
+                storageBucket:     FIREBASE_CONFIG.storageBucket,
+                messagingSenderId: FIREBASE_CONFIG.messagingSenderId,
+                appId:             FIREBASE_CONFIG.appId,
             });
         }
 
-        // Register service worker
-        const swReg = await navigator.serviceWorker.register('/htdocs/custom/flotte/firebase-sw.js');
+        // ── Step 4: Register service worker ──
+        const swPath = '<?php echo dol_buildpath('/flotte/firebase-sw.js', 1); ?>';
+        step('[3/4] Registering SW at: ' + swPath);
+        const swReg = await navigator.serviceWorker.register(swPath);
         await navigator.serviceWorker.ready;
 
+        // ── Step 5: Get FCM token ──
+        step('[4/4] Contacting push service…');
         const messaging = firebase.messaging();
-
         const token = await messaging.getToken({
             vapidKey: FIREBASE_CONFIG.vapidKey,
             serviceWorkerRegistration: swReg
@@ -503,7 +527,8 @@ async function requestFcmPermission() {
             return;
         }
 
-        // Send token to server
+        // ── Step 6: Send token to server ──
+        step('[5/5] Saving token to server…');
         const res  = await fetch(REGISTER_URL, {
             method:  'POST',
             headers: {'Content-Type': 'application/x-www-form-urlencoded'},
@@ -516,11 +541,13 @@ async function requestFcmPermission() {
             checkFcmStatus();
             setTimeout(() => document.getElementById('modal-register').classList.remove('open'), 1500);
         } else {
-            resultEl.innerHTML = '❌ Registration failed: ' + (data.error || 'Unknown error');
+            resultEl.innerHTML = '❌ Server registration failed: ' + (data.error || 'Unknown error');
         }
     } catch (e) {
-        resultEl.innerHTML = '❌ Error: ' + e.message;
-        console.error(e);
+        const detail = e.code ? ' [' + e.code + ']' : '';
+        resultEl.innerHTML = '❌ Failed at step: <b>' + lastStep + '</b><br>'
+            + 'Error: ' + e.message + detail;
+        console.error('[FCM] Failed at step:', lastStep, e);
     }
 }
 
