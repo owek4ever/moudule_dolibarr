@@ -339,6 +339,7 @@ table.dc-table tr:hover td { background:#fafbfd; }
 .dc-source { font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px; }
 .dc-source.booking { background:#fef3c7;color:#92400e; }
 .dc-source.manual  { background:#eff6ff;color:#1d4ed8; }
+.dc-source.fuel    { background:rgba(245,158,11,0.12);color:#b45309; }
 /* Pagination */
 .dc-pagination { display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#f7f8fc;border-top:1px solid #e8eaf0;font-size:12.5px;color:#8b92a9; }
 .dc-pagination-links { display:flex;gap:4px; }
@@ -498,10 +499,13 @@ if (empty($rows)) {
         print '<td>'.dol_escape_htmltag($row->customer_name ?? '—').'</td>';
         print '<td style="font-size:12px;color:#8b92a9;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'.dol_escape_htmltag($detail).'">'.$detail.'</td>';
         print '<td style="text-align:right;"><span class="dc-amount">'.price($amount).'</span></td>';
-        print '<td><span class="dc-source '.dol_escape_htmltag($row->source ?? 'manual').'">'.dol_escape_htmltag($row->source === 'booking' ? $langs->trans('Booking') : $langs->trans('Manual')).'</span></td>';
+        $source_val   = $row->source ?? 'manual';
+        $source_class = ($row->category === 'fuel') ? 'fuel' : $source_val;
+        $source_label = ($row->category === 'fuel') ? $langs->trans('Fuel') : ($source_val === 'booking' ? $langs->trans('Booking') : $langs->trans('Manual'));
+        print '<td><span class="dc-source '.dol_escape_htmltag($source_class).'">'.dol_escape_htmltag($source_label).'</span></td>';
         print '<td style="white-space:nowrap;">';
         print '<a href="'.dol_buildpath('/flotte/expenses_card.php',1).'?id='.$row->rowid.'" class="dc-btn dc-btn-ghost" style="padding:4px 10px;font-size:12px;"><i class="fa fa-eye"></i></a>';
-        if ($row->source !== 'booking' && !empty($user->rights->flotte->write)) {
+        if ($row->source !== 'booking' && $row->category !== 'fuel' && !empty($user->rights->flotte->write)) {
             print ' <a href="'.dol_buildpath('/flotte/expenses_card.php',1).'?id='.$row->rowid.'&action=edit" class="dc-btn dc-btn-ghost" style="padding:4px 10px;font-size:12px;"><i class="fa fa-pen"></i></a>';
         }
         print '</td>';

@@ -99,7 +99,7 @@ if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter.x'
 // Build and execute select — customers from the third-party (societe) module
 $sql  = 'SELECT t.rowid, t.code_client AS ref, t.nom, t.phone, t.email, t.siren, t.town, t.zip, t.status';
 $sql .= ' FROM '.MAIN_DB_PREFIX.'societe AS t';
-$sql .= ' WHERE t.client IN (1, 2)';
+$sql .= ' WHERE t.client IN (1, 2, 3)';
 $sql .= ' AND t.entity IN ('.getEntity('societe').')';
 
 if ($search_ref) {
