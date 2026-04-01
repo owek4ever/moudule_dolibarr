@@ -1435,7 +1435,7 @@ if ($isCreate || $isEdit) {
     print '    <input type="number" id="buying_qty" name="buying_qty" value="'.$bq.'" min="0" step="any" placeholder="0"></div>';
     print '    <div class="dc-pricing-col"><label class="dc-pricing-label">'.$langs->trans('Unit').'</label>';
     print '    <select id="buying_unit" name="buying_unit"><option value="">&mdash;</option>';
-    foreach (array('All Inclusive','Ton','Kg','Km','Hour','Day','Week') as $u) {
+    foreach (array('All Inclusive','Ton','Kg','Km','Hour','Day','Week','Pallet') as $u) {
         $sel = ($bu === $u) ? ' selected' : '';
         print '<option value="'.dol_escape_htmltag($u).'"'.$sel.'>'.dol_escape_htmltag($u).'</option>';
     }
@@ -1482,7 +1482,7 @@ if ($isCreate || $isEdit) {
     print '    <input type="number" id="selling_qty" name="selling_qty" value="'.$sq.'" min="0" step="any" placeholder="0"></div>';
     print '    <div class="dc-pricing-col"><label class="dc-pricing-label">'.$langs->trans('Unit').'</label>';
     print '    <select id="selling_unit" name="selling_unit"><option value="">&mdash;</option>';
-    foreach (array('All Inclusive','Ton','Kg','Km','Hour','Day','Week') as $u) {
+    foreach (array('All Inclusive','Ton','Kg','Km','Hour','Day','Week','Pallet') as $u) {
         $sel = ($su === $u) ? ' selected' : '';
         print '<option value="'.dol_escape_htmltag($u).'"'.$sel.'>'.dol_escape_htmltag($u).'</option>';
     }

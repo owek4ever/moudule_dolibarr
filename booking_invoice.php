@@ -122,6 +122,23 @@ foreach ($bookings as $b) {
     }
 }
 
+// ── Safe label: transliterates Arabic/non-latin text to ASCII ────────────
+// Dolibarr's DB connection charset is fixed at connect time, so SET NAMES
+// has no effect on addline(). We convert the text to ASCII here so the
+// description column never receives multi-byte Arabic characters.
+function flotte_safe_label($str) {
+    if (empty($str)) return '';
+    // 1. iconv transliteration: Arabic → closest ASCII equivalent
+    if (function_exists('iconv')) {
+        $out = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $str);
+        if ($out !== false && trim($out) !== '') {
+            return trim($out);
+        }
+    }
+    // 2. Fallback: strip every byte above 0x7F
+    return trim(preg_replace('/[^\x00-\x7F]/', '', $str));
+}
+
 // ── Create the invoice ────────────────────────────────
 $db->begin();
 
@@ -152,7 +169,7 @@ if ($invoice_type === 'customer') {
     foreach ($bookings as $b) {
         $label = $b->ref;
         if ($b->departure_address || $b->arriving_address) {
-            $label .= ' — '.trim($b->departure_address.' → '.$b->arriving_address);
+            $label .= ' - '.flotte_safe_label(trim($b->departure_address.' > '.$b->arriving_address));
         }
         $qty   = 1;
         $pu_ht = (float)$b->selling_amount;
@@ -209,7 +226,7 @@ if ($invoice_type === 'customer') {
     foreach ($bookings as $b) {
         $label = $b->ref;
         if ($b->departure_address || $b->arriving_address) {
-            $label .= ' — '.trim($b->departure_address.' → '.$b->arriving_address);
+            $label .= ' - '.flotte_safe_label(trim($b->departure_address.' > '.$b->arriving_address));
         }
         $qty   = (float)$b->buying_qty   > 0 ? (float)$b->buying_qty   : 1;
         $pu_ht = (float)$b->buying_price  > 0 ? (float)$b->buying_price  : (float)$b->buying_amount;
