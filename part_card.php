@@ -30,9 +30,14 @@ if (!$res) { die("Include of main fails"); }
 
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
+require_once DOL_DOCUMENT_ROOT.'/categories/class/categorie.class.php';
+require_once __DIR__.'/class/flottecategorytype.class.php';
 
 // Load translation files
-$langs->loadLangs(array("flotte@flotte", "other"));
+$langs->loadLangs(array("flotte@flotte", "other", "categories"));
+
+// ── Native Dolibarr category type for Flotte Parts ───────────────────────────
+FlotteCategoryType::defineGlobals();
 
 // Function to generate next part reference
 function getNextPartRef($db, $entity) {
@@ -61,6 +66,53 @@ function getNextPartRef($db, $entity) {
     return $prefix.str_pad($next_number, 4, '0', STR_PAD_LEFT);
 }
 
+/**
+ * Replace part/category links with posted selection.
+ *
+ * @param DoliDB $db
+ * @param int    $partId
+ * @param array  $catsPosted
+ * @return int
+ */
+function flotteSyncPartCategories($db, $partId, $catsPosted)
+{
+    $partId = (int) $partId;
+    if ($partId <= 0) {
+        return -1;
+    }
+
+    $resDelete = $db->query("DELETE FROM ".MAIN_DB_PREFIX."categorie_flotte_part WHERE fk_flotte_part = ".$partId);
+    if (!$resDelete) {
+        return -1;
+    }
+
+    if (empty($catsPosted) || !is_array($catsPosted)) {
+        return 1;
+    }
+
+    $catObject = new Categorie($db);
+    foreach ($catsPosted as $catIdPosted) {
+        $catIdPosted = (int) $catIdPosted;
+        if ($catIdPosted <= 0) {
+            continue;
+        }
+
+        if ($catObject->fetch($catIdPosted) <= 0) {
+            return -1;
+        }
+        if ((int) $catObject->type !== (int) CATEGORIE_TYPE_FLOTTE_PART) {
+            continue;
+        }
+
+        $resAdd = $catObject->add_type((object) array('id' => $partId, 'element' => 'flotte_part'), CATEGORIE_TYPE_FLOTTE_PART);
+        if ($resAdd < 0) {
+            return -1;
+        }
+    }
+
+    return 1;
+}
+
 // Get parameters
 $id = GETPOST('id', 'int');
 $action = GETPOST('action', 'aZ09') ? GETPOST('action', 'aZ09') : 'view';
@@ -72,7 +124,7 @@ $contextpage = GETPOST('contextpage','aZ')?GETPOST('contextpage','aZ'):'partcard
 restrictedArea($user, 'flotte');
 
 
-// Ensure tables exist
+
 $db->query("CREATE TABLE IF NOT EXISTS ".MAIN_DB_PREFIX."flotte_part (
     rowid           INT AUTO_INCREMENT PRIMARY KEY,
     ref             VARCHAR(30)      NOT NULL,
@@ -97,14 +149,7 @@ $db->query("CREATE TABLE IF NOT EXISTS ".MAIN_DB_PREFIX."flotte_part (
     date_creation   DATETIME         DEFAULT NULL,
     tms             TIMESTAMP        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-
-$db->query("CREATE TABLE IF NOT EXISTS ".MAIN_DB_PREFIX."flotte_part_category (
-    rowid           INT AUTO_INCREMENT PRIMARY KEY,
-    entity          INT              DEFAULT 1,
-    category_name   VARCHAR(100)     NOT NULL,
-    description     TEXT,
-    tms             TIMESTAMP        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+// Categories are stored in native llx_categorie table (type=CATEGORIE_TYPE_FLOTTE_PART)
 
 // Initialize variables
 $object = new stdClass();
@@ -117,7 +162,6 @@ $object->description = '';
 $object->status = '';
 $object->availability = 1;
 $object->fk_vendor = 0;
-$object->fk_category = 0;
 $object->manufacturer = '';
 $object->year = '';
 $object->model = '';
@@ -148,11 +192,12 @@ if ($cancel) {
 
 if ($action == 'confirm_delete' && $confirm == 'yes' && $user->rights->flotte->delete) {
     $db->begin();
-    
+
+    $resDelLinks = $db->query("DELETE FROM ".MAIN_DB_PREFIX."categorie_flotte_part WHERE fk_flotte_part = ".((int) $id));
     $sql = "DELETE FROM ".MAIN_DB_PREFIX."flotte_part WHERE rowid = ".((int) $id);
     $result = $db->query($sql);
     
-    if ($result) {
+    if ($resDelLinks && $result) {
         $db->commit();
         header("Location: " . dol_buildpath('/flotte/part_list.php', 1));
         exit;
@@ -175,7 +220,6 @@ if ($action == 'add') {
     $status = GETPOST('status', 'alpha');
     $availability = GETPOST('availability', 'int');
     $fk_vendor = GETPOST('fk_vendor', 'int');
-    $fk_category = GETPOST('fk_category', 'int');
     $manufacturer = GETPOST('manufacturer', 'alpha');
     $year = GETPOST('year', 'int');
     $model = GETPOST('model', 'alpha');
@@ -196,7 +240,7 @@ if ($action == 'add') {
     if (!$error) {
         $sql = "INSERT INTO ".MAIN_DB_PREFIX."flotte_part (";
         $sql .= "ref, entity, barcode, title, number, description, status, availability, ";
-        $sql .= "fk_vendor, fk_category, manufacturer, year, model, qty_on_hand, unit_cost, note, fk_user_author";
+        $sql .= "fk_vendor, manufacturer, year, model, qty_on_hand, unit_cost, note, fk_user_author";
         $sql .= ") VALUES (";
         $sql .= "'".$db->escape($ref)."', ".$conf->entity.", ";
         $sql .= "'".$db->escape($barcode)."', ";
@@ -206,7 +250,6 @@ if ($action == 'add') {
         $sql .= "'".$db->escape($status)."', ";
         $sql .= $availability.", ";
         $sql .= ($fk_vendor > 0 ? $fk_vendor : "NULL").", ";
-        $sql .= ($fk_category > 0 ? $fk_category : "NULL").", ";
         $sql .= "'".$db->escape($manufacturer)."', ";
         $sql .= ($year > 0 ? $year : "NULL").", ";
         $sql .= "'".$db->escape($model)."', ";
@@ -219,9 +262,17 @@ if ($action == 'add') {
         $result = $db->query($sql);
         if ($result) {
             $id = $db->last_insert_id(MAIN_DB_PREFIX."flotte_part");
-            $db->commit();
-            $action = 'view';
-            setEventMessages($langs->trans("PartCreatedSuccessfully"), null, 'mesgs');
+            $cats_posted = GETPOST('categories', 'array');
+            if (flotteSyncPartCategories($db, $id, $cats_posted) < 0) {
+                $db->rollback();
+                $error++;
+                $errors[] = $langs->trans("ErrorCreatingPart") . ": " . $db->lasterror();
+                $id = 0;
+            } else {
+                $db->commit();
+                $action = 'view';
+                setEventMessages($langs->trans("PartCreatedSuccessfully"), null, 'mesgs');
+            }
         } else {
             $db->rollback();
             $error++;
@@ -244,7 +295,6 @@ if ($action == 'update') {
     $status = GETPOST('status', 'alpha');
     $availability = GETPOST('availability', 'int');
     $fk_vendor = GETPOST('fk_vendor', 'int');
-    $fk_category = GETPOST('fk_category', 'int');
     $manufacturer = GETPOST('manufacturer', 'alpha');
     $year = GETPOST('year', 'int');
     $model = GETPOST('model', 'alpha');
@@ -267,7 +317,6 @@ if ($action == 'update') {
         $sql .= "status = '".$db->escape($status)."', ";
         $sql .= "availability = ".$availability.", ";
         $sql .= "fk_vendor = ".($fk_vendor > 0 ? $fk_vendor : "NULL").", ";
-        $sql .= "fk_category = ".($fk_category > 0 ? $fk_category : "NULL").", ";
         $sql .= "manufacturer = '".$db->escape($manufacturer)."', ";
         $sql .= "year = ".($year > 0 ? $year : "NULL").", ";
         $sql .= "model = '".$db->escape($model)."', ";
@@ -279,9 +328,16 @@ if ($action == 'update') {
         
         $result = $db->query($sql);
         if ($result) {
-            $db->commit();
-            $action = 'view';
-            setEventMessages($langs->trans("PartUpdatedSuccessfully"), null, 'mesgs');
+            $cats_posted = GETPOST('categories', 'array');
+            if (flotteSyncPartCategories($db, $id, $cats_posted) < 0) {
+                $db->rollback();
+                $error++;
+                $errors[] = $langs->trans("ErrorUpdatingPart") . ": " . $db->lasterror();
+            } else {
+                $db->commit();
+                $action = 'view';
+                setEventMessages($langs->trans("PartUpdatedSuccessfully"), null, 'mesgs');
+            }
         } else {
             $db->rollback();
             $error++;
@@ -294,10 +350,9 @@ if ($action == 'update') {
 
 // Load object data
 if ($id > 0) {
-    $sql = "SELECT p.*, v.name as vendor_name, c.category_name 
-            FROM ".MAIN_DB_PREFIX."flotte_part as p 
-            LEFT JOIN ".MAIN_DB_PREFIX."flotte_vendor as v ON p.fk_vendor = v.rowid 
-            LEFT JOIN ".MAIN_DB_PREFIX."flotte_part_category as c ON p.fk_category = c.rowid 
+    $sql = "SELECT p.*, v.name as vendor_name
+            FROM ".MAIN_DB_PREFIX."flotte_part as p
+            LEFT JOIN ".MAIN_DB_PREFIX."flotte_vendor as v ON p.fk_vendor = v.rowid
             WHERE p.rowid = ".((int) $id);
     $resql = $db->query($sql);
     if ($resql) {
@@ -325,12 +380,18 @@ if ($resql_vendors) {
     }
 }
 
-$categories = array();
-$sql_categories = "SELECT rowid, category_name FROM ".MAIN_DB_PREFIX."flotte_part_category WHERE entity = ".$conf->entity." ORDER BY category_name";
-$resql_categories = $db->query($sql_categories);
-if ($resql_categories) {
-    while ($obj = $db->fetch_object($resql_categories)) {
-        $categories[$obj->rowid] = $obj->category_name;
+// ── Native Dolibarr categories ────────────────────────────────────────────
+$cat_object     = new Categorie($db);
+$categories_arbo = $cat_object->get_full_arbo(CATEGORIE_TYPE_FLOTTE_PART);
+
+// Load categories currently linked to this part (for view mode display)
+$selected_cats = array();
+if ($id > 0) {
+    $linked_cats = $cat_object->containing($id, CATEGORIE_TYPE_FLOTTE_PART);
+    if (is_array($linked_cats)) {
+        foreach ($linked_cats as $lc) {
+            $selected_cats[] = (int)$lc->id;
+        }
     }
 }
 
@@ -838,17 +899,46 @@ if ($isCreate || $isEdit) {
 }
 print '    </div></div>';
 
-// Category
+// Tags / Categories -- native Dolibarr llx_categorie
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Category').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Categories').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<div style="display:flex;align-items:center;gap:6px;">';
-    print $form->selectarray('fk_category', $categories, $object->fk_category, 1);
-    print '<a href="'.DOL_URL_ROOT.'/categories/index.php?type=other" target="_blank" title="'.$langs->trans('Categories').'"><i class="fa fa-plus-circle" style="font-size:18px;color:#0d8aff;flex-shrink:0;"></i></a>';
+    // Multi-select + native "+" button -- same as Third Party card, Product card, etc.
+    $cate_arbo      = $cat_object->get_full_arbo(CATEGORIE_TYPE_FLOTTE_PART);
+    $cat_manage_url = DOL_URL_ROOT.'/categories/index.php?type='.CATEGORIE_TYPE_FLOTTE_PART;
+
+    print '<div style="display:flex;align-items:flex-start;gap:6px;">';
+
+    // Native multi-select tree
+    print $form->multiselectarray(
+        'categories',
+        $cate_arbo,
+        $selected_cats,
+        0,
+        0,
+        'minwidth200',
+        0,
+        '100%'
+    );
+
+    // "+" button -- opens /categories/index.php in a native Dolibarr dialog popup.
+    // The user can create new categories there and when the popup closes
+    // the page refreshes so new categories appear in the list.
+    print dolButtonToOpenUrlInDialogPopup(
+        'categoriespopup',
+        $langs->trans('Categories'),
+        '<span class="fa fa-plus-circle valignmiddle" style="font-size:18px;color:#0d8aff;"></span>',
+        $cat_manage_url,
+        '',
+        'nohover valignmiddle'
+    );
+
     print '</div>';
+
 } else {
-    print (!empty($object->category_name) ? dol_escape_htmltag($object->category_name) : '&mdash;');
+    // View mode -- native coloured tag badges
+    print $form->showCategories($id, CATEGORIE_TYPE_FLOTTE_PART, 1);
 }
 print '    </div></div>';
 
