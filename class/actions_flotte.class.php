@@ -46,6 +46,8 @@ class ActionsFlotte
      */
     public function constructCategory($parameters, &$object, &$action, $hookmanager)
     {
+        global $langs;
+
         $mapPart = array(
             'id'        => self::CAT_PART,
             'code'      => 'flotte_part',
@@ -67,6 +69,21 @@ class ActionsFlotte
         // Keep backward compatibility with older behavior.
         $hookmanager->resArray['flotte_part'] = $mapPart;
         $hookmanager->resArray['flotte_vehicle'] = $mapVehicle;
+
+        // Fix category type labels on native Tags/Categories list:
+        // - Dolibarr builds the list using Categorie::$MAP_TYPE_TITLE_AREA[code] as translation key.
+        // - If missing, Dolibarr calls trans(null) and shows "Err:BadValueForParamNotAString".
+        if (!empty($langs)) {
+            $langs->loadLangs(array('flotte@flotte'));
+        }
+        if (class_exists('Categorie')) {
+            if (!isset(Categorie::$MAP_TYPE_TITLE_AREA['flotte_part'])) {
+                Categorie::$MAP_TYPE_TITLE_AREA['flotte_part'] = 'Parts';
+            }
+            if (!isset(Categorie::$MAP_TYPE_TITLE_AREA['flotte_vehicle'])) {
+                Categorie::$MAP_TYPE_TITLE_AREA['flotte_vehicle'] = 'Vehicles';
+            }
+        }
 
         return 0;
     }

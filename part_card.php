@@ -906,7 +906,7 @@ print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     // Multi-select + native "+" button -- same as Third Party card, Product card, etc.
     $cate_arbo      = $cat_object->get_full_arbo(CATEGORIE_TYPE_FLOTTE_PART);
-    $cat_manage_url = DOL_URL_ROOT.'/categories/index.php?type='.CATEGORIE_TYPE_FLOTTE_PART;
+    $cat_manage_url = "/categories/categorie_list.php?mode=hierarchy&type=flotte_part";
 
     print '<div style="display:flex;align-items:flex-start;gap:6px;">';
 
@@ -922,17 +922,13 @@ if ($isCreate || $isEdit) {
         '100%'
     );
 
-    // "+" button -- opens /categories/index.php in a native Dolibarr dialog popup.
-    // The user can create new categories there and when the popup closes
-    // the page refreshes so new categories appear in the list.
-    print dolButtonToOpenUrlInDialogPopup(
-        'categoriespopup',
-        $langs->trans('Categories'),
-        '<span class="fa fa-plus-circle valignmiddle" style="font-size:18px;color:#0d8aff;"></span>',
-        $cat_manage_url,
-        '',
-        'nohover valignmiddle'
-    );
+    // "+" button -- redirect to native category page (Parts type)
+    $backTo = $_SERVER['PHP_SELF'].($id > 0 ? '?id='.(int) $id.'&action=edit' : '?action=create');
+    print '<a class="nohover valignmiddle"'
+        .' href="'.$cat_manage_url.'&backtopage='.urlencode($backTo).'"'
+        .' title="'.$langs->trans('Categories').'">'
+        .'<span class="fa fa-plus-circle valignmiddle" style="font-size:18px;color:#0d8aff;"></span>'
+        .'</a>';
 
     print '</div>';
 
