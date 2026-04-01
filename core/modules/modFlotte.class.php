@@ -117,13 +117,15 @@ class modFlotte extends DolibarrModules
 			'js' => array(
 				//   '/flotte/js/flotte.js.php',
 			),
-			// Set here all hooks context managed by module. To find available hook context, make a "grep -r '>initHooks(' *" on source code. You can also set hook context to 'all'
+			// 'category' is the context used by Dolibarr's Categorie::__construct()
+			// It fires the 'constructCategory' hook which is the ONLY supported way
+			// to inject a custom type into the native Tags/categories list.
+			// See: htdocs/categories/class/categorie.class.php lines ~326-342
 			'hooks' => array(
-				//   'data' => array(
-				//       'hookcontext1',
-				//       'hookcontext2',
-				//   ),
-				//   'entity' => '0',
+				'data' => array(
+					'category',
+				),
+				'entity' => '0',
 			),
 			// Set this to 1 if features of module are opened to external users
 			'moduleforexternal' => 0,
