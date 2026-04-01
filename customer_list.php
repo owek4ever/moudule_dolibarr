@@ -40,15 +40,13 @@ $massaction = GETPOST('massaction', 'alpha');
 $confirm = GETPOST('confirm', 'alpha');
 $toselect = GETPOST('toselect', 'array');
 
-$search_ref = GETPOST('search_ref', 'alpha');
-$search_firstname = GETPOST('search_firstname', 'alpha');
-$search_lastname = GETPOST('search_lastname', 'alpha');
-$search_phone = GETPOST('search_phone', 'alpha');
-$search_email = GETPOST('search_email', 'alpha');
-$search_company = GETPOST('search_company', 'alpha');
-$search_gender = GETPOST('search_gender', 'alpha');
-$search_tax_no = GETPOST('search_tax_no', 'alpha');
-$search_payment_delay = GETPOST('search_payment_delay', 'alpha');
+$search_ref    = GETPOST('search_ref',    'alpha');
+$search_name   = GETPOST('search_name',   'alpha');
+$search_phone  = GETPOST('search_phone',  'alpha');
+$search_email  = GETPOST('search_email',  'alpha');
+$search_siren  = GETPOST('search_siren',  'alpha');
+$search_town   = GETPOST('search_town',   'alpha');
+$search_status = GETPOST('search_status', 'alpha');
 
 $limit = GETPOST('limit', 'int') ? GETPOST('limit', 'int') : $conf->liste_limit;
 $sortfield = GETPOST('sortfield', 'aZ09comma');
@@ -62,7 +60,7 @@ if (empty($page) || $page == -1) {
 $offset = $limit * $page;
 
 if (!$sortfield) {
-    $sortfield = "t.ref";
+    $sortfield = "t.nom";
 }
 if (!$sortorder) {
     $sortorder = "ASC";
@@ -85,155 +83,30 @@ if (GETPOST('cancel', 'alpha')) {
 }
 
 if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter.x', 'alpha') || GETPOST('button_removefilter', 'alpha')) {
-    $search_ref = '';
-    $search_firstname = '';
-    $search_lastname = '';
-    $search_phone = '';
-    $search_email = '';
-    $search_company = '';
-    $search_gender = '';
-    $search_tax_no = '';
-    $search_payment_delay = '';
+    $search_ref    = '';
+    $search_name   = '';
+    $search_phone  = '';
+    $search_email  = '';
+    $search_siren  = '';
+    $search_town   = '';
+    $search_status = '';
 }
 
-// Handle confirmed delete from list page
-if ($action == 'confirm_delete' && GETPOST('confirm', 'alpha') == 'yes') {
-    $id_to_delete = GETPOST('id', 'int');
-    if ($id_to_delete > 0) {
-        $db->begin();
-        $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."flotte_customer WHERE rowid = ".(int)$id_to_delete." AND entity IN (".getEntity('flotte').")";
-        $resql_del = $db->query($sql_del);
-        if ($resql_del) {
-            // Delete associated files if any
-            $uploadDir = $conf->flotte->dir_output . '/customers/' . $id_to_delete . '/';
-            if (is_dir($uploadDir)) {
-                dol_delete_dir_recursive($uploadDir);
-            }
-            $db->commit();
-            setEventMessages($langs->trans("CustomerDeletedSuccessfully"), null, 'mesgs');
-        } else {
-            $db->rollback();
-            setEventMessages("Error in SQL: ".$db->lasterror(), null, 'errors');
-        }
-    }
-    $action = 'list';
-}
-
-// ── Helper: generate next customer reference ──────────────────────────────
-if (!function_exists('getNextCustomerRef')) {
-    function getNextCustomerRef($db, $entity) {
-        $prefix = "CUST-";
-        $sql = "SELECT ref FROM ".MAIN_DB_PREFIX."flotte_customer";
-        $sql .= " WHERE entity = ".(int)$entity;
-        $sql .= " AND ref LIKE '".$prefix."%'";
-        $sql .= " ORDER BY ref DESC LIMIT 1";
-        $resql = $db->query($sql);
-        if ($resql && $db->num_rows($resql) > 0) {
-            $obj = $db->fetch_object($resql);
-            $next_number = (int)str_replace($prefix, '', $obj->ref) + 1;
-        } else {
-            $next_number = 1;
-        }
-        return $prefix.str_pad($next_number, 4, '0', STR_PAD_LEFT);
-    }
-}
-
-// ── Download CSV template ─────────────────────────────────────────────────
-if ($action == 'download_template') {
-    $columns = array(
-        'firstname','lastname','phone','email',
-        'company_name','tax_no','payment_delay','gender'
-    );
-    header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="customers_import_template.csv"');
-    $out = fopen('php://output', 'w');
-    fputcsv($out, $columns);
-    fputcsv($out, array('John','Doe','+21612345678','john.doe@example.com','Acme Corp','TN123456789','30','male'));
-    fclose($out);
-    exit;
-}
-
-// ── CSV Import ────────────────────────────────────────────────────────────
-if ($action == 'import_csv' && $user->rights->flotte->write) {
-    if (isset($_FILES['import_file']) && $_FILES['import_file']['error'] == 0) {
-        $ext = strtolower(pathinfo($_FILES['import_file']['name'], PATHINFO_EXTENSION));
-        if ($ext === 'csv') {
-            $handle = fopen($_FILES['import_file']['tmp_name'], 'r');
-            if ($handle) {
-                fgetcsv($handle); // skip header
-                $imported      = 0;
-                $import_errors = array();
-                $row_num       = 1;
-
-                while (($row = fgetcsv($handle)) !== false) {
-                    $row_num++;
-                    if (count($row) < 1) continue;
-
-                    $firstname     = isset($row[0]) ? trim($row[0]) : '';
-                    $lastname      = isset($row[1]) ? trim($row[1]) : '';
-                    $phone         = isset($row[2]) ? trim($row[2]) : '';
-                    $email         = isset($row[3]) ? trim($row[3]) : '';
-                    $company_name  = isset($row[4]) ? trim($row[4]) : '';
-                    $tax_no        = isset($row[5]) ? trim($row[5]) : '';
-                    $payment_delay = isset($row[6]) && $row[6] !== '' ? (int)trim($row[6]) : null;
-                    $gender        = isset($row[7]) ? strtolower(trim($row[7])) : '';
-
-                    $ref = getNextCustomerRef($db, $conf->entity);
-
-                    $db->begin();
-                    $sql_i  = "INSERT INTO ".MAIN_DB_PREFIX."flotte_customer (";
-                    $sql_i .= "ref, entity, firstname, lastname, phone, email, company_name, tax_no, payment_delay, gender, fk_user_author";
-                    $sql_i .= ") VALUES (";
-                    $sql_i .= "'".$db->escape($ref)."', ".$conf->entity.", ";
-                    $sql_i .= "'".$db->escape($firstname)."', '".$db->escape($lastname)."', ";
-                    $sql_i .= "'".$db->escape($phone)."', '".$db->escape($email)."', ";
-                    $sql_i .= "'".$db->escape($company_name)."', '".$db->escape($tax_no)."', ";
-                    $sql_i .= ($payment_delay !== null ? (int)$payment_delay : "NULL").", ";
-                    $sql_i .= "'".$db->escape($gender)."', ".$user->id;
-                    $sql_i .= ")";
-
-                    $resql_i = $db->query($sql_i);
-                    if ($resql_i) {
-                        $db->commit();
-                        $imported++;
-                    } else {
-                        $db->rollback();
-                        $import_errors[] = $langs->trans("Row").' '.$row_num.': '.$db->lasterror();
-                    }
-                }
-                fclose($handle);
-
-                if ($imported > 0) {
-                    setEventMessages(sprintf($langs->trans("ImportedCustomersCount"), $imported), null, 'mesgs');
-                }
-                foreach ($import_errors as $ie) {
-                    setEventMessages($ie, null, 'errors');
-                }
-            }
-        } else {
-            setEventMessages($langs->trans("ErrorOnlyCSVAllowed"), null, 'errors');
-        }
-    } else {
-        setEventMessages($langs->trans("ErrorNoFileUploaded"), null, 'errors');
-    }
-    header('Location: '.$_SERVER['PHP_SELF']);
-    exit;
-}
+// ── (Import / Template actions removed — customers sourced from third-party module) ──
 
 // Build and execute select
-$sql = 'SELECT t.rowid, t.ref, t.firstname, t.lastname, t.phone, t.email, t.company_name, t.tax_no, t.payment_delay, t.gender';
-$sql .= ' FROM '.MAIN_DB_PREFIX.'flotte_customer as t';
-$sql .= ' WHERE 1 = 1';
-$sql .= ' AND t.entity IN ('.getEntity('flotte').')';
+
+// Build and execute select — customers from the third-party (societe) module
+$sql  = 'SELECT t.rowid, t.code_client AS ref, t.nom, t.phone, t.email, t.siren, t.town, t.zip, t.status';
+$sql .= ' FROM '.MAIN_DB_PREFIX.'societe AS t';
+$sql .= ' WHERE t.client IN (1, 2)';
+$sql .= ' AND t.entity IN ('.getEntity('societe').')';
 
 if ($search_ref) {
-    $sql .= " AND t.ref LIKE '%".$db->escape($search_ref)."%'";
+    $sql .= " AND t.code_client LIKE '%".$db->escape($search_ref)."%'";
 }
-if ($search_firstname) {
-    $sql .= " AND t.firstname LIKE '%".$db->escape($search_firstname)."%'";
-}
-if ($search_lastname) {
-    $sql .= " AND t.lastname LIKE '%".$db->escape($search_lastname)."%'";
+if ($search_name) {
+    $sql .= " AND t.nom LIKE '%".$db->escape($search_name)."%'";
 }
 if ($search_phone) {
     $sql .= " AND t.phone LIKE '%".$db->escape($search_phone)."%'";
@@ -241,17 +114,14 @@ if ($search_phone) {
 if ($search_email) {
     $sql .= " AND t.email LIKE '%".$db->escape($search_email)."%'";
 }
-if ($search_company) {
-    $sql .= " AND t.company_name LIKE '%".$db->escape($search_company)."%'";
+if ($search_siren) {
+    $sql .= " AND t.siren LIKE '%".$db->escape($search_siren)."%'";
 }
-if ($search_gender) {
-    $sql .= " AND t.gender = '".$db->escape($search_gender)."'";
+if ($search_town) {
+    $sql .= " AND t.town LIKE '%".$db->escape($search_town)."%'";
 }
-if ($search_tax_no) {
-    $sql .= " AND t.tax_no LIKE '%".$db->escape($search_tax_no)."%'";
-}
-if ($search_payment_delay) {
-    $sql .= " AND t.payment_delay LIKE '%".$db->escape($search_payment_delay)."%'";
+if ($search_status !== '') {
+    $sql .= " AND t.status = ".(int)$search_status;
 }
 
 $sql .= $db->order($sortfield, $sortorder);
@@ -275,27 +145,16 @@ if ($resql) {
 
 // Build param string for URL
 $param = '';
-if (!empty($search_ref))            $param .= '&search_ref='.urlencode($search_ref);
-if (!empty($search_firstname))      $param .= '&search_firstname='.urlencode($search_firstname);
-if (!empty($search_lastname))       $param .= '&search_lastname='.urlencode($search_lastname);
-if (!empty($search_phone))          $param .= '&search_phone='.urlencode($search_phone);
-if (!empty($search_email))          $param .= '&search_email='.urlencode($search_email);
-if (!empty($search_company))        $param .= '&search_company='.urlencode($search_company);
-if (!empty($search_gender))         $param .= '&search_gender='.urlencode($search_gender);
-if (!empty($search_tax_no))         $param .= '&search_tax_no='.urlencode($search_tax_no);
-if (!empty($search_payment_delay))  $param .= '&search_payment_delay='.urlencode($search_payment_delay);
+if (!empty($search_ref))    $param .= '&search_ref='.urlencode($search_ref);
+if (!empty($search_name))   $param .= '&search_name='.urlencode($search_name);
+if (!empty($search_phone))  $param .= '&search_phone='.urlencode($search_phone);
+if (!empty($search_email))  $param .= '&search_email='.urlencode($search_email);
+if (!empty($search_siren))  $param .= '&search_siren='.urlencode($search_siren);
+if (!empty($search_town))   $param .= '&search_town='.urlencode($search_town);
+if ($search_status !== '')  $param .= '&search_status='.urlencode($search_status);
 
 // Page header
 llxHeader('', $langs->trans("Customers List"), '');
-
-// Show delete confirmation dialog if requested
-if ($action == 'delete') {
-    $id_to_delete = GETPOST('id', 'int');
-    if ($id_to_delete > 0) {
-        $formconfirm = $form->formconfirm($_SERVER["PHP_SELF"].'?id='.$id_to_delete, $langs->trans('DeleteCustomer'), $langs->trans('ConfirmDeleteCustomer'), 'confirm_delete', '', 0, 1);
-        print $formconfirm;
-    }
-}
 
 // Collect rows
 $rows = array();
@@ -309,6 +168,14 @@ if ($resql && $num > 0) {
     }
 }
 
+// Count active / inactive
+$cnt_active   = 0;
+$cnt_inactive = 0;
+foreach ($rows as $r) {
+    if ($r->status == 1) $cnt_active++;
+    else $cnt_inactive++;
+}
+
 // Sort helpers
 function cl_sortArrow($field, $sortfield, $sortorder) {
     if ($sortfield == $field) return $sortorder == 'ASC' ? ' <span class="vl-sort-arrow">↑</span>' : ' <span class="vl-sort-arrow">↓</span>';
@@ -320,14 +187,6 @@ function cl_sortHref($field, $sortfield, $sortorder, $self, $param) {
 }
 
 $self = $_SERVER["PHP_SELF"];
-
-// Count by gender
-$cnt_male = 0; $cnt_female = 0; $cnt_other = 0;
-foreach ($rows as $r) {
-    if ($r->gender == 'male') $cnt_male++;
-    elseif ($r->gender == 'female') $cnt_female++;
-    elseif ($r->gender == 'other') $cnt_other++;
-}
 ?>
 
 <style>
@@ -365,8 +224,6 @@ foreach ($rows as $r) {
 }
 .vl-btn-primary   { background: #3c4758 !important; color: #fff !important; }
 .vl-btn-primary:hover  { background: #2a3346 !important; color: #fff !important; }
-.vl-btn-secondary { background: #3c4758 !important; color: #fff !important; border: none !important; }
-.vl-btn-secondary:hover { background: #2a3346 !important; color: #fff !important; }
 
 /* Filters */
 .vl-filters {
@@ -741,18 +598,8 @@ table.vl-table tbody td.center { text-align: center; }
         <div class="vl-subtitle"><?php echo $nbtotalofrecords; ?> <?php echo $langs->trans("CustomersFound"); ?></div>
     </div>
     <div class="vl-header-actions">
-        <?php if ($user->rights->flotte->read) { ?>
-        <a class="vl-btn vl-btn-secondary" href="<?php echo dol_buildpath('/flotte/customer_list.php', 1); ?>?action=export">
-            <i class="fa fa-download"></i> <?php echo $langs->trans("Export"); ?>
-        </a>
-        <?php } ?>
-        <?php if ($user->rights->flotte->write) { ?>
-        <button type="button" class="vl-btn vl-btn-import" onclick="clOpenImport()">
-            <i class="fa fa-file-import"></i> <?php echo $langs->trans("Import"); ?>
-        </button>
-        <?php } ?>
-        <?php if ($user->rights->flotte->write) { ?>
-        <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/customer_card.php', 1); ?>?action=create">
+        <?php if ($user->rights->societe->creer) { ?>
+        <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/societe/card.php', 1); ?>?action=create">
             <i class="fa fa-plus"></i> <?php echo $langs->trans("NewCustomer"); ?>
         </a>
         <?php } ?>
@@ -774,12 +621,8 @@ table.vl-table tbody td.center { text-align: center; }
         <input type="text" name="search_ref" placeholder="<?php echo $langs->trans('SearchRef'); ?>" value="<?php echo dol_escape_htmltag($search_ref); ?>">
     </div>
     <div class="vl-filter-group">
-        <label><?php echo $langs->trans("FirstName"); ?></label>
-        <input type="text" name="search_firstname" placeholder="<?php echo $langs->trans('SearchFirstName'); ?>" value="<?php echo dol_escape_htmltag($search_firstname); ?>">
-    </div>
-    <div class="vl-filter-group">
-        <label><?php echo $langs->trans("LastName"); ?></label>
-        <input type="text" name="search_lastname" placeholder="<?php echo $langs->trans('SearchLastName'); ?>" value="<?php echo dol_escape_htmltag($search_lastname); ?>">
+        <label><?php echo $langs->trans("Name"); ?></label>
+        <input type="text" name="search_name" placeholder="<?php echo $langs->trans('SearchName'); ?>" value="<?php echo dol_escape_htmltag($search_name); ?>">
     </div>
     <div class="vl-filter-group">
         <label><?php echo $langs->trans("Phone"); ?></label>
@@ -790,20 +633,19 @@ table.vl-table tbody td.center { text-align: center; }
         <input type="text" name="search_email" placeholder="<?php echo $langs->trans('SearchEmail'); ?>" value="<?php echo dol_escape_htmltag($search_email); ?>">
     </div>
     <div class="vl-filter-group">
-        <label><?php echo $langs->trans("Company"); ?></label>
-        <input type="text" name="search_company" placeholder="<?php echo $langs->trans('SearchCompany'); ?>" value="<?php echo dol_escape_htmltag($search_company); ?>">
+        <label><?php echo $langs->trans("SIREN"); ?></label>
+        <input type="text" name="search_siren" placeholder="<?php echo $langs->trans('SearchSIREN'); ?>" value="<?php echo dol_escape_htmltag($search_siren); ?>">
     </div>
     <div class="vl-filter-group">
-        <label><?php echo $langs->trans("TaxNo"); ?></label>
-        <input type="text" name="search_tax_no" placeholder="<?php echo $langs->trans('SearchTaxNo'); ?>" value="<?php echo dol_escape_htmltag($search_tax_no); ?>">
+        <label><?php echo $langs->trans("Town"); ?></label>
+        <input type="text" name="search_town" placeholder="<?php echo $langs->trans('SearchTown'); ?>" value="<?php echo dol_escape_htmltag($search_town); ?>">
     </div>
     <div class="vl-filter-group" style="max-width:150px;">
-        <label><?php echo $langs->trans("Gender"); ?></label>
-        <select name="search_gender">
+        <label><?php echo $langs->trans("Status"); ?></label>
+        <select name="search_status">
             <option value=""><?php echo $langs->trans("All"); ?></option>
-            <option value="male"   <?php echo $search_gender === 'male'   ? 'selected' : ''; ?>><?php echo $langs->trans("Male"); ?></option>
-            <option value="female" <?php echo $search_gender === 'female' ? 'selected' : ''; ?>><?php echo $langs->trans("Female"); ?></option>
-            <option value="other"  <?php echo $search_gender === 'other'  ? 'selected' : ''; ?>><?php echo $langs->trans("Other"); ?></option>
+            <option value="1" <?php echo $search_status === '1' ? 'selected' : ''; ?>><?php echo $langs->trans("Active"); ?></option>
+            <option value="0" <?php echo $search_status === '0' ? 'selected' : ''; ?>><?php echo $langs->trans("Inactive"); ?></option>
         </select>
     </div>
     <div class="vl-filter-actions">
@@ -813,27 +655,18 @@ table.vl-table tbody td.center { text-align: center; }
 </div>
 
 <!-- Stats chips -->
-<?php
-$cnt_with_company = 0;
-foreach ($rows as $r) { if (!empty($r->company_name)) $cnt_with_company++; }
-?>
 <div class="vl-stats">
     <div class="vl-stat-chip">
         <span class="vl-stat-num"><?php echo $nbtotalofrecords; ?></span> <?php echo $langs->trans("Total"); ?>
     </div>
-    <?php if ($cnt_with_company > 0) { ?>
-    <div class="vl-stat-chip company">
-        <span class="vl-stat-num"><?php echo $cnt_with_company; ?></span> <?php echo $langs->trans("WithCompany"); ?>
+    <?php if ($cnt_active > 0) { ?>
+    <div class="vl-stat-chip" style="background:#ecfdf5;color:#065f46;">
+        <span class="vl-stat-num" style="color:#065f46;"><?php echo $cnt_active; ?></span> <?php echo $langs->trans("Active"); ?>
     </div>
     <?php } ?>
-    <?php if ($cnt_male > 0) { ?>
-    <div class="vl-stat-chip" style="background:#eff6ff;color:#1d4ed8;">
-        <span class="vl-stat-num" style="color:#1d4ed8;"><?php echo $cnt_male; ?></span> <?php echo $langs->trans("Male"); ?>
-    </div>
-    <?php } ?>
-    <?php if ($cnt_female > 0) { ?>
-    <div class="vl-stat-chip" style="background:#fdf2f8;color:#9d174d;">
-        <span class="vl-stat-num" style="color:#9d174d;"><?php echo $cnt_female; ?></span> <?php echo $langs->trans("Female"); ?>
+    <?php if ($cnt_inactive > 0) { ?>
+    <div class="vl-stat-chip" style="background:#fef2f2;color:#991b1b;">
+        <span class="vl-stat-num" style="color:#991b1b;"><?php echo $cnt_inactive; ?></span> <?php echo $langs->trans("Inactive"); ?>
     </div>
     <?php } ?>
 </div>
@@ -844,34 +677,34 @@ foreach ($rows as $r) { if (!empty($r->company_name)) $cnt_with_company++; }
     <table class="vl-table">
         <thead>
             <tr>
-                <th><a href="<?php echo cl_sortHref('t.ref', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Ref"); ?> <?php echo cl_sortArrow('t.ref', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo cl_sortHref('t.firstname', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Customer"); ?> <?php echo cl_sortArrow('t.firstname', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo cl_sortHref('t.code_client', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Ref"); ?> <?php echo cl_sortArrow('t.code_client', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo cl_sortHref('t.nom', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Name"); ?> <?php echo cl_sortArrow('t.nom', $sortfield, $sortorder); ?></a></th>
                 <th><a href="<?php echo cl_sortHref('t.phone', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Phone"); ?> <?php echo cl_sortArrow('t.phone', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo cl_sortHref('t.company_name', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Company"); ?> <?php echo cl_sortArrow('t.company_name', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo cl_sortHref('t.tax_no', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("TaxNo"); ?> <?php echo cl_sortArrow('t.tax_no', $sortfield, $sortorder); ?></a></th>
-                <th><a href="<?php echo cl_sortHref('t.payment_delay', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("PaymentDelay"); ?> <?php echo cl_sortArrow('t.payment_delay', $sortfield, $sortorder); ?></a></th>
-                <th class="center"><a href="<?php echo cl_sortHref('t.gender', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Gender"); ?> <?php echo cl_sortArrow('t.gender', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo cl_sortHref('t.email', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Email"); ?> <?php echo cl_sortArrow('t.email', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo cl_sortHref('t.siren', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("SIREN"); ?> <?php echo cl_sortArrow('t.siren', $sortfield, $sortorder); ?></a></th>
+                <th><a href="<?php echo cl_sortHref('t.town', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Town"); ?> <?php echo cl_sortArrow('t.town', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><a href="<?php echo cl_sortHref('t.status', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans("Status"); ?> <?php echo cl_sortArrow('t.status', $sortfield, $sortorder); ?></a></th>
                 <th class="center"><?php echo $langs->trans("Action"); ?></th>
             </tr>
         </thead>
         <tbody>
         <?php if (!empty($rows)) {
             foreach ($rows as $obj) {
-                $cardUrl = dol_buildpath('/flotte/customer_card.php', 1).'?id='.$obj->rowid;
-                $fullName = trim(($obj->firstname ?? '').' '.($obj->lastname ?? ''));
+                $cardUrl  = dol_buildpath('/societe/card.php', 1).'?socid='.$obj->rowid;
+                $editUrl  = $cardUrl.'&action=edit';
         ?>
             <tr>
                 <!-- Ref -->
                 <td data-label="<?php echo $langs->trans('Ref'); ?>">
                     <a href="<?php echo $cardUrl; ?>" class="vl-ref-link">
-                        <span class="vl-ref-icon"><i class="fa fa-user"></i></span>
-                        <?php echo dol_escape_htmltag($obj->ref); ?>
+                        <span class="vl-ref-icon"><i class="fa fa-building"></i></span>
+                        <?php echo dol_escape_htmltag($obj->ref ?: '—'); ?>
                     </a>
                 </td>
 
-                <!-- Customer name + email -->
-                <td data-label="<?php echo $langs->trans('Customer'); ?>">
-                    <div class="vl-customer-name"><?php echo dol_escape_htmltag($fullName ?: '—'); ?></div>
+                <!-- Name + email -->
+                <td data-label="<?php echo $langs->trans('Name'); ?>">
+                    <div class="vl-customer-name"><?php echo dol_escape_htmltag($obj->nom ?: '—'); ?></div>
                     <?php if (!empty($obj->email)) { ?>
                     <div class="vl-customer-sub"><?php echo dol_escape_htmltag($obj->email); ?></div>
                     <?php } ?>
@@ -880,50 +713,47 @@ foreach ($rows as $r) { if (!empty($r->company_name)) $cnt_with_company++; }
                 <!-- Phone -->
                 <td data-label="<?php echo $langs->trans('Phone'); ?>"><?php echo dol_escape_htmltag($obj->phone ?: '—'); ?></td>
 
-                <!-- Company -->
-                <td data-label="<?php echo $langs->trans('Company'); ?>">
-                    <?php if (!empty($obj->company_name)) { ?>
-                    <div class="vl-company-chip">
-                        <i class="fa fa-building" style="font-size:11px;opacity:0.7;"></i>
-                        <?php echo dol_escape_htmltag($obj->company_name); ?>
-                    </div>
+                <!-- Email -->
+                <td data-label="<?php echo $langs->trans('Email'); ?>"><?php echo dol_escape_htmltag($obj->email ?: '—'); ?></td>
+
+                <!-- SIREN -->
+                <td data-label="<?php echo $langs->trans('SIREN'); ?>">
+                    <?php if (!empty($obj->siren)) { ?>
+                    <span class="vl-mono"><?php echo dol_escape_htmltag($obj->siren); ?></span>
                     <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
                 </td>
 
-                <!-- Tax No -->
-                <td data-label="<?php echo $langs->trans('TaxNo'); ?>">
-                    <?php if (!empty($obj->tax_no)) { ?>
-                    <span class="vl-mono"><?php echo dol_escape_htmltag($obj->tax_no); ?></span>
+                <!-- Town -->
+                <td data-label="<?php echo $langs->trans('Town'); ?>">
+                    <?php if (!empty($obj->town)) { ?>
+                    <span style="font-size:13px;color:#4a5568;">
+                        <?php if (!empty($obj->zip)) echo dol_escape_htmltag($obj->zip).' '; ?>
+                        <?php echo dol_escape_htmltag($obj->town); ?>
+                    </span>
                     <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
                 </td>
 
-                <!-- Payment Delay -->
-                <td data-label="<?php echo $langs->trans('PaymentDelay'); ?>">
-                    <?php if (!empty($obj->payment_delay)) { ?>
-                    <span class="vl-delay"><?php echo dol_escape_htmltag($obj->payment_delay); ?><span class="vl-delay-unit"><?php echo $langs->trans("Days"); ?></span></span>
-                    <?php } else { echo '<span style="color:#c4c9d8;">—</span>'; } ?>
-                </td>
-
-                <!-- Gender -->
-                <td class="center" data-label="<?php echo $langs->trans('Gender'); ?>">
-                    <?php
-                    $g = $obj->gender;
-                    if ($g == 'male')        echo '<span class="vl-badge male">'.$langs->trans('Male').'</span>';
-                    elseif ($g == 'female')  echo '<span class="vl-badge female">'.$langs->trans('Female').'</span>';
-                    elseif ($g == 'other')   echo '<span class="vl-badge other">'.$langs->trans('Other').'</span>';
-                    else                     echo '<span style="color:#c4c9d8;font-size:13px;">—</span>';
-                    ?>
+                <!-- Status -->
+                <td class="center" data-label="<?php echo $langs->trans('Status'); ?>">
+                    <?php if ($obj->status == 1) { ?>
+                    <span class="vl-badge" style="background:#ecfdf5;color:#065f46;">
+                        <i class="fa fa-circle" style="font-size:7px;color:#10b981;"></i>
+                        <?php echo $langs->trans('Active'); ?>
+                    </span>
+                    <?php } else { ?>
+                    <span class="vl-badge" style="background:#fef2f2;color:#991b1b;">
+                        <i class="fa fa-circle" style="font-size:7px;color:#ef4444;"></i>
+                        <?php echo $langs->trans('Inactive'); ?>
+                    </span>
+                    <?php } ?>
                 </td>
 
                 <!-- Actions -->
                 <td data-label="<?php echo $langs->trans('Action'); ?>">
                     <div class="vl-actions">
                         <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="<?php echo $langs->trans('View'); ?>"><i class="fa fa-eye"></i></a>
-                        <?php if ($user->rights->flotte->write) { ?>
-                        <a href="<?php echo $cardUrl; ?>&action=edit" class="vl-action-btn edit" title="<?php echo $langs->trans('Edit'); ?>"><i class="fa fa-pen"></i></a>
-                        <?php } ?>
-                        <?php if ($user->rights->flotte->delete) { ?>
-                        <a href="<?php echo dol_buildpath('/flotte/customer_list.php', 1); ?>?action=delete&id=<?php echo $obj->rowid; ?>&token=<?php echo newToken(); ?>" class="vl-action-btn del" title="<?php echo $langs->trans('Delete'); ?>"><i class="fa fa-trash"></i></a>
+                        <?php if ($user->rights->societe->creer) { ?>
+                        <a href="<?php echo $editUrl; ?>" class="vl-action-btn edit" title="<?php echo $langs->trans('Edit'); ?>"><i class="fa fa-pen"></i></a>
                         <?php } ?>
                     </div>
                 </td>
@@ -932,10 +762,10 @@ foreach ($rows as $r) { if (!empty($r->company_name)) $cnt_with_company++; }
             <tr>
                 <td colspan="8">
                     <div class="vl-empty">
-                        <div class="vl-empty-icon"><i class="fa fa-user-tie"></i></div>
+                        <div class="vl-empty-icon"><i class="fa fa-building"></i></div>
                         <p><?php echo $langs->trans("NoCustomersFound"); ?></p>
-                        <?php if ($user->rights->flotte->write) { ?>
-                        <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/customer_card.php', 1); ?>?action=create">
+                        <?php if ($user->rights->societe->creer) { ?>
+                        <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/societe/card.php', 1); ?>?action=create">
                             <i class="fa fa-plus"></i> <?php echo $langs->trans("AddFirstCustomer"); ?>
                         </a>
                         <?php } ?>
@@ -980,135 +810,6 @@ foreach ($rows as $r) { if (!empty($r->company_name)) $cnt_with_company++; }
 </form>
 </div><!-- .vl-wrap -->
 
-<!-- ═══════════════════════════════════════════════════════
-     IMPORT MODAL
-═══════════════════════════════════════════════════════ -->
-<?php if ($user->rights->flotte->write) { ?>
-<div class="vl-modal-overlay" id="cl-import-modal" onclick="if(event.target===this)clCloseImport()">
-  <div class="vl-modal">
-
-    <div class="vl-modal-header">
-      <div class="vl-modal-header-left">
-        <div class="vl-modal-icon"><i class="fa fa-file-import"></i></div>
-        <div>
-          <p class="vl-modal-title"><?php echo $langs->trans("ImportCustomers"); ?></p>
-          <p class="vl-modal-sub"><?php echo $langs->trans("ImportCustomersSubtitle"); ?></p>
-        </div>
-      </div>
-      <button class="vl-modal-close" onclick="clCloseImport()" title="<?php echo $langs->trans('Close'); ?>">&#x2715;</button>
-    </div>
-
-    <div class="vl-modal-body">
-
-      <div class="vl-import-notice">
-        <i class="fa fa-info-circle"></i>
-        <div>
-          <?php echo $langs->trans("ImportNoticeText"); ?>
-          <a href="<?php echo dol_buildpath('/flotte/customer_list.php', 1); ?>?action=download_template&token=<?php echo newToken(); ?>">
-            <i class="fa fa-download"></i> <?php echo $langs->trans("DownloadCSVTemplate"); ?>
-          </a>
-        </div>
-      </div>
-
-      <button type="button" class="vl-fields-toggle" onclick="clToggleFields(this)">
-        <i class="fa fa-table"></i> <?php echo $langs->trans("ShowCSVColumns"); ?> <i class="fa fa-chevron-down" id="cl-fields-chevron"></i>
-      </button>
-      <div id="cl-fields-panel" style="display:none;margin-bottom:14px;">
-        <table class="vl-fields-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th><?php echo $langs->trans("ColumnName"); ?></th>
-              <th><?php echo $langs->trans("Description"); ?></th>
-              <th style="text-align:center;"><?php echo $langs->trans("Required"); ?></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td>1</td><td class="vl-col-name">firstname</td><td><?php echo $langs->trans("FirstName"); ?></td><td class="vl-col-opt">—</td></tr>
-            <tr><td>2</td><td class="vl-col-name">lastname</td><td><?php echo $langs->trans("LastName"); ?></td><td class="vl-col-opt">—</td></tr>
-            <tr><td>3</td><td class="vl-col-name">phone</td><td><?php echo $langs->trans("Phone"); ?></td><td class="vl-col-opt">—</td></tr>
-            <tr><td>4</td><td class="vl-col-name">email</td><td><?php echo $langs->trans("Email"); ?></td><td class="vl-col-opt">—</td></tr>
-            <tr><td>5</td><td class="vl-col-name">company_name</td><td><?php echo $langs->trans("Company"); ?></td><td class="vl-col-opt">—</td></tr>
-            <tr><td>6</td><td class="vl-col-name">tax_no</td><td><?php echo $langs->trans("TaxNo"); ?></td><td class="vl-col-opt">—</td></tr>
-            <tr><td>7</td><td class="vl-col-name">payment_delay</td><td><?php echo $langs->trans("PaymentDelay"); ?> (<?php echo $langs->trans("Days"); ?>)</td><td class="vl-col-opt">—</td></tr>
-            <tr><td>8</td><td class="vl-col-name">gender</td><td>male / female / other</td><td class="vl-col-opt">—</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <form method="POST" action="<?php echo dol_buildpath('/flotte/customer_list.php', 1); ?>"
-            enctype="multipart/form-data" id="cl-import-form">
-        <input type="hidden" name="token"  value="<?php echo newToken(); ?>">
-        <input type="hidden" name="action" value="import_csv">
-
-        <div class="vl-dropzone" id="cl-dropzone">
-          <input type="file" name="import_file" id="cl-file-input" accept=".csv,text/csv"
-                 onchange="clFileChosen(this)">
-          <div class="vl-dropzone-icon"><i class="fa fa-cloud-upload-alt"></i></div>
-          <div class="vl-dropzone-text"><?php echo $langs->trans("DropCSVHere"); ?></div>
-          <div class="vl-dropzone-sub"><?php echo $langs->trans("OnlyCSVAccepted"); ?></div>
-          <div class="vl-dropzone-file" id="cl-file-name"></div>
-        </div>
-
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 0;border-top:1px solid #eaecf5;margin-top:18px;gap:10px;flex-wrap:wrap;">
-          <button type="button" class="vl-btn" style="background:#fff;color:#5a6482;border:1.5px solid #d1d5e0;" onclick="clCloseImport()">
-            <i class="fa fa-times"></i> <?php echo $langs->trans("Cancel"); ?>
-          </button>
-          <button type="submit" class="vl-btn vl-btn-primary" id="cl-import-submit" disabled>
-            <i class="fa fa-check"></i> <?php echo $langs->trans("ImportNow"); ?>
-          </button>
-        </div>
-      </form>
-
-    </div>
-  </div>
-</div>
-<?php } ?>
-
-<script>
-function clOpenImport()  { document.getElementById('cl-import-modal').classList.add('open'); }
-function clCloseImport() {
-    document.getElementById('cl-import-modal').classList.remove('open');
-    document.getElementById('cl-import-form').reset();
-    var dz = document.getElementById('cl-dropzone');
-    if (dz) dz.classList.remove('has-file');
-    document.getElementById('cl-file-name').textContent = '';
-    document.getElementById('cl-import-submit').disabled = true;
-}
-function clFileChosen(input) {
-    var dz  = document.getElementById('cl-dropzone');
-    var fn  = document.getElementById('cl-file-name');
-    var btn = document.getElementById('cl-import-submit');
-    if (input.files && input.files.length > 0) {
-        dz.classList.add('has-file');
-        fn.textContent = input.files[0].name;
-        btn.disabled = false;
-    } else {
-        dz.classList.remove('has-file');
-        fn.textContent = '';
-        btn.disabled = true;
-    }
-}
-function clToggleFields(btn) {
-    var panel   = document.getElementById('cl-fields-panel');
-    var chevron = document.getElementById('cl-fields-chevron');
-    if (panel.style.display === 'none') {
-        panel.style.display = 'block';
-        chevron.className = 'fa fa-chevron-up';
-    } else {
-        panel.style.display = 'none';
-        chevron.className = 'fa fa-chevron-down';
-    }
-}
-(function(){
-    var dz = document.getElementById('cl-dropzone');
-    if (!dz) return;
-    dz.addEventListener('dragover',  function(e){ e.preventDefault(); dz.classList.add('drag-over'); });
-    dz.addEventListener('dragleave', function(){ dz.classList.remove('drag-over'); });
-    dz.addEventListener('drop',      function(){ dz.classList.remove('drag-over'); });
-})();
-document.addEventListener('keydown', function(e){ if (e.key === 'Escape') clCloseImport(); });
-</script>
 
 <?php
 if ($resql) { $db->free($resql); }
