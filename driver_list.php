@@ -154,6 +154,86 @@ if ($action == 'download_template') {
     exit;
 }
 
+// ── Export CSV ────────────────────────────────────────────────────────────
+if ($action == 'export' && $user->rights->flotte->read) {
+    $sql_export  = "SELECT t.ref, t.firstname, t.middlename, t.lastname, t.email, t.phone,";
+    $sql_export .= " t.employee_id, t.contract_number, t.license_number,";
+    $sql_export .= " t.license_issue_date, t.license_expiry_date, t.join_date, t.leave_date,";
+    $sql_export .= " t.department, t.status, t.gender, t.address, t.emergency_contact,";
+    $sql_export .= " v.ref as vehicle_ref";
+    $sql_export .= " FROM ".MAIN_DB_PREFIX."flotte_driver as t";
+    $sql_export .= " LEFT JOIN ".MAIN_DB_PREFIX."flotte_vehicle as v ON t.fk_vehicle = v.rowid";
+    $sql_export .= " WHERE 1 = 1";
+    $sql_export .= " AND t.entity IN (".getEntity('flotte').")";
+
+    if ($search_ref) {
+        $sql_export .= " AND t.ref LIKE '%".$db->escape($search_ref)."%'";
+    }
+    if ($search_firstname) {
+        $sql_export .= " AND t.firstname LIKE '%".$db->escape($search_firstname)."%'";
+    }
+    if ($search_lastname) {
+        $sql_export .= " AND t.lastname LIKE '%".$db->escape($search_lastname)."%'";
+    }
+    if ($search_phone) {
+        $sql_export .= " AND t.phone LIKE '%".$db->escape($search_phone)."%'";
+    }
+    if ($search_status) {
+        $sql_export .= " AND t.status = '".$db->escape($search_status)."'";
+    }
+    if ($search_employee_id) {
+        $sql_export .= " AND t.employee_id LIKE '%".$db->escape($search_employee_id)."%'";
+    }
+    if ($search_license_number) {
+        $sql_export .= " AND t.license_number LIKE '%".$db->escape($search_license_number)."%'";
+    }
+    $sql_export .= $db->order($sortfield, $sortorder);
+
+    $resql_export = $db->query($sql_export);
+    if ($resql_export) {
+        $filename = 'drivers_export_'.date('Ymd_His').'.csv';
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="'.$filename.'"');
+        // UTF-8 BOM for Excel compatibility
+        echo "\xEF\xBB\xBF";
+        $out = fopen('php://output', 'w');
+        fputcsv($out, array(
+            'ref','firstname','middlename','lastname','email','phone',
+            'employee_id','contract_number','license_number',
+            'license_issue_date','license_expiry_date','join_date','leave_date',
+            'department','status','gender','address','emergency_contact','vehicle_ref'
+        ));
+        while ($obj_exp = $db->fetch_object($resql_export)) {
+            fputcsv($out, array(
+                $obj_exp->ref,
+                $obj_exp->firstname,
+                $obj_exp->middlename,
+                $obj_exp->lastname,
+                $obj_exp->email,
+                $obj_exp->phone,
+                $obj_exp->employee_id,
+                $obj_exp->contract_number,
+                $obj_exp->license_number,
+                $obj_exp->license_issue_date  ? dol_print_date($db->jdate($obj_exp->license_issue_date),  '%Y-%m-%d') : '',
+                $obj_exp->license_expiry_date ? dol_print_date($db->jdate($obj_exp->license_expiry_date), '%Y-%m-%d') : '',
+                $obj_exp->join_date           ? dol_print_date($db->jdate($obj_exp->join_date),           '%Y-%m-%d') : '',
+                $obj_exp->leave_date          ? dol_print_date($db->jdate($obj_exp->leave_date),          '%Y-%m-%d') : '',
+                $obj_exp->department,
+                $obj_exp->status,
+                $obj_exp->gender,
+                $obj_exp->address,
+                $obj_exp->emergency_contact,
+                $obj_exp->vehicle_ref,
+            ));
+        }
+        fclose($out);
+        $db->free($resql_export);
+        exit;
+    } else {
+        setEventMessages("Export error: ".$db->lasterror(), null, 'errors');
+    }
+}
+
 // ── CSV Import ────────────────────────────────────────────────────────────
 if ($action == 'import_csv' && $user->rights->flotte->write) {
     if (isset($_FILES['import_file']) && $_FILES['import_file']['error'] == 0) {
@@ -861,7 +941,7 @@ table.vl-table tbody td.center { text-align: center; }
     </div>
     <div class="vl-header-actions">
         <?php if ($user->rights->flotte->read) { ?>
-        <a class="vl-btn vl-btn-secondary" href="<?php echo dol_buildpath('/flotte/driver_list.php', 1); ?>?action=export">
+        <a class="vl-btn vl-btn-secondary" href="<?php echo dol_buildpath('/flotte/driver_list.php', 1); ?>?action=export&token=<?php echo newToken(); ?>&sortfield=<?php echo urlencode($sortfield); ?>&sortorder=<?php echo urlencode($sortorder); ?><?php echo $param; ?>">
             <i class="fa fa-download"></i> <?php echo $langs->trans('Export'); ?>
         </a>
         <?php } ?>

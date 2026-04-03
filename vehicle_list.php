@@ -141,6 +141,86 @@ if ($action == 'download_template') {
     exit;
 }
 
+// ── Export CSV ────────────────────────────────────────────────────────────
+if ($action == 'export' && $user->rights->flotte->read) {
+    // Build query with all columns, respecting active filters, no pagination
+    $sql_export  = "SELECT t.ref, t.maker, t.model, t.type, t.year, t.license_plate, t.vin, t.color,";
+    $sql_export .= " t.initial_mileage, t.in_service, t.department, t.engine_type, t.horsepower,";
+    $sql_export .= " t.registration_expiry, t.license_expiry, t.insurance_expiry,";
+    $sql_export .= " t.length_cm, t.width_cm, t.height_cm, t.max_weight_kg, t.ground_height_cm";
+    $sql_export .= " FROM ".MAIN_DB_PREFIX."flotte_vehicle as t";
+    $sql_export .= " WHERE 1 = 1";
+    $sql_export .= " AND t.entity IN (".getEntity('flotte').")";
+
+    if ($search_ref) {
+        $sql_export .= " AND t.ref LIKE '%".$db->escape($search_ref)."%'";
+    }
+    if ($search_maker) {
+        $sql_export .= " AND t.maker LIKE '%".$db->escape($search_maker)."%'";
+    }
+    if ($search_model) {
+        $sql_export .= " AND t.model LIKE '%".$db->escape($search_model)."%'";
+    }
+    if ($search_license_plate) {
+        $sql_export .= " AND t.license_plate LIKE '%".$db->escape($search_license_plate)."%'";
+    }
+    if ($search_status !== '') {
+        if ($search_status == '1') {
+            $sql_export .= " AND t.in_service = 1";
+        } elseif ($search_status == '0') {
+            $sql_export .= " AND t.in_service = 0";
+        }
+    }
+    $sql_export .= $db->order($sortfield, $sortorder);
+
+    $resql_export = $db->query($sql_export);
+    if ($resql_export) {
+        $filename = 'vehicles_export_'.date('Ymd_His').'.csv';
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="'.$filename.'"');
+        // UTF-8 BOM for Excel compatibility
+        echo "\xEF\xBB\xBF";
+        $out = fopen('php://output', 'w');
+        // Header row
+        fputcsv($out, array(
+            'ref','maker','model','type','year','license_plate','vin','color',
+            'initial_mileage','in_service','department','engine_type','horsepower',
+            'registration_expiry','license_expiry','insurance_expiry',
+            'length_cm','width_cm','height_cm','max_weight_kg','ground_height_cm'
+        ));
+        while ($obj_exp = $db->fetch_object($resql_export)) {
+            fputcsv($out, array(
+                $obj_exp->ref,
+                $obj_exp->maker,
+                $obj_exp->model,
+                $obj_exp->type,
+                $obj_exp->year,
+                $obj_exp->license_plate,
+                $obj_exp->vin,
+                $obj_exp->color,
+                $obj_exp->initial_mileage,
+                $obj_exp->in_service,
+                $obj_exp->department,
+                $obj_exp->engine_type,
+                $obj_exp->horsepower,
+                $obj_exp->registration_expiry  ? dol_print_date($db->jdate($obj_exp->registration_expiry), '%Y-%m-%d') : '',
+                $obj_exp->license_expiry       ? dol_print_date($db->jdate($obj_exp->license_expiry),      '%Y-%m-%d') : '',
+                $obj_exp->insurance_expiry     ? dol_print_date($db->jdate($obj_exp->insurance_expiry),    '%Y-%m-%d') : '',
+                $obj_exp->length_cm,
+                $obj_exp->width_cm,
+                $obj_exp->height_cm,
+                $obj_exp->max_weight_kg,
+                $obj_exp->ground_height_cm,
+            ));
+        }
+        fclose($out);
+        $db->free($resql_export);
+        exit;
+    } else {
+        setEventMessages("Export error: ".$db->lasterror(), null, 'errors');
+    }
+}
+
 // ── CSV Import ────────────────────────────────────────────────────────────
 if ($action == 'import_csv' && $user->rights->flotte->write) {
     if (isset($_FILES['import_file']) && $_FILES['import_file']['error'] == 0) {
@@ -1138,7 +1218,7 @@ table.vl-table tbody td.right  { text-align: right; }
     </div>
     <div class="vl-header-actions">
         <?php if ($user->rights->flotte->read) { ?>
-        <a class="vl-btn vl-btn-secondary" href="<?php echo dol_buildpath('/flotte/vehicle_list.php', 1); ?>?action=export">
+        <a class="vl-btn vl-btn-secondary" href="<?php echo dol_buildpath('/flotte/vehicle_list.php', 1); ?>?action=export&token=<?php echo newToken(); ?>&sortfield=<?php echo urlencode($sortfield); ?>&sortorder=<?php echo urlencode($sortorder); ?><?php echo $param; ?>">
             <i class="fa fa-download"></i> <?php echo $langs->trans("Export"); ?>
         </a>
         <?php } ?>

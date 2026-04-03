@@ -156,6 +156,128 @@ if ($action == 'download_template') {
     exit;
 }
 
+// ── Export CSV ────────────────────────────────────────────────────────────
+if ($action == 'export' && $user->rights->flotte->read) {
+    // Re-build invoiced lookup sets (needed before llxHeader is called)
+    $exp_invoiced_customer_ids = array();
+    $exp_invoiced_vendor_ids   = array();
+    $_ri = $db->query("SELECT note_private FROM ".MAIN_DB_PREFIX."facture WHERE note_private LIKE '%FLOTTE_BOOKING_IDS:%' AND fk_statut >= 1 AND entity IN (".getEntity('facture').")");
+    if ($_ri) { while ($_inv = $db->fetch_object($_ri)) { if (preg_match('/FLOTTE_BOOKING_IDS:([\d,]+)/', $_inv->note_private, $_m)) { foreach (explode(',', $_m[1]) as $_bid) { $_bid = (int)trim($_bid); if ($_bid > 0) $exp_invoiced_customer_ids[$_bid] = true; } } } }
+    $_ri2 = $db->query("SELECT note_private FROM ".MAIN_DB_PREFIX."facture_fourn WHERE note_private LIKE '%FLOTTE_VENDOR_BOOKING_IDS:%' AND fk_statut >= 1 AND entity IN (".getEntity('facture_fourn').")");
+    if ($_ri2) { while ($_inv = $db->fetch_object($_ri2)) { if (preg_match('/FLOTTE_VENDOR_BOOKING_IDS:([\d,]+)/', $_inv->note_private, $_m)) { foreach (explode(',', $_m[1]) as $_bid) { $_bid = (int)trim($_bid); if ($_bid > 0) $exp_invoiced_vendor_ids[$_bid] = true; } } } }
+
+    $sql_export  = "SELECT t.rowid, t.ref, t.booking_date, t.status, t.departure_address, t.arriving_address, t.distance,";
+    $sql_export .= " t.selling_amount, t.buying_amount,";
+    $sql_export .= " IFNULL(t.selling_amount_ttc, t.selling_amount) as selling_amount_ttc,";
+    $sql_export .= " IFNULL(t.buying_amount_ttc,  t.buying_amount)  as buying_amount_ttc,";
+    $sql_export .= " v.ref as vehicle_ref, v.maker, v.model, v.license_plate,";
+    $sql_export .= " d.ref as driver_ref, d.firstname as driver_firstname, d.lastname as driver_lastname,";
+    $sql_export .= " c.ref as customer_ref, c.firstname as customer_firstname, c.lastname as customer_lastname, c.company_name,";
+    $sql_export .= " vn.ref as vendor_ref, vn.name as vendor_name";
+    $sql_export .= " FROM ".MAIN_DB_PREFIX."flotte_booking as t";
+    $sql_export .= " LEFT JOIN ".MAIN_DB_PREFIX."flotte_vehicle  as v  ON t.fk_vehicle  = v.rowid";
+    $sql_export .= " LEFT JOIN ".MAIN_DB_PREFIX."flotte_driver   as d  ON t.fk_driver   = d.rowid";
+    $sql_export .= " LEFT JOIN ".MAIN_DB_PREFIX."flotte_customer as c  ON t.fk_customer = c.rowid";
+    $sql_export .= " LEFT JOIN ".MAIN_DB_PREFIX."flotte_vendor   as vn ON t.fk_vendor   = vn.rowid";
+    $sql_export .= " WHERE 1 = 1";
+    $sql_export .= " AND t.entity IN (".getEntity('flotte').")";
+
+    if ($search_ref) {
+        $sql_export .= " AND t.ref LIKE '%".$db->escape($search_ref)."%'";
+    }
+    if ($search_vehicle) {
+        $sql_export .= " AND (v.ref LIKE '%".$db->escape($search_vehicle)."%' OR v.maker LIKE '%".$db->escape($search_vehicle)."%' OR v.model LIKE '%".$db->escape($search_vehicle)."%')";
+    }
+    if ($search_driver) {
+        $sql_export .= " AND (d.firstname LIKE '%".$db->escape($search_driver)."%' OR d.lastname LIKE '%".$db->escape($search_driver)."%')";
+    }
+    if ($search_customer) {
+        $sql_export .= " AND (c.firstname LIKE '%".$db->escape($search_customer)."%' OR c.lastname LIKE '%".$db->escape($search_customer)."%' OR c.company_name LIKE '%".$db->escape($search_customer)."%')";
+    }
+    if ($search_status) {
+        $sql_export .= " AND t.status = '".$db->escape($search_status)."'";
+    }
+    if ($search_date_from) {
+        $sql_export .= " AND t.booking_date >= '".$db->escape($search_date_from)."'";
+    }
+    if ($search_date_to) {
+        $sql_export .= " AND t.booking_date <= '".$db->escape($search_date_to)."'";
+    }
+    if ($search_vendor) {
+        $sql_export .= " AND vn.name LIKE '%".$db->escape($search_vendor)."%'";
+    }
+    if ($search_invoiced_customer === '1') {
+        $ids = !empty($exp_invoiced_customer_ids) ? implode(',', array_keys($exp_invoiced_customer_ids)) : '0';
+        $sql_export .= " AND t.rowid IN (".$ids.")";
+    } elseif ($search_invoiced_customer === '0') {
+        $ids = !empty($exp_invoiced_customer_ids) ? implode(',', array_keys($exp_invoiced_customer_ids)) : '0';
+        $sql_export .= " AND t.rowid NOT IN (".$ids.")";
+    }
+    if ($search_invoiced_vendor === '1') {
+        $ids = !empty($exp_invoiced_vendor_ids) ? implode(',', array_keys($exp_invoiced_vendor_ids)) : '0';
+        $sql_export .= " AND t.rowid IN (".$ids.")";
+    } elseif ($search_invoiced_vendor === '0') {
+        $ids = !empty($exp_invoiced_vendor_ids) ? implode(',', array_keys($exp_invoiced_vendor_ids)) : '0';
+        $sql_export .= " AND t.rowid NOT IN (".$ids.")";
+    }
+    $sql_export .= $db->order($sortfield, $sortorder);
+
+    $resql_export = $db->query($sql_export);
+    if ($resql_export) {
+        $filename = 'bookings_export_'.date('Ymd_His').'.csv';
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="'.$filename.'"');
+        echo "\xEF\xBB\xBF"; // UTF-8 BOM for Excel
+        $out = fopen('php://output', 'w');
+        fputcsv($out, array(
+            'ref','booking_date','status','departure_address','arriving_address','distance',
+            'customer_ref','customer_name','vehicle_ref','vehicle_maker','vehicle_model','vehicle_license_plate',
+            'driver_ref','driver_firstname','driver_lastname',
+            'vendor_ref','vendor_name',
+            'selling_amount','selling_amount_ttc','buying_amount','buying_amount_ttc',
+            'invoiced_customer','invoiced_vendor'
+        ));
+        while ($obj_exp = $db->fetch_object($resql_export)) {
+            $isInvCust   = isset($exp_invoiced_customer_ids[$obj_exp->rowid]) ? 'yes' : 'no';
+            $isInvVendor = isset($exp_invoiced_vendor_ids[$obj_exp->rowid])   ? 'yes' : 'no';
+            $customerName = trim($obj_exp->customer_firstname.' '.$obj_exp->customer_lastname);
+            if (!empty($obj_exp->company_name)) {
+                $customerName = $customerName ? $customerName.' ('.$obj_exp->company_name.')' : $obj_exp->company_name;
+            }
+            fputcsv($out, array(
+                $obj_exp->ref,
+                $obj_exp->booking_date ? dol_print_date($db->jdate($obj_exp->booking_date), '%Y-%m-%d') : '',
+                $obj_exp->status,
+                $obj_exp->departure_address,
+                $obj_exp->arriving_address,
+                $obj_exp->distance,
+                $obj_exp->customer_ref,
+                $customerName,
+                $obj_exp->vehicle_ref,
+                $obj_exp->maker,
+                $obj_exp->model,
+                $obj_exp->license_plate,
+                $obj_exp->driver_ref,
+                $obj_exp->driver_firstname,
+                $obj_exp->driver_lastname,
+                $obj_exp->vendor_ref,
+                $obj_exp->vendor_name,
+                $obj_exp->selling_amount,
+                $obj_exp->selling_amount_ttc,
+                $obj_exp->buying_amount,
+                $obj_exp->buying_amount_ttc,
+                $isInvCust,
+                $isInvVendor,
+            ));
+        }
+        fclose($out);
+        $db->free($resql_export);
+        exit;
+    } else {
+        setEventMessages("Export error: ".$db->lasterror(), null, 'errors');
+    }
+}
+
 // ── CSV Import ────────────────────────────────────────────────────────────
 if ($action == 'import_csv' && $user->rights->flotte->write) {
     if (isset($_FILES['import_file']) && $_FILES['import_file']['error'] == 0) {
@@ -801,7 +923,7 @@ table.vl-table tbody tr.vl-selected td { border-bottom-color: #e9d5ff !important
         <button type="button" class="vl-btn vl-btn-invoice" id="btn-invoice-mode" onclick="toggleInvoiceMode()">
             <i class="fa fa-file-invoice"></i> <?php echo $langs->trans('Invoice'); ?>
         </button>
-        <a class="vl-btn vl-btn-secondary" href="<?php echo dol_buildpath('/flotte/booking_list.php', 1); ?>?action=export">
+        <a class="vl-btn vl-btn-secondary" href="<?php echo dol_buildpath('/flotte/booking_list.php', 1); ?>?action=export&token=<?php echo newToken(); ?>&sortfield=<?php echo urlencode($sortfield); ?>&sortorder=<?php echo urlencode($sortorder); ?><?php echo $param; ?>">
             <i class="fa fa-download"></i> <?php echo $langs->trans('Export'); ?>
         </a>
         <?php } ?>
