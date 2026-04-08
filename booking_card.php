@@ -299,6 +299,7 @@ $object->expense_commission = '';
 $object->expense_commission_agent = '';
 $object->expense_commission_tax = '';
 $object->expense_commission_other = '';
+$object->bl_number = '';
 
 $error = 0;
 $errors = array();
@@ -338,14 +339,8 @@ if ($action == 'add') {
     
     // Get form data with proper validation
     $ref = GETPOST('ref', 'alpha');
+    $bl_number = GETPOST('bl_number', 'alphanohtml');
     $fk_vehicle = GETPOST('fk_vehicle', 'int');
-    $fk_driver = GETPOST('fk_driver', 'int');
-    $fk_vendor = GETPOST('fk_vendor', 'int');
-    $fk_customer = GETPOST('fk_customer', 'int');
-    $buying_tax_rate  = GETPOST('buying_tax_rate', 'alpha');
-    $selling_tax_rate = GETPOST('selling_tax_rate', 'alpha');
-
-    // Fix: Convert date to MySQL format
     $booking_date_raw = GETPOST('booking_date', 'alpha');
     $booking_date = '';
     if (!empty($booking_date_raw)) {
@@ -434,7 +429,7 @@ if ($action == 'add') {
         $sql .= "expense_road, expense_road_toll, expense_road_parking, expense_road_other, ";
         $sql .= "expense_driver, expense_driver_salary, expense_driver_overnight, expense_driver_bonus, ";
         $sql .= "expense_commission, expense_commission_agent, expense_commission_tax, expense_commission_other, ";
-        $sql .= "fk_user_author";
+        $sql .= "bl_number, fk_user_author";
         $sql .= ") VALUES (";
         $sql .= "'".$db->escape($ref)."', ".((int) $conf->entity).", ";
         $sql .= "".((int) $fk_vehicle).", ";
@@ -483,6 +478,7 @@ if ($action == 'add') {
         $sql .= ($expense_commission_agent ? ((float) $expense_commission_agent) : "NULL").", ";
         $sql .= ($expense_commission_tax   ? ((float) $expense_commission_tax)   : "NULL").", ";
         $sql .= ($expense_commission_other ? ((float) $expense_commission_other) : "NULL").", ";
+        $sql .= (!empty($bl_number) ? "'".$db->escape($bl_number)."'" : "NULL").", ";
         $sql .= ((int) $user->id);
         $sql .= ")";
         
@@ -517,6 +513,7 @@ if ($action == 'update' && $id > 0) {
     
     // Get form data with proper validation
     $ref = GETPOST('ref', 'alpha');
+    $bl_number = GETPOST('bl_number', 'alphanohtml');
     $fk_vehicle = GETPOST('fk_vehicle', 'int');
     $fk_driver = GETPOST('fk_driver', 'int');
     $fk_vendor = GETPOST('fk_vendor', 'int');
@@ -649,6 +646,7 @@ if ($action == 'update' && $id > 0) {
         $sql .= "expense_commission_agent = ".($expense_commission_agent ? ((float) $expense_commission_agent) : "NULL").", ";
         $sql .= "expense_commission_tax = ".($expense_commission_tax ? ((float) $expense_commission_tax) : "NULL").", ";
         $sql .= "expense_commission_other = ".($expense_commission_other ? ((float) $expense_commission_other) : "NULL").", ";
+        $sql .= "bl_number = ".(!empty($bl_number) ? "'".$db->escape($bl_number)."'" : "NULL").", ";
         $sql .= "fk_user_modif = ".((int) $user->id).", ";
         $sql .= "tms = '".$db->idate($now)."' ";
         $sql .= "WHERE rowid = ".((int) $id);
@@ -708,6 +706,7 @@ $_new_cols = array(
     'expense_commission_agent'   => 'DECIMAL(15,2) DEFAULT NULL',
     'expense_commission_tax'     => 'DECIMAL(5,2) DEFAULT NULL',
     'expense_commission_other'   => 'DECIMAL(15,2) DEFAULT NULL',
+    'bl_number'                  => 'VARCHAR(100) DEFAULT NULL',
 );
 foreach ($_new_cols as $_col => $_type) {
     $_chk = $db->query("SHOW COLUMNS FROM ".MAIN_DB_PREFIX."flotte_booking LIKE '".$_col."'");
@@ -1275,6 +1274,21 @@ if ($isCreate) {
     print '<input type="text" name="ref" value="'.(isset($object->ref) ? dol_escape_htmltag($object->ref) : '').'" readonly style="background:#f5f6fa!important;color:#9aa0b4!important;">';
 } else {
     print '<span class="dc-ref-tag">'.dol_escape_htmltag($object->ref).'</span>';
+}
+print '    </div></div>';
+
+// BL Number
+print '  <div class="dc-field">';
+print '    <div class="dc-field-label">'.$langs->trans('BLNumber').'</div>';
+print '    <div class="dc-field-value">';
+if ($isCreate || $isEdit) {
+    print '<input type="text" name="bl_number" value="'.(isset($object->bl_number) ? dol_escape_htmltag($object->bl_number) : '').'" placeholder="'.$langs->trans('EnterBLNumber').'" style="width:100%;max-width:260px;">';
+} else {
+    if (!empty($object->bl_number)) {
+        print '<span class="dc-mono">'.dol_escape_htmltag($object->bl_number).'</span>';
+    } else {
+        print '<span style="color:#b0b8cc;font-size:12.5px;">—</span>';
+    }
 }
 print '    </div></div>';
 
