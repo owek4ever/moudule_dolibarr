@@ -130,6 +130,142 @@ if (!function_exists('getNextDriverRef')) {
     }
 }
 
+// ── Ensure fk_socpeople column exists ────────────────────────────────────
+$_chk_sp = $db->query("SHOW COLUMNS FROM ".MAIN_DB_PREFIX."flotte_driver LIKE 'fk_socpeople'");
+if ($_chk_sp && $db->num_rows($_chk_sp) == 0) {
+    $db->query("ALTER TABLE ".MAIN_DB_PREFIX."flotte_driver ADD COLUMN fk_socpeople INT DEFAULT NULL");
+}
+
+// ── Import from Contacts/Addresses ───────────────────────────────────────
+if ($action == 'import_contacts' && $user->rights->flotte->write) {
+    $cnt_added   = 0;
+    $cnt_updated = 0;
+    $cnt_skipped = 0;
+    $debug_msgs  = array();
+
+    // Fetch all contacts — include all phone variants and address components
+    $sql_sp  = "SELECT sp.rowid, sp.firstname, sp.lastname,";
+    $sql_sp .= " sp.phone_mobile, sp.phone, sp.phone_perso,";
+    $sql_sp .= " sp.email, sp.address, sp.zip, sp.town, sp.statut";
+    $sql_sp .= " FROM ".MAIN_DB_PREFIX."socpeople AS sp";
+    $resql_sp = $db->query($sql_sp);
+
+    if (!$resql_sp) {
+        $debug_msgs[] = '[ERROR] socpeople query failed: '.$db->lasterror();
+    } else {
+        $total_found = $db->num_rows($resql_sp);
+        $debug_msgs[] = '[DEBUG] Total contacts in socpeople (no filter): '.$total_found.' | conf->entity='.(int)$conf->entity;
+
+        while ($sp = $db->fetch_object($resql_sp)) {
+            if (empty(trim((string)$sp->lastname)) && empty(trim((string)$sp->firstname))) {
+                $cnt_skipped++;
+                continue;
+            }
+
+            // Use first available phone: mobile > professional > personal
+            $phone = '';
+            if (!empty($sp->phone_mobile)) $phone = $sp->phone_mobile;
+            elseif (!empty($sp->phone))    $phone = $sp->phone;
+            elseif (!empty($sp->phone_perso)) $phone = $sp->phone_perso;
+
+            // Compose full address from street + zip + town
+            $address_parts = array();
+            if (!empty(trim((string)$sp->address))) $address_parts[] = trim($sp->address);
+            $city_line = trim(trim((string)$sp->zip).' '.trim((string)$sp->town));
+            if (!empty($city_line)) $address_parts[] = $city_line;
+            $full_address = implode("\n", $address_parts);
+
+            $gender = '';
+
+            // Check if already imported (by fk_socpeople)
+            $sql_chk  = "SELECT rowid FROM ".MAIN_DB_PREFIX."flotte_driver WHERE fk_socpeople = ".(int)$sp->rowid;
+            $res_chk  = $db->query($sql_chk);
+
+            if ($res_chk && $db->num_rows($res_chk) > 0) {
+                $row_chk = $db->fetch_object($res_chk);
+                $sql_upd  = "UPDATE ".MAIN_DB_PREFIX."flotte_driver SET";
+                $sql_upd .= " firstname = '".$db->escape(trim($sp->firstname))."',";
+                $sql_upd .= " lastname  = '".$db->escape(trim($sp->lastname))."',";
+                $sql_upd .= " phone     = '".$db->escape(trim($phone))."',";
+                $sql_upd .= " email     = '".$db->escape(trim($sp->email))."',";
+                $sql_upd .= " address   = '".$db->escape($full_address)."',";
+                if (!empty($gender)) $sql_upd .= " gender = '".$db->escape($gender)."',";
+                $sql_upd .= " fk_user_modif = ".(int)$user->id.",";
+                $sql_upd .= " tms = '".$db->idate(dol_now())."'";
+                $sql_upd .= " WHERE rowid = ".(int)$row_chk->rowid;
+                $db->begin();
+                if ($db->query($sql_upd)) { $db->commit(); $cnt_updated++; }
+                else { $db->rollback(); $debug_msgs[] = '[ERROR] UPDATE failed for #'.$sp->rowid.': '.$db->lasterror(); }
+            } else {
+                $ref = getNextDriverRef($db);
+                $sql_ins  = "INSERT INTO ".MAIN_DB_PREFIX."flotte_driver";
+                $sql_ins .= " (ref, entity, fk_user, fk_socpeople, firstname, lastname, phone, email, address, gender, status, fk_user_author, datec)";
+                $sql_ins .= " VALUES (";
+                $sql_ins .= "'".$db->escape($ref)."', ".(int)$conf->entity.", NULL, ".(int)$sp->rowid.",";
+                $sql_ins .= "'".$db->escape(trim($sp->firstname))."',";
+                $sql_ins .= "'".$db->escape(trim($sp->lastname))."',";
+                $sql_ins .= (!empty($phone)         ? "'".$db->escape(trim($phone))."'"         : "NULL").",";
+                $sql_ins .= (!empty($sp->email)      ? "'".$db->escape(trim($sp->email))."'"      : "NULL").",";
+                $sql_ins .= (!empty($full_address)   ? "'".$db->escape($full_address)."'"          : "NULL").",";
+                $sql_ins .= "'".$db->escape($gender)."',";
+                $sql_ins .= "'active',";
+                $sql_ins .= (int)$user->id.",";
+                $sql_ins .= "'".$db->idate(dol_now())."'";
+                $sql_ins .= ")";
+                $db->begin();
+                if ($db->query($sql_ins)) {
+                    $new_driver_id = $db->last_insert_id(MAIN_DB_PREFIX."flotte_driver");
+                    $db->commit();
+                    $cnt_added++;
+
+                    // ── Copy files attached to the contact into the driver folder ──
+                    $contact_dir = DOL_DATA_ROOT.'/contact/'.(int)$sp->rowid;
+                    $driver_dir  = DOL_DATA_ROOT.'/flotte/driver';
+                    if (!is_dir($driver_dir)) dol_mkdir($driver_dir);
+                    $first_doc = null;
+                    if (is_dir($contact_dir)) {
+                        $dh = opendir($contact_dir);
+                        if ($dh) {
+                            while (($fname = readdir($dh)) !== false) {
+                                if ($fname === '.' || $fname === '..') continue;
+                                $src = $contact_dir.'/'.$fname;
+                                if (!is_file($src)) continue;
+                                $new_fname = 'contact_'.(int)$sp->rowid.'_'.$fname;
+                                $dst = $driver_dir.'/'.$new_fname;
+                                if (@copy($src, $dst) && is_null($first_doc)) {
+                                    $first_doc = $new_fname;
+                                }
+                            }
+                            closedir($dh);
+                        }
+                    }
+                    // Store first copied file as the driver's documents reference
+                    if ($first_doc && $new_driver_id > 0) {
+                        $db->query("UPDATE ".MAIN_DB_PREFIX."flotte_driver SET documents = '".$db->escape($first_doc)."' WHERE rowid = ".(int)$new_driver_id);
+                    }
+                } else { $db->rollback(); $debug_msgs[] = '[ERROR] INSERT failed for #'.$sp->rowid.' ('.$sp->firstname.' '.$sp->lastname.'): '.$db->lasterror().' | SQL: '.$sql_ins; }
+            }
+        }
+        $db->free($resql_sp);
+    }
+
+    $msg_parts = array();
+    if ($cnt_added   > 0) $msg_parts[] = '<strong>'.$cnt_added.'</strong> '.$langs->trans('ContactsImportAdded');
+    if ($cnt_updated > 0) $msg_parts[] = '<strong>'.$cnt_updated.'</strong> '.$langs->trans('ContactsImportUpdated');
+    if ($cnt_skipped > 0) $msg_parts[] = '<strong>'.$cnt_skipped.'</strong> '.$langs->trans('ContactsImportSkipped');
+    if (!empty($msg_parts)) {
+        setEventMessages('<i class="fa fa-users"></i> '.$langs->trans('ImportFromContactsDone').': '.implode(' — ', $msg_parts), null, 'mesgs');
+    } else {
+        setEventMessages($langs->trans('ImportFromContactsNone'), null, 'warnings');
+    }
+    foreach ($debug_msgs as $dm) {
+        setEventMessages($dm, null, 'warnings');
+    }
+
+    header('Location: '.$_SERVER['PHP_SELF']);
+    exit;
+}
+
 // ── Download CSV template ─────────────────────────────────────────────────
 if ($action == 'download_template') {
     $columns = array(
@@ -951,7 +1087,12 @@ table.vl-table tbody td.center { text-align: center; }
         </button>
         <?php } ?>
         <?php if ($user->rights->flotte->write) { ?>
-        <a class="vl-btn vl-btn-primary" href="<?php echo dol_buildpath('/flotte/driver_card.php', 1); ?>?action=create">
+        <button type="button" class="vl-btn" style="background:#e8f5e9!important;color:#2e7d32!important;border:1.5px solid #a5d6a7!important;" onclick="dlOpenContactsImport()">
+            <i class="fa fa-users"></i> <?php echo $langs->trans('ImportFromContacts'); ?>
+        </button>
+        <?php } ?>
+        <?php if ($user->rights->flotte->write) { ?>
+        <a class="vl-btn vl-btn-primary" href="<?php echo DOL_URL_ROOT; ?>/contact/card.php?action=create">
             <i class="fa fa-plus"></i> <?php echo $langs->trans('NewDriver'); ?>
         </a>
         <?php } ?>
@@ -1296,6 +1437,8 @@ function dlToggleFields(btn) {
         chevron.className = 'fa fa-chevron-down';
     }
 }
+function dlOpenContactsImport()  { document.getElementById('dl-contacts-modal').classList.add('open'); }
+function dlCloseContactsImport() { document.getElementById('dl-contacts-modal').classList.remove('open'); }
 (function(){
     var dz = document.getElementById('dl-dropzone');
     if (!dz) return;
@@ -1303,8 +1446,60 @@ function dlToggleFields(btn) {
     dz.addEventListener('dragleave', function(){ dz.classList.remove('drag-over'); });
     dz.addEventListener('drop',      function(){ dz.classList.remove('drag-over'); });
 })();
-document.addEventListener('keydown', function(e){ if (e.key === 'Escape') dlCloseImport(); });
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') { dlCloseImport(); dlCloseContactsImport(); } });
 </script>
+
+<?php if ($user->rights->flotte->write) { ?>
+<!-- ═══════════════════════════════════════════════════════
+     IMPORT FROM CONTACTS/ADDRESSES MODAL
+═══════════════════════════════════════════════════════ -->
+<div class="vl-modal-overlay" id="dl-contacts-modal" onclick="if(event.target===this)dlCloseContactsImport()">
+  <div class="vl-modal" style="max-width:520px;">
+
+    <div class="vl-modal-header">
+      <div class="vl-modal-header-left">
+        <div class="vl-modal-icon" style="background:rgba(46,125,50,0.1);color:#2e7d32;"><i class="fa fa-users"></i></div>
+        <div>
+          <p class="vl-modal-title"><?php echo $langs->trans('ImportFromContacts'); ?></p>
+          <p class="vl-modal-sub"><?php echo $langs->trans('ImportFromContactsSubtitle'); ?></p>
+        </div>
+      </div>
+      <button class="vl-modal-close" onclick="dlCloseContactsImport()" title="<?php echo $langs->trans('Close'); ?>">&#x2715;</button>
+    </div>
+
+    <div class="vl-modal-body">
+      <div class="vl-import-notice" style="background:#e8f5e9;border-color:#a5d6a7;color:#1b5e20;">
+        <i class="fa fa-info-circle" style="color:#2e7d32;"></i>
+        <div>
+          <?php echo $langs->trans('ImportFromContactsInfo'); ?>
+          <br><small style="color:#388e3c;font-size:11.5px;"><?php echo $langs->trans('ImportFromContactsNote'); ?></small>
+        </div>
+      </div>
+
+      <ul style="font-size:13px;color:#3c4758;margin:0 0 20px 18px;line-height:2;">
+        <li><?php echo $langs->trans('ImportFromContactsRule1'); ?></li>
+        <li><?php echo $langs->trans('ImportFromContactsRule2'); ?></li>
+        <li><?php echo $langs->trans('ImportFromContactsRule3'); ?></li>
+      </ul>
+
+      <form method="POST" action="<?php echo dol_buildpath('/flotte/driver_list.php', 1); ?>">
+        <input type="hidden" name="token"  value="<?php echo newToken(); ?>">
+        <input type="hidden" name="action" value="import_contacts">
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 0;border-top:1px solid #eaecf5;gap:10px;flex-wrap:wrap;">
+          <button type="button" class="vl-btn" style="background:#fff;color:#5a6482;border:1.5px solid #d1d5e0;" onclick="dlCloseContactsImport()">
+            <i class="fa fa-times"></i> <?php echo $langs->trans('Cancel'); ?>
+          </button>
+          <button type="submit" class="vl-btn" style="background:#2e7d32!important;color:#fff!important;border:none!important;">
+            <i class="fa fa-sync-alt"></i> <?php echo $langs->trans('ProceedImport'); ?>
+          </button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
+<?php } ?>
 
 </div><?php
 if ($resql) { $db->free($resql); }

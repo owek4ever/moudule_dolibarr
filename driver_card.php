@@ -165,6 +165,43 @@ if ($action == 'fetch_employee' && GETPOST('fk_user', 'int') > 0) {
     }
 }
 
+// Handle AJAX request to sync data from a Contacts/Addresses (socpeople) record
+if ($action == 'fetch_contact' && GETPOST('fk_socpeople', 'int') > 0) {
+    $sp_id = GETPOST('fk_socpeople', 'int');
+    $sql_sp = "SELECT sp.firstname, sp.lastname, sp.email,";
+    $sql_sp .= " sp.phone_mobile, sp.phone, sp.phone_perso,";
+    $sql_sp .= " sp.address, sp.zip, sp.town";
+    $sql_sp .= " FROM ".MAIN_DB_PREFIX."socpeople AS sp";
+    $sql_sp .= " WHERE sp.rowid = ".(int)$sp_id;
+    $res_sp = $db->query($sql_sp);
+    if ($res_sp && $db->num_rows($res_sp) > 0) {
+        $sp = $db->fetch_object($res_sp);
+        // Phone priority: mobile > professional > personal
+        $phone = '';
+        if (!empty($sp->phone_mobile))  $phone = $sp->phone_mobile;
+        elseif (!empty($sp->phone))     $phone = $sp->phone;
+        elseif (!empty($sp->phone_perso)) $phone = $sp->phone_perso;
+        // Full address: street + zip + town
+        $address_parts = array();
+        if (!empty(trim((string)$sp->address))) $address_parts[] = trim($sp->address);
+        $city_line = trim(trim((string)$sp->zip).' '.trim((string)$sp->town));
+        if (!empty($city_line)) $address_parts[] = $city_line;
+        $data = array(
+            'firstname' => $sp->firstname,
+            'lastname'  => $sp->lastname,
+            'email'     => $sp->email,
+            'phone'     => $phone,
+            'address'   => implode("\n", $address_parts),
+        );
+        header('Content-Type: application/json');
+        echo json_encode($data);
+        exit;
+    }
+    header('Content-Type: application/json');
+    echo json_encode(array('error' => 'Contact not found'));
+    exit;
+}
+
 // Handle delete confirmation
 if ($action == 'confirm_delete' && $confirm == 'yes') {
     $db->begin();
@@ -226,11 +263,6 @@ if ($action == 'add' && !$cancel && $_SERVER["REQUEST_METHOD"] == "POST") {
     $fk_vehicle = GETPOST('fk_vehicle', 'int');
 
     // Validation
-    if (empty($fk_user) || $fk_user <= 0) {
-        $error++;
-        $errors[] = "Please select an Employee from HRM";
-    }
-    
     if (empty($firstname)) {
         $error++;
         $errors[] = transLabel($langs, "ErrorFieldRequired", "FirstName");
@@ -240,18 +272,6 @@ if ($action == 'add' && !$cancel && $_SERVER["REQUEST_METHOD"] == "POST") {
         $errors[] = transLabel($langs, "ErrorFieldRequired", "LastName");
     }
     
-    // Check if this employee is already a driver
-    if (!$error) {
-        $sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."flotte_driver";
-        $sql .= " WHERE fk_user = ".((int) $fk_user);
-        $sql .= " AND entity IN (".getEntity('flotte').")";
-        $resql = $db->query($sql);
-        if ($resql && $db->num_rows($resql) > 0) {
-            $error++;
-            $errors[] = "This Employee is already registered as a driver";
-        }
-    }
-
     if (!$error) {
         $db->begin();
         
@@ -452,6 +472,32 @@ jQuery(document).ready(function() {
         }
     });
 });
+
+function syncFromContact(fk_socpeople) {
+    if (!fk_socpeople) return;
+    var btn = document.getElementById('btn-sync-contact');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Syncing...'; }
+    jQuery.ajax({
+        url: '<?php echo $_SERVER['PHP_SELF']; ?>',
+        type: 'GET',
+        data: { action: 'fetch_contact', fk_socpeople: fk_socpeople },
+        dataType: 'json',
+        success: function(data) {
+            if (data.error) { alert(data.error); return; }
+            if (data.firstname !== undefined) jQuery('input[name="firstname"]').val(data.firstname);
+            if (data.lastname  !== undefined) jQuery('input[name="lastname"]').val(data.lastname);
+            if (data.email     !== undefined) jQuery('input[name="email"]').val(data.email);
+            if (data.phone     !== undefined) jQuery('input[name="phone"]').val(data.phone);
+            if (data.address   !== undefined) jQuery('textarea[name="address"]').val(data.address);
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa fa-check" style="color:#22c55e;"></i> Synced!'; }
+            setTimeout(function(){ if (btn) btn.innerHTML = '<i class="fa fa-sync-alt"></i> <?php echo transLabel($langs, "SyncFromContact"); ?>'; }, 2000);
+        },
+        error: function() {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa fa-sync-alt"></i> <?php echo transLabel($langs, "SyncFromContact"); ?>'; }
+            alert('Error fetching contact data');
+        }
+    });
+}
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -842,7 +888,7 @@ print '    </div></div>';
 
 // Employee
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label required">'.transLabel($langs, 'Employee').'</div>';
+print '    <div class="dc-field-label">'.transLabel($langs, 'Employee').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate) {
     $sql_users = "SELECT u.rowid, u.lastname, u.firstname, u.employee FROM ".MAIN_DB_PREFIX."user as u WHERE u.employee = 1 AND u.entity IN (".getEntity('user').") AND u.statut = 1 ORDER BY u.lastname, u.firstname";
@@ -862,9 +908,31 @@ if ($isCreate) {
     print '</div>';
 } else {
     if ($employee->id > 0) { print $employee->getNomUrl(1); if ($employee->employee) print ' <span class="dc-mono">'.$employee->employee.'</span>'; }
-    else print '&nbsp;';
+    else print '<span style="color:#b0b8cc;font-size:12.5px;">—</span>';
 }
 print '    </div></div>';
+
+// Source Contact (from Contacts/Addresses import)
+if (!$isCreate && !empty($driver_data['fk_socpeople'])) {
+    $sql_sp = "SELECT sp.rowid, sp.firstname, sp.lastname FROM ".MAIN_DB_PREFIX."socpeople AS sp WHERE sp.rowid = ".(int)$driver_data['fk_socpeople'];
+    $res_sp = $db->query($sql_sp);
+    if ($res_sp && $db->num_rows($res_sp) > 0) {
+        $sp_obj = $db->fetch_object($res_sp);
+        print '  <div class="dc-field">';
+        print '    <div class="dc-field-label">'.transLabel($langs, 'SourceContact').'</div>';
+        print '    <div class="dc-field-value" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">';
+        print '<a href="'.DOL_URL_ROOT.'/contact/card.php?id='.(int)$driver_data['fk_socpeople'].'" style="display:inline-flex;align-items:center;gap:6px;">';
+        print '<i class="fa fa-address-book" style="font-size:12px;color:#3c4758;"></i> ';
+        print dol_escape_htmltag(trim($sp_obj->firstname.' '.$sp_obj->lastname));
+        print '</a>';
+        if ($isEdit) {
+            print '<button type="button" id="btn-sync-contact" class="dc-btn dc-btn-ghost" style="padding:4px 10px;font-size:12px;" '
+                .'onclick="syncFromContact('.(int)$driver_data['fk_socpeople'].')">'
+                .'<i class="fa fa-sync-alt"></i> '.transLabel($langs, 'SyncFromContact').'</button>';
+        }
+        print '    </div></div>';
+    }
+}
 
 // First Name
 print '  <div class="dc-field">';
@@ -1129,8 +1197,120 @@ foreach ($file_fields as $ff) {
     print '</div>';
 }
 print '  </div>';// inner grid
-print '  </div>';// card-body
-print '</div>';   // dc-card
+
+// ── Files inherited from linked Contact/Address ──────────────────────────
+if (!$isCreate && !empty($driver_data['fk_socpeople'])) {
+    $sp_id = (int)$driver_data['fk_socpeople'];
+
+    $contact_dir_candidates = array(
+        DOL_DATA_ROOT.'/contact/'.$sp_id,
+        (isset($conf->contact->dir_output) ? $conf->contact->dir_output.'/'.$sp_id : ''),
+        (isset($conf->societe->dir_output) ? $conf->societe->dir_output.'/contact/'.$sp_id : ''),
+    );
+    $contact_dir   = '';
+    $contact_files = array();
+    foreach ($contact_dir_candidates as $candidate) {
+        if (!empty($candidate) && is_dir($candidate)) { $contact_dir = $candidate; break; }
+    }
+    if (!empty($contact_dir)) {
+        $dh = opendir($contact_dir);
+        if ($dh) {
+            while (($fname = readdir($dh)) !== false) {
+                if ($fname === '.' || $fname === '..') continue;
+                if (is_file($contact_dir.'/'.$fname)) $contact_files[] = $fname;
+            }
+            closedir($dh);
+            sort($contact_files);
+        }
+    }
+
+    // ── Separate images from other docs ──
+    $img_exts = array('jpg','jpeg','png','gif','webp');
+    $cf_images = array();
+    $cf_docs   = array();
+    foreach ($contact_files as $fname) {
+        $ext = strtolower(pathinfo($fname, PATHINFO_EXTENSION));
+        if (in_array($ext, $img_exts)) $cf_images[] = $fname;
+        else $cf_docs[] = $fname;
+    }
+
+    print '</div></div>'; // close card-body + dc-card (Files card)
+
+    // ── New standalone card for contact files ──
+    print '<div class="dc-card" style="margin-bottom:20px;">';
+    print '  <div class="dc-card-header">';
+    print '    <div class="dc-card-header-icon purple"><i class="fa fa-address-book"></i></div>';
+    print '    <span class="dc-card-title">'.transLabel($langs, 'FilesFromContact').'</span>';
+    print '    <a href="'.DOL_URL_ROOT.'/contact/card.php?id='.$sp_id.'" target="_blank" style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-size:12px;color:#8b92a9;text-decoration:none;font-weight:600;padding:4px 10px;border:1px solid #e4e7f0;border-radius:6px;transition:background .15s;" onmouseover="this.style.background=\'#f5f6fb\'" onmouseout="this.style.background=\'transparent\'">';
+    print '      <i class="fa fa-external-link-alt" style="font-size:10px;"></i> '.transLabel($langs, 'ViewContact').'</a>';
+    print '  </div>';
+    print '  <div class="dc-card-body" style="padding:20px 24px;">';
+
+    if (empty($contact_files)) {
+        $checked = !empty($contact_dir) ? $contact_dir : implode(', ', array_filter($contact_dir_candidates));
+        print '<div style="text-align:center;padding:28px 0;">';
+        print '  <i class="fa fa-folder-open" style="font-size:32px;color:#d8dcea;display:block;margin-bottom:10px;"></i>';
+        print '  <span style="font-size:13px;color:#b0b8cc;">'.transLabel($langs, 'NoFilesFoundForContact').'</span>';
+        print '  <div style="font-size:11px;color:#d0d5e8;margin-top:4px;font-family:monospace;">'.dol_escape_htmltag($checked).'</div>';
+        print '</div>';
+    } else {
+        // ── Images grid ──
+        if (!empty($cf_images)) {
+            print '<div style="margin-bottom:'.(!empty($cf_docs) ? '20px' : '0').'">';
+            print '<div style="font-size:11px;font-weight:700;color:#8b92a9;text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;">'.transLabel($langs, 'Images').'</div>';
+            print '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px;">';
+            foreach ($cf_images as $fname) {
+                $url = DOL_URL_ROOT.'/document.php?modulepart=contact&file='.urlencode($sp_id.'/'.$fname);
+                print '<a href="'.dol_escape_htmltag($url).'" target="_blank" style="text-decoration:none;">';
+                print '  <div style="border:1.5px solid #e8eaf5;border-radius:10px;overflow:hidden;background:#f8f9fe;transition:border-color .15s,box-shadow .15s;" onmouseover="this.style.borderColor=\'#3c4758\';this.style.boxShadow=\'0 4px 12px rgba(60,71,88,.12)\'" onmouseout="this.style.borderColor=\'#e8eaf5\';this.style.boxShadow=\'none\'">';
+                print '    <div style="height:90px;background:#eef0f8;display:flex;align-items:center;justify-content:center;overflow:hidden;">';
+                print '      <img src="'.dol_escape_htmltag($url).'" alt="'.dol_escape_htmltag($fname).'" style="max-width:100%;max-height:90px;object-fit:cover;" onerror="this.style.display=\'none\';this.parentNode.innerHTML=\'<i class=&quot;fa fa-file-image&quot; style=&quot;font-size:28px;color:#c4c9d8;&quot;></i>\'">';
+                print '    </div>';
+                print '    <div style="padding:7px 9px;font-size:11px;color:#5a6482;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;" title="'.dol_escape_htmltag($fname).'">';
+                print '      '.dol_escape_htmltag($fname);
+                print '    </div>';
+                print '  </div>';
+                print '</a>';
+            }
+            print '</div></div>';
+        }
+
+        // ── Documents list ──
+        if (!empty($cf_docs)) {
+            print '<div>';
+            print '<div style="font-size:11px;font-weight:700;color:#8b92a9;text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;">'.transLabel($langs, 'Documents').'</div>';
+            print '<div style="display:flex;flex-direction:column;gap:8px;">';
+            foreach ($cf_docs as $fname) {
+                $ext  = strtolower(pathinfo($fname, PATHINFO_EXTENSION));
+                $icon = $ext === 'pdf' ? 'fa-file-pdf' : (in_array($ext, array('doc','docx')) ? 'fa-file-word' : 'fa-file-alt');
+                $color = $ext === 'pdf' ? '#e53e3e' : (in_array($ext, array('doc','docx')) ? '#2b6cb0' : '#5a6482');
+                $url  = DOL_URL_ROOT.'/document.php?modulepart=contact&file='.urlencode($sp_id.'/'.$fname);
+                print '<a href="'.dol_escape_htmltag($url).'" target="_blank" style="display:flex;align-items:center;gap:12px;padding:11px 14px;border:1.5px solid #e8eaf5;border-radius:9px;background:#fafbfe;text-decoration:none;transition:all .15s;" onmouseover="this.style.borderColor=\'#3c4758\';this.style.background=\'#f3f4f9\'" onmouseout="this.style.borderColor=\'#e8eaf5\';this.style.background=\'#fafbfe\'">';
+                print '  <div style="width:36px;height:36px;border-radius:8px;background:'.dol_escape_htmltag($color).'1a;display:flex;align-items:center;justify-content:center;flex-shrink:0;">';
+                print '    <i class="fa '.$icon.'" style="font-size:16px;color:'.dol_escape_htmltag($color).';"></i>';
+                print '  </div>';
+                print '  <div style="flex:1;min-width:0;">';
+                print '    <div style="font-size:13px;font-weight:600;color:#2d3748;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'.dol_escape_htmltag($fname).'</div>';
+                print '    <div style="font-size:11px;color:#8b92a9;text-transform:uppercase;margin-top:2px;">'.strtoupper($ext).' '.transLabel($langs, 'File').'</div>';
+                print '  </div>';
+                print '  <i class="fa fa-download" style="font-size:13px;color:#b0b8cc;flex-shrink:0;"></i>';
+                print '</a>';
+            }
+            print '</div></div>';
+        }
+    }
+
+    print '  </div>';// card-body
+    print '</div>';  // dc-card (contact files)
+
+    // Suppress the duplicate closing tags that come after
+    $__contact_files_card_printed = true;
+}
+
+if (empty($__contact_files_card_printed)) {
+    print '  </div>';// card-body
+    print '</div>';  // dc-card (files)
+}
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    BOTTOM ACTION BAR
