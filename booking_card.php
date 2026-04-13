@@ -1400,13 +1400,16 @@ print '    <div class="dc-field-label required">'.$langs->trans('Customer').'</d
 print '    <div class="dc-field-value dc-field-value-inline">';
 if ($isCreate || $isEdit) {
     $customers = array();
-    $sql = "SELECT rowid, firstname, lastname, company_name FROM ".MAIN_DB_PREFIX."flotte_customer WHERE entity IN (".getEntity('flotte').")";
+    $sql = "SELECT t.rowid, t.nom FROM ".MAIN_DB_PREFIX."societe AS t";
+    $sql .= " WHERE t.client IN (1, 2, 3)";
+    $sql .= " AND t.entity IN (".getEntity('societe').")";
+    $sql .= " ORDER BY t.nom ASC";
     $resql = $db->query($sql);
     if ($resql) {
         while ($obj = $db->fetch_object($resql)) {
-            $name = $obj->firstname . ' ' . $obj->lastname;
-            if (!empty($obj->company_name)) $name .= ' (' . $obj->company_name . ')';
-            $customers[$obj->rowid] = dol_escape_htmltag($name);
+            if (!empty($obj->nom)) {
+                $customers[$obj->rowid] = dol_escape_htmltag($obj->nom);
+            }
         }
     }
     print $form->selectarray('fk_customer', $customers, (isset($object->fk_customer) ? $object->fk_customer : ''), 1);
@@ -1417,12 +1420,11 @@ if ($isCreate || $isEdit) {
     print '</div>';
 } else {
     if (!empty($object->fk_customer)) {
-        $sql = "SELECT firstname, lastname, company_name FROM ".MAIN_DB_PREFIX."flotte_customer WHERE rowid = ".((int) $object->fk_customer);
+        $sql = "SELECT nom FROM ".MAIN_DB_PREFIX."societe WHERE rowid = ".((int) $object->fk_customer);
         $resql = $db->query($sql);
         if ($resql && $db->num_rows($resql) > 0) {
             $obj = $db->fetch_object($resql);
-            $name = $obj->firstname . ' ' . $obj->lastname;
-            if (!empty($obj->company_name)) $name .= ' (' . $obj->company_name . ')';
+            $name = $obj->nom;
             print '<span class="dc-chip"><i class="fa fa-user-circle" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($name).'</span>';
         } else {
             print '<span style="color:#c4c9d8;">'.$langs->trans('CustomerNotFound').'</span>';
