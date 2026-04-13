@@ -340,7 +340,10 @@ if ($action == 'add') {
     // Get form data with proper validation
     $ref = GETPOST('ref', 'alpha');
     $bl_number = GETPOST('bl_number', 'alphanohtml');
-    $fk_vehicle = GETPOST('fk_vehicle', 'int');
+    $fk_vehicle  = GETPOST('fk_vehicle', 'int');
+    $fk_customer = GETPOST('fk_customer', 'int');
+    $fk_driver   = GETPOST('fk_driver', 'int');
+    $fk_vendor   = GETPOST('fk_vendor', 'int');
     $booking_date_raw = GETPOST('booking_date', 'alpha');
     $booking_date = '';
     if (!empty($booking_date_raw)) {
@@ -1245,6 +1248,7 @@ if ($isView && $id > 0) {
     if (!empty($user->rights->flotte->write)) {
         print '<a class="dc-btn dc-btn-ghost" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=edit"><i class="fa fa-pen"></i> '.$langs->trans('Modify').'</a>';
     }
+    print '<a class="dc-btn dc-btn-ghost" href="'.dol_buildpath('/flotte/booking_jm_pdf.php', 1).'?id='.$id.'" target="_blank" title="Journey Management PDF" style="background:#1a5276!important;color:#fff!important;border-color:#1a5276!important;"><i class="fa fa-file-pdf"></i> JM PDF</a>';
     print '<a class="dc-btn dc-btn-danger" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=delete"><i class="fa fa-trash"></i> '.$langs->trans('Delete').'</a>';
 }
 print '  </div>';

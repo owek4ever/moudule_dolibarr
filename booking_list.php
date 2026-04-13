@@ -729,6 +729,7 @@ table.vl-table tbody td.right  { text-align: right; }
 .vl-action-btn.view { color: #3c4758; background: #eaecf0; border-color: #c4c9d4; }
 .vl-action-btn.edit { color: #d97706; background: #fef9ec; border-color: #fde9a2; }
 .vl-action-btn.del  { color: #dc2626; background: #fef2f2; border-color: #fecaca; }
+.vl-action-btn.pdf  { color: #b91c1c; background: #fff1f1; border-color: #fca5a5; }
 .vl-action-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.1); text-decoration: none; }
 
 /* Empty state */
@@ -1175,6 +1176,7 @@ table.vl-table tbody tr.vl-selected td { border-bottom-color: #e9d5ff !important
                 <td data-label="<?php echo $langs->trans('Actions'); ?>">
                     <div class="vl-actions">
                         <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="<?php echo $langs->trans('View'); ?>"><i class="fa fa-eye"></i></a>
+                        <a href="<?php echo dol_buildpath('/flotte/booking_jm_pdf.php', 1); ?>?id=<?php echo $obj->rowid; ?>" class="vl-action-btn pdf" title="JM PDF" target="_blank"><i class="fa fa-file-pdf"></i></a>
                         <?php if ($user->rights->flotte->write) { ?>
                         <a href="<?php echo $cardUrl; ?>&action=edit" class="vl-action-btn edit" title="<?php echo $langs->trans('Edit'); ?>"><i class="fa fa-pen"></i></a>
                         <?php } ?>
