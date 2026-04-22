@@ -1,435 +1,151 @@
 <?php
 /* Copyright (C) 2024 Your Company
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 3 of the License, or
- * (at your option) any later version.
+ * Vehicle Maintenance Alert Card
  */
 
-// Load Dolibarr environment
 $res = 0;
 if (!$res && !empty($_SERVER["CONTEXT_DOCUMENT_ROOT"])) {
     $res = @include $_SERVER["CONTEXT_DOCUMENT_ROOT"]."/main.inc.php";
 }
 $tmp = empty($_SERVER['SCRIPT_FILENAME']) ? '' : $_SERVER['SCRIPT_FILENAME'];
 $tmp2 = realpath(__FILE__);
-$i = strlen($tmp) - 1;
-$j = strlen($tmp2) - 1;
+$i = strlen($tmp) - 1; $j = strlen($tmp2) - 1;
 while ($i > 0 && $j > 0 && isset($tmp[$i]) && isset($tmp2[$j]) && $tmp[$i] == $tmp2[$j]) { $i--; $j--; }
-if (!$res && $i > 0 && file_exists(substr($tmp, 0, ($i + 1))."/main.inc.php")) {
-    $res = @include substr($tmp, 0, ($i + 1))."/main.inc.php";
-}
-if (!$res && $i > 0 && file_exists(dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php")) {
-    $res = @include dirname(substr($tmp, 0, ($i + 1)))."/main.inc.php";
-}
-if (!$res && file_exists("../main.inc.php"))      { $res = @include "../main.inc.php"; }
-if (!$res && file_exists("../../main.inc.php"))   { $res = @include "../../main.inc.php"; }
-if (!$res && file_exists("../../../main.inc.php")){ $res = @include "../../../main.inc.php"; }
+if (!$res && $i > 0 && file_exists(substr($tmp, 0, ($i+1))."/main.inc.php")) { $res = @include substr($tmp, 0, ($i+1))."/main.inc.php"; }
+if (!$res && $i > 0 && file_exists(dirname(substr($tmp, 0, ($i+1)))."/main.inc.php")) { $res = @include dirname(substr($tmp, 0, ($i+1)))."/main.inc.php"; }
+if (!$res && file_exists("../main.inc.php"))       { $res = @include "../main.inc.php"; }
+if (!$res && file_exists("../../main.inc.php"))    { $res = @include "../../main.inc.php"; }
+if (!$res && file_exists("../../../main.inc.php")) { $res = @include "../../../main.inc.php"; }
 if (!$res) { die("Include of main fails"); }
 
-require_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
-
-// Load translation files
 $langs->loadLangs(array("flotte@flotte", "other"));
 
-// Function to convert date to MySQL format
-function convertDateToMysql($datestring) {
-    if (empty($datestring)) {
-        return '';
-    }
-    
-    // Handle different date formats
-    $timestamp = dol_stringtotime($datestring);
-    if ($timestamp === false) {
-        // Try parsing common formats
-        $formats = ['m/d/Y', 'd/m/Y', 'Y-m-d', 'Y/m/d'];
-        foreach ($formats as $format) {
-            $date = DateTime::createFromFormat($format, $datestring);
-            if ($date !== false) {
-                return $date->format('Y-m-d');
-            }
-        }
-        return '';
-    }
-    
-    return dol_print_date($timestamp, '%Y-%m-%d', 'tzserver');
-}
-
-// Function to generate next inspection reference
-function getNextInspectionRef($db, $entity) {
-    $prefix = "INSP-";
-    
-    // Get the last reference from database
-    $sql = "SELECT ref FROM ".MAIN_DB_PREFIX."flotte_inspection";
-    $sql .= " WHERE entity = ".((int) $entity);
-    $sql .= " AND ref LIKE '".$db->escape($prefix)."%'";
-    $sql .= " ORDER BY ref DESC LIMIT 1";
-    
-    $resql = $db->query($sql);
-    if ($resql && $db->num_rows($resql) > 0) {
-        $obj = $db->fetch_object($resql);
-        $last_ref = $obj->ref;
-        
-        // Extract the numeric part and increment
-        $numeric_part = (int)str_replace($prefix, '', $last_ref);
-        $next_number = $numeric_part + 1;
-    } else {
-        // No existing references, start from 1
-        $next_number = 1;
-    }
-    
-    // Format with leading zeros (e.g., INSP-0001)
-    return $prefix.str_pad($next_number, 4, '0', STR_PAD_LEFT);
-}
-
-// Function to extract and format a date+time from Dolibarr selectDate POST fields
-function getDateFromPost($field) {
-    $day   = GETPOST($field.'day',   'int');
-    $month = GETPOST($field.'month', 'int');
-    $year  = GETPOST($field.'year',  'int');
-    if ($day > 0 && $month > 0 && $year > 0) {
-        $hour = (int) GETPOST($field.'hour', 'int');
-        $min  = (int) GETPOST($field.'min',  'int');
-        return sprintf('%04d-%02d-%02d %02d:%02d:00', $year, $month, $day, $hour, $min);
-    }
-    $raw = GETPOST($field, 'alpha');
-    if (empty($raw)) return '';
-    $ts = dol_stringtotime($raw);
-    if ($ts) return dol_print_date($ts, '%Y-%m-%d %H:%M:%S', 'tzserver');
-    foreach (['Y-m-d H:i:s', 'Y-m-d H:i', 'Y-m-d', 'd/m/Y', 'm/d/Y'] as $fmt) {
-        $d = DateTime::createFromFormat($fmt, $raw);
-        if ($d) return $d->format('Y-m-d H:i:s');
-    }
-    return '';
-}
-
-// Get parameters
-$id = GETPOST('id', 'int');
-$action = GETPOST('action', 'aZ09') ? GETPOST('action', 'aZ09') : 'view';
-$confirm = GETPOST('confirm', 'alpha');
-$cancel = GETPOST('cancel', 'alpha');
-
-// Security check
 restrictedArea($user, 'flotte');
 
-// Initialize variables
-$object = new stdClass();
-$object->id = 0;
-$object->ref = '';
-$object->fk_vehicle = '';
-$object->registration_number = '';
-$object->meter_out = '';
-$object->meter_in = '';
-$object->fuel_out = '';
-$object->fuel_in = '';
-$object->datetime_out = '';
-$object->datetime_in = '';
-$object->petrol_card = 0;
-$object->lights_indicators = 0;
-$object->inverter_cigarette = 0;
-$object->mats_seats = 0;
-$object->interior_damage = 0;
-$object->interior_lights = 0;
-$object->exterior_damage = 0;
-$object->tyres_condition = 0;
-$object->ladders = 0;
-$object->extension_leeds = 0;
-$object->power_tools = 0;
-$object->ac_working = 0;
-$object->headlights_working = 0;
-$object->locks_alarms = 0;
-$object->windows_condition = 0;
-$object->seats_condition = 0;
-$object->oil_check = 0;
-$object->suspension = 0;
-$object->toolboxes_condition = 0;
-$object->note = '';
+$action     = GETPOST('action', 'aZ09') ?: 'view';
+$fk_vehicle = GETPOST('fk_vehicle', 'int');
+$cancel     = GETPOST('cancel', 'alpha');
+if ($cancel) { $action = 'view'; }
 
-$error = 0;
-$errors = array();
+/* ── Maintenance Interval Definitions ───────────────────────────────────── */
+$maintenanceItems = array(
+    'oil_change'      => array('label'=>'Oil Change',          'icon'=>'fa-oil-can',         'interval_km'=>5000,  'interval_days'=>180,  'warning_km'=>500,  'warning_days'=>14,  'critical'=>true),
+    'oil_filter'      => array('label'=>'Oil Filter',          'icon'=>'fa-filter',          'interval_km'=>5000,  'interval_days'=>180,  'warning_km'=>500,  'warning_days'=>14,  'critical'=>true),
+    'air_filter'      => array('label'=>'Air Filter',          'icon'=>'fa-wind',            'interval_km'=>15000, 'interval_days'=>365,  'warning_km'=>1000, 'warning_days'=>21,  'critical'=>false),
+    'cabin_filter'    => array('label'=>'Cabin Air Filter',    'icon'=>'fa-snowflake',       'interval_km'=>15000, 'interval_days'=>365,  'warning_km'=>1000, 'warning_days'=>21,  'critical'=>false),
+    'tyre_rotation'   => array('label'=>'Tyre Rotation',       'icon'=>'fa-circle-notch',    'interval_km'=>10000, 'interval_days'=>180,  'warning_km'=>800,  'warning_days'=>14,  'critical'=>false),
+    'brake_fluid'     => array('label'=>'Brake Fluid',         'icon'=>'fa-tint',            'interval_km'=>40000, 'interval_days'=>730,  'warning_km'=>2000, 'warning_days'=>30,  'critical'=>true),
+    'brake_pads'      => array('label'=>'Brake Pads',          'icon'=>'fa-stop-circle',     'interval_km'=>30000, 'interval_days'=>730,  'warning_km'=>2000, 'warning_days'=>30,  'critical'=>true),
+    'coolant'         => array('label'=>'Coolant Flush',       'icon'=>'fa-thermometer-half','interval_km'=>50000, 'interval_days'=>730,  'warning_km'=>3000, 'warning_days'=>30,  'critical'=>false),
+    'transmission'    => array('label'=>'Transmission Fluid',  'icon'=>'fa-cogs',            'interval_km'=>60000, 'interval_days'=>1095, 'warning_km'=>3000, 'warning_days'=>30,  'critical'=>false),
+    'spark_plugs'     => array('label'=>'Spark Plugs',         'icon'=>'fa-bolt',            'interval_km'=>30000, 'interval_days'=>730,  'warning_km'=>2000, 'warning_days'=>30,  'critical'=>false),
+    'timing_belt'     => array('label'=>'Timing Belt',         'icon'=>'fa-clock',           'interval_km'=>80000, 'interval_days'=>1825, 'warning_km'=>5000, 'warning_days'=>60,  'critical'=>true),
+    'battery'         => array('label'=>'Battery Check',       'icon'=>'fa-battery-half',    'interval_km'=>0,     'interval_days'=>365,  'warning_km'=>0,    'warning_days'=>30,  'critical'=>false),
+    'wheel_alignment' => array('label'=>'Wheel Alignment',     'icon'=>'fa-arrows-alt-h',    'interval_km'=>20000, 'interval_days'=>365,  'warning_km'=>1500, 'warning_days'=>14,  'critical'=>false),
+    'ac_service'      => array('label'=>'A/C Service',         'icon'=>'fa-wind',            'interval_km'=>0,     'interval_days'=>730,  'warning_km'=>0,    'warning_days'=>30,  'critical'=>false),
+);
 
-// Generate reference for new inspection
-if ($action == 'create' && empty($object->ref)) {
-    $object->ref = getNextInspectionRef($db, $conf->entity);
-}
-
-/*
- * Actions
- */
-
-if ($cancel) {
-    $action = 'view';
-}
-
-if ($action == 'confirm_delete' && $confirm == 'yes' && !empty($user->rights->flotte->delete)) {
-    $db->begin();
-    
-    $sql = "DELETE FROM ".MAIN_DB_PREFIX."flotte_inspection WHERE rowid = ".((int) $id);
-    $result = $db->query($sql);
-    
-    if ($result) {
-        $db->commit();
-        header("Location: " . dol_buildpath('/flotte/inspection_list.php', 1));
-        exit;
-    } else {
-        $db->rollback();
-        $error++;
-        setEventMessages($langs->trans("ErrorDeletingInspection"), null, 'errors');
+/* ── Load Vehicles ──────────────────────────────────────────────────────── */
+$vehicles = array();
+$sql = "SELECT rowid, ref, CONCAT(maker, ' ', model) AS label FROM ".MAIN_DB_PREFIX."flotte_vehicle WHERE entity = ".((int)$conf->entity)." ORDER BY maker, model";
+$resql = $db->query($sql);
+if ($resql) {
+    while ($obj = $db->fetch_object($resql)) {
+        $vehicles[$obj->rowid] = array('ref' => $obj->ref, 'label' => $obj->label);
     }
 }
 
-if ($action == 'add') {
-    $db->begin();
-    
-    // Get form data with proper validation
-    $ref = GETPOST('ref', 'alpha');
-    $fk_vehicle = GETPOST('fk_vehicle', 'int');
-    $registration_number = GETPOST('registration_number', 'alpha');
-    $meter_out = GETPOST('meter_out', 'int');
-    $meter_in = GETPOST('meter_in', 'int');
-    $fuel_out = GETPOST('fuel_out', 'alpha');
-    $fuel_in = GETPOST('fuel_in', 'alpha');
-    
-    $datetime_out = getDateFromPost('datetime_out');
-    $datetime_in  = getDateFromPost('datetime_in');
-    $note = GETPOST('note', 'restricthtml');
+/* ── Load Selected Vehicle ─────────────────────────────────────────────── */
+$vehicle = null; $maintenanceRecords = array(); $currentKm = 0;
 
-    // Checkbox fields
-    $petrol_card = GETPOST('petrol_card', 'int') ? 1 : 0;
-    $lights_indicators = GETPOST('lights_indicators', 'int') ? 1 : 0;
-    $inverter_cigarette = GETPOST('inverter_cigarette', 'int') ? 1 : 0;
-    $mats_seats = GETPOST('mats_seats', 'int') ? 1 : 0;
-    $interior_damage = GETPOST('interior_damage', 'int') ? 1 : 0;
-    $interior_lights = GETPOST('interior_lights', 'int') ? 1 : 0;
-    $exterior_damage = GETPOST('exterior_damage', 'int') ? 1 : 0;
-    $tyres_condition = GETPOST('tyres_condition', 'int') ? 1 : 0;
-    $ladders = GETPOST('ladders', 'int') ? 1 : 0;
-    $extension_leeds = GETPOST('extension_leeds', 'int') ? 1 : 0;
-    $power_tools = GETPOST('power_tools', 'int') ? 1 : 0;
-    $ac_working = GETPOST('ac_working', 'int') ? 1 : 0;
-    $headlights_working = GETPOST('headlights_working', 'int') ? 1 : 0;
-    $locks_alarms = GETPOST('locks_alarms', 'int') ? 1 : 0;
-    $windows_condition = GETPOST('windows_condition', 'int') ? 1 : 0;
-    $seats_condition = GETPOST('seats_condition', 'int') ? 1 : 0;
-    $oil_check = GETPOST('oil_check', 'int') ? 1 : 0;
-    $suspension = GETPOST('suspension', 'int') ? 1 : 0;
-    $toolboxes_condition = GETPOST('toolboxes_condition', 'int') ? 1 : 0;
-    
-    // Auto-generate reference if empty
-    if (empty($ref)) {
-        $ref = getNextInspectionRef($db, $conf->entity);
-    }
-    
-    // Validation
-    if (empty($fk_vehicle)) {
-        $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("Vehicle"));
-    }
-    
-    if (!$error) {
-        $now = dol_now();
-        
-        $sql = "INSERT INTO ".MAIN_DB_PREFIX."flotte_inspection (";
-        $sql .= "ref, entity, fk_vehicle, registration_number, meter_out, meter_in, fuel_out, fuel_in, ";
-        $sql .= "datetime_out, datetime_in, petrol_card, lights_indicators, inverter_cigarette, ";
-        $sql .= "mats_seats, interior_damage, interior_lights, exterior_damage, tyres_condition, ";
-        $sql .= "ladders, extension_leeds, power_tools, ac_working, headlights_working, ";
-        $sql .= "locks_alarms, windows_condition, seats_condition, oil_check, suspension, toolboxes_condition, ";
-        $sql .= "note, fk_user_author";
-        $sql .= ") VALUES (";
-        $sql .= "'".$db->escape($ref)."', ".((int) $conf->entity).", ";
-        $sql .= "".((int) $fk_vehicle).", ";
-        $sql .= "'".$db->escape($registration_number)."', ";
-        $sql .= ($meter_out > 0 ? ((int) $meter_out) : "NULL").", ";
-        $sql .= ($meter_in > 0 ? ((int) $meter_in) : "NULL").", ";
-        $sql .= "'".$db->escape($fuel_out)."', ";
-        $sql .= "'".$db->escape($fuel_in)."', ";
-        $sql .= (!empty($datetime_out) ? "'".$db->escape($datetime_out)."'" : "NULL").", ";
-        $sql .= (!empty($datetime_in) ? "'".$db->escape($datetime_in)."'" : "NULL").", ";
-        $sql .= "".((int) $petrol_card).", ";
-        $sql .= "".((int) $lights_indicators).", ";
-        $sql .= "".((int) $inverter_cigarette).", ";
-        $sql .= "".((int) $mats_seats).", ";
-        $sql .= "".((int) $interior_damage).", ";
-        $sql .= "".((int) $interior_lights).", ";
-        $sql .= "".((int) $exterior_damage).", ";
-        $sql .= "".((int) $tyres_condition).", ";
-        $sql .= "".((int) $ladders).", ";
-        $sql .= "".((int) $extension_leeds).", ";
-        $sql .= "".((int) $power_tools).", ";
-        $sql .= "".((int) $ac_working).", ";
-        $sql .= "".((int) $headlights_working).", ";
-        $sql .= "".((int) $locks_alarms).", ";
-        $sql .= "".((int) $windows_condition).", ";
-        $sql .= "".((int) $seats_condition).", ";
-        $sql .= "".((int) $oil_check).", ";
-        $sql .= "".((int) $suspension).", ";
-        $sql .= "".((int) $toolboxes_condition).", ";
-        $sql .= (!empty($note) ? "'".$db->escape($note)."'" : "NULL").", ";
-        $sql .= ((int) $user->id);
-        $sql .= ")";
-        
-        $result = $db->query($sql);
-        if ($result) {
-            $id = $db->last_insert_id(MAIN_DB_PREFIX."flotte_inspection");
-            $db->commit();
-            $action = 'view';
-            setEventMessages($langs->trans("InspectionCreatedSuccessfully"), null, 'mesgs');
-        } else {
-            $db->rollback();
-            $error++;
-            $errors[] = $langs->trans("ErrorCreatingInspection") . ": " . $db->lasterror();
-        }
-    }
-    
-    if ($error) {
-        $db->rollback();
-    }
-}
+if ($fk_vehicle > 0) {
+    $sql = "SELECT rowid, ref, CONCAT(maker, ' ', model) AS label FROM ".MAIN_DB_PREFIX."flotte_vehicle WHERE rowid=".((int)$fk_vehicle)." AND entity=".((int)$conf->entity);
+    $resql = $db->query($sql);
+    if ($resql && $db->num_rows($resql) > 0) { $vehicle = $db->fetch_object($resql); }
 
-if ($action == 'update' && $id > 0) {
-    $db->begin();
-    
-    // Get form data with proper validation
-    $ref = GETPOST('ref', 'alpha');
-    $fk_vehicle = GETPOST('fk_vehicle', 'int');
-    $registration_number = GETPOST('registration_number', 'alpha');
-    $meter_out = GETPOST('meter_out', 'int');
-    $meter_in = GETPOST('meter_in', 'int');
-    $fuel_out = GETPOST('fuel_out', 'alpha');
-    $fuel_in = GETPOST('fuel_in', 'alpha');
-    
-    $datetime_out = getDateFromPost('datetime_out');
-    $datetime_in  = getDateFromPost('datetime_in');
-    $note = GETPOST('note', 'restricthtml');
+    $sql = "SELECT MAX(meter_in) as last_km FROM ".MAIN_DB_PREFIX."flotte_inspection WHERE fk_vehicle=".((int)$fk_vehicle)." AND entity=".((int)$conf->entity);
+    $resql = $db->query($sql);
+    if ($resql) { $obj = $db->fetch_object($resql); if ($obj && $obj->last_km) $currentKm = (int)$obj->last_km; }
 
-    // Checkbox fields
-    $petrol_card = GETPOST('petrol_card', 'int') ? 1 : 0;
-    $lights_indicators = GETPOST('lights_indicators', 'int') ? 1 : 0;
-    $inverter_cigarette = GETPOST('inverter_cigarette', 'int') ? 1 : 0;
-    $mats_seats = GETPOST('mats_seats', 'int') ? 1 : 0;
-    $interior_damage = GETPOST('interior_damage', 'int') ? 1 : 0;
-    $interior_lights = GETPOST('interior_lights', 'int') ? 1 : 0;
-    $exterior_damage = GETPOST('exterior_damage', 'int') ? 1 : 0;
-    $tyres_condition = GETPOST('tyres_condition', 'int') ? 1 : 0;
-    $ladders = GETPOST('ladders', 'int') ? 1 : 0;
-    $extension_leeds = GETPOST('extension_leeds', 'int') ? 1 : 0;
-    $power_tools = GETPOST('power_tools', 'int') ? 1 : 0;
-    $ac_working = GETPOST('ac_working', 'int') ? 1 : 0;
-    $headlights_working = GETPOST('headlights_working', 'int') ? 1 : 0;
-    $locks_alarms = GETPOST('locks_alarms', 'int') ? 1 : 0;
-    $windows_condition = GETPOST('windows_condition', 'int') ? 1 : 0;
-    $seats_condition = GETPOST('seats_condition', 'int') ? 1 : 0;
-    $oil_check = GETPOST('oil_check', 'int') ? 1 : 0;
-    $suspension = GETPOST('suspension', 'int') ? 1 : 0;
-    $toolboxes_condition = GETPOST('toolboxes_condition', 'int') ? 1 : 0;
-    
-    // Validation
-    if (empty($fk_vehicle)) {
-        $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("Vehicle"));
-    }
-    
-    if (!$error) {
-        $now = dol_now();
-        
-        $sql = "UPDATE ".MAIN_DB_PREFIX."flotte_inspection SET ";
-        $sql .= "ref = '".$db->escape($ref)."', ";
-        $sql .= "fk_vehicle = ".((int) $fk_vehicle).", ";
-        $sql .= "registration_number = '".$db->escape($registration_number)."', ";
-        $sql .= "meter_out = ".($meter_out > 0 ? ((int) $meter_out) : "NULL").", ";
-        $sql .= "meter_in = ".($meter_in > 0 ? ((int) $meter_in) : "NULL").", ";
-        $sql .= "fuel_out = '".$db->escape($fuel_out)."', ";
-        $sql .= "fuel_in = '".$db->escape($fuel_in)."', ";
-        $sql .= "datetime_out = ".(!empty($datetime_out) ? "'".$db->escape($datetime_out)."'" : "NULL").", ";
-        $sql .= "datetime_in = ".(!empty($datetime_in) ? "'".$db->escape($datetime_in)."'" : "NULL").", ";
-        $sql .= "petrol_card = ".((int) $petrol_card).", ";
-        $sql .= "lights_indicators = ".((int) $lights_indicators).", ";
-        $sql .= "inverter_cigarette = ".((int) $inverter_cigarette).", ";
-        $sql .= "mats_seats = ".((int) $mats_seats).", ";
-        $sql .= "interior_damage = ".((int) $interior_damage).", ";
-        $sql .= "interior_lights = ".((int) $interior_lights).", ";
-        $sql .= "exterior_damage = ".((int) $exterior_damage).", ";
-        $sql .= "tyres_condition = ".((int) $tyres_condition).", ";
-        $sql .= "ladders = ".((int) $ladders).", ";
-        $sql .= "extension_leeds = ".((int) $extension_leeds).", ";
-        $sql .= "power_tools = ".((int) $power_tools).", ";
-        $sql .= "ac_working = ".((int) $ac_working).", ";
-        $sql .= "headlights_working = ".((int) $headlights_working).", ";
-        $sql .= "locks_alarms = ".((int) $locks_alarms).", ";
-        $sql .= "windows_condition = ".((int) $windows_condition).", ";
-        $sql .= "seats_condition = ".((int) $seats_condition).", ";
-        $sql .= "oil_check = ".((int) $oil_check).", ";
-        $sql .= "suspension = ".((int) $suspension).", ";
-        $sql .= "toolboxes_condition = ".((int) $toolboxes_condition).", ";
-        $sql .= "note = ".(!empty($note) ? "'".$db->escape($note)."'" : "NULL").", ";
-        $sql .= "fk_user_modif = ".((int) $user->id).", ";
-        $sql .= "tms = '".$db->idate($now)."' ";
-        $sql .= "WHERE rowid = ".((int) $id);
-        
-        $result = $db->query($sql);
-        if ($result) {
-            $db->commit();
-            $action = 'view';
-            setEventMessages($langs->trans("InspectionUpdatedSuccessfully"), null, 'mesgs');
-        } else {
-            $db->rollback();
-            $error++;
-            $errors[] = $langs->trans("ErrorUpdatingInspection") . ": " . $db->lasterror();
-        }
-    }
-    
-    if ($error) {
-        $db->rollback();
-    }
-}
-
-// Load object data
-if ($id > 0) {
-    $sql = "SELECT * FROM ".MAIN_DB_PREFIX."flotte_inspection WHERE rowid = ".((int) $id);
+    $sql = "SELECT service_type, last_km, last_date, next_km, next_date, technician, notes FROM ".MAIN_DB_PREFIX."flotte_maintenance WHERE fk_vehicle=".((int)$fk_vehicle)." AND entity=".((int)$conf->entity)." ORDER BY last_date DESC";
     $resql = $db->query($sql);
     if ($resql) {
-        $object = $db->fetch_object($resql);
-        if (!$object) {
-            header("HTTP/1.0 404 Not Found");
-            print $langs->trans("InspectionNotFound");
-            exit;
+        while ($obj = $db->fetch_object($resql)) {
+            if (!isset($maintenanceRecords[$obj->service_type])) $maintenanceRecords[$obj->service_type] = $obj;
         }
-    } else {
-        header("HTTP/1.0 500 Internal Server Error");
-        print $langs->trans("ErrorLoadingInspection") . ": " . $db->lasterror();
-        exit;
     }
 }
 
-$form = new Form($db);
-
-// Initialize technical object to manage hooks
-$hookmanager->initHooks(array('inspectioncard'));
-
-/*
- * View
- */
-
-$title = $langs->trans('Inspection');
-if ($action == 'create') {
-    $title = $langs->trans('NewInspection');
-} elseif ($action == 'edit') {
-    $title = $langs->trans('EditInspection');
-} elseif ($id > 0) {
-    $title = $langs->trans('Inspection') . " " . $object->ref;
+/* ── Save Maintenance ───────────────────────────────────────────────────── */
+if ($action === 'save_maintenance' && $fk_vehicle > 0) {
+    $db->begin();
+    $service_type = GETPOST('service_type', 'alpha');
+    $last_km      = GETPOST('last_km', 'int');
+    $last_date    = GETPOST('last_date', 'alpha');
+    $technician   = GETPOST('technician', 'alpha');
+    $notes        = GETPOST('notes', 'restricthtml');
+    if (!empty($service_type) && isset($maintenanceItems[$service_type])) {
+        $item      = $maintenanceItems[$service_type];
+        $next_km   = $last_km + $item['interval_km'];
+        $next_date = '';
+        if (!empty($last_date) && $item['interval_days'] > 0)
+            $next_date = date('Y-m-d', strtotime("+{$item['interval_days']} days", strtotime($last_date)));
+        $sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."flotte_maintenance WHERE fk_vehicle=".((int)$fk_vehicle)." AND service_type='".$db->escape($service_type)."' AND entity=".((int)$conf->entity);
+        $resql = $db->query($sql);
+        if ($resql && $db->num_rows($resql) > 0) {
+            $obj = $db->fetch_object($resql);
+            $sql = "UPDATE ".MAIN_DB_PREFIX."flotte_maintenance SET last_km=".((int)$last_km).",last_date='".$db->escape($last_date)."',next_km=".((int)$next_km).",next_date='".$db->escape($next_date)."',technician='".$db->escape($technician)."',notes='".$db->escape($notes)."',tms=NOW() WHERE rowid=".((int)$obj->rowid);
+        } else {
+            $sql = "INSERT INTO ".MAIN_DB_PREFIX."flotte_maintenance (entity,fk_vehicle,service_type,last_km,last_date,next_km,next_date,technician,notes,datec) VALUES (".((int)$conf->entity).",".((int)$fk_vehicle).",'".$db->escape($service_type)."',".((int)$last_km).",'".$db->escape($last_date)."',".((int)$next_km).",'".$db->escape($next_date)."','".$db->escape($technician)."','".$db->escape($notes)."',NOW())";
+        }
+        if ($db->query($sql)) { $db->commit(); setEventMessages($langs->trans("MaintenanceSaved"), null, 'mesgs'); }
+        else { $db->rollback(); setEventMessages($langs->trans("Error"), null, 'errors'); }
+    }
+    header("Location: ".$_SERVER['PHP_SELF']."?fk_vehicle=".$fk_vehicle);
+    exit;
 }
 
-llxHeader('', $title);
+/* ── Alert Status ───────────────────────────────────────────────────────── */
+function getAlertStatus($item, $record, $currentKm) {
+    if (!$record) return array('status'=>'unknown','km_remaining'=>null,'days_remaining'=>null,'progress'=>0);
+    $status = 'ok'; $kmRemaining = null; $daysRemaining = null; $progress = 0;
+    if ($item['interval_km'] > 0 && $record->next_km > 0) {
+        $kmRemaining = (int)$record->next_km - $currentKm;
+        $progress    = min(100, max(0, (($currentKm - (int)$record->last_km) / $item['interval_km']) * 100));
+        if ($kmRemaining <= 0)                       $status = 'critical';
+        elseif ($kmRemaining <= $item['warning_km']) $status = 'warning';
+    }
+    if ($item['interval_days'] > 0 && !empty($record->next_date)) {
+        $daysRemaining = (int)((strtotime($record->next_date) - time()) / 86400);
+        if ($daysRemaining <= 0 && $status !== 'critical')               $status = 'critical';
+        elseif ($daysRemaining <= $item['warning_days'] && $status==='ok') $status = 'warning';
+    }
+    return array('status'=>$status,'km_remaining'=>$kmRemaining,'days_remaining'=>$daysRemaining,'progress'=>$progress);
+}
 
+$criticalCount=0; $warningCount=0; $okCount=0; $unknownCount=0; $alertData=array();
+foreach ($maintenanceItems as $key => $item) {
+    $record = isset($maintenanceRecords[$key]) ? $maintenanceRecords[$key] : null;
+    $alert  = getAlertStatus($item, $record, $currentKm);
+    $alertData[$key] = $alert;
+    if      ($alert['status']==='critical') $criticalCount++;
+    elseif  ($alert['status']==='warning')  $warningCount++;
+    elseif  ($alert['status']==='ok')       $okCount++;
+    else                                    $unknownCount++;
+}
+
+if ($criticalCount>0)    { $overallStatus='critical'; }
+elseif ($warningCount>0) { $overallStatus='warning'; }
+else                     { $overallStatus='ok'; }
+
+llxHeader('', $langs->trans('MaintenanceAlerts'), '');
 ?>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 
-.dc-page * { box-sizing: border-box; }
-.dc-page {
+.mc-page * { box-sizing: border-box; }
+.mc-page {
     font-family: 'DM Sans', sans-serif;
     max-width: 1160px;
     margin: 0 auto;
@@ -439,24 +155,21 @@ llxHeader('', $title);
 
 /* ── Page header ── */
 .dc-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    display: flex; align-items: center; justify-content: space-between;
     padding: 26px 0 22px;
     border-bottom: 1px solid #e8eaf0;
-    margin-bottom: 28px;
-    gap: 16px;
-    flex-wrap: wrap;
+    margin-bottom: 24px;
+    gap: 16px; flex-wrap: wrap;
 }
-.dc-header-left { display: flex; align-items: center; gap: 14px; }
-.dc-header-icon {
+.dc-header-left  { display: flex; align-items: center; gap: 14px; }
+.dc-header-icon  {
     width: 46px; height: 46px; border-radius: 12px;
     background: rgba(60,71,88,0.1);
     display: flex; align-items: center; justify-content: center;
     color: #3c4758; font-size: 20px; flex-shrink: 0;
 }
 .dc-header-title { font-size: 21px; font-weight: 700; color: #1a1f2e; margin: 0 0 3px; letter-spacing: -0.3px; }
-.dc-header-sub { font-size: 12.5px; color: #8b92a9; font-weight: 400; }
+.dc-header-sub   { font-size: 12.5px; color: #8b92a9; font-weight: 400; }
 .dc-header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
 /* ── Buttons ── */
@@ -475,30 +188,18 @@ llxHeader('', $title);
     border: 1.5px solid #d1d5e0 !important;
 }
 .dc-btn-ghost:hover { background: #f5f6fa !important; color: #2d3748 !important; }
-.dc-btn-danger {
-    background: #fef2f2 !important; color: #dc2626 !important;
-    border: 1.5px solid #fecaca !important;
-}
-.dc-btn-danger:hover { background: #fee2e2 !important; color: #b91c1c !important; }
 button.dc-btn-primary { background: #3c4758 !important; color: #fff !important; border: none !important; }
 button.dc-btn-primary:hover { background: #2a3346 !important; }
+button.dc-btn-ghost { background: #fff !important; color: #5a6482 !important; border: 1.5px solid #d1d5e0 !important; }
 
-/* ── Two-column grid ── */
-.dc-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    margin-bottom: 20px;
-}
-@media (max-width: 780px) { .dc-grid { grid-template-columns: 1fr; } }
-
-/* ── Section card ── */
+/* ── Cards ── */
 .dc-card {
     background: #fff;
     border: 1px solid #e8eaf0;
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+    margin-bottom: 16px;
 }
 .dc-card-header {
     display: flex; align-items: center; gap: 10px;
@@ -511,69 +212,22 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
     display: flex; align-items: center; justify-content: center;
     font-size: 13px; flex-shrink: 0;
 }
-.dc-card-header-icon.blue   { background: rgba(60,71,88,0.1);  color: #3c4758; }
-.dc-card-header-icon.green  { background: rgba(22,163,74,0.1);  color: #16a34a; }
-.dc-card-header-icon.amber  { background: rgba(217,119,6,0.1);  color: #d97706; }
-.dc-card-header-icon.purple { background: rgba(109,40,217,0.1); color: #6d28d9; }
-.dc-card-header-icon.red    { background: rgba(220,38,38,0.1);  color: #dc2626; }
+.dc-card-header-icon.blue  { background: rgba(60,71,88,0.1);  color: #3c4758; }
+.dc-card-header-icon.green { background: rgba(22,163,74,0.1);  color: #16a34a; }
+.dc-card-header-icon.amber { background: rgba(217,119,6,0.1);  color: #d97706; }
+.dc-card-header-icon.red   { background: rgba(220,38,38,0.1);  color: #dc2626; }
 .dc-card-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: #8b92a9; }
-.dc-card-body { padding: 0; }
 
-/* ── Field rows ── */
-.dc-field {
-    display: flex; align-items: flex-start;
-    padding: 12px 20px;
-    border-bottom: 1px solid #f5f6fb;
-    gap: 12px;
+/* ── Vehicle selector ── */
+.mc-selector-row {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 16px 20px;
 }
-.dc-field:last-child { border-bottom: none; }
-.dc-field-label {
-    flex: 0 0 160px; font-size: 12px; font-weight: 600;
-    color: #8b92a9; text-transform: uppercase; letter-spacing: 0.5px;
-    padding-top: 2px; line-height: 1.4;
+.mc-selector-row label {
+    font-size: 12px; font-weight: 600; color: #8b92a9;
+    text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
 }
-.dc-field-label.required::after { content: ' *'; color: #ef4444; }
-.dc-field-value { flex: 1; font-size: 13.5px; color: #2d3748; line-height: 1.5; min-width: 0; }
-.dc-field-value a { color: #3c4758; }
-
-/* ── Mono / chip ── */
-.dc-mono {
-    font-family: 'DM Mono', monospace; font-size: 12px;
-    background: #f0f2fa; color: #4a5568;
-    padding: 3px 9px; border-radius: 5px; display: inline-block;
-}
-.dc-chip {
-    display: inline-flex; align-items: center; gap: 6px;
-    font-size: 12.5px; font-weight: 600; color: #3c4758;
-    background: rgba(60,71,88,0.07); padding: 4px 10px; border-radius: 6px;
-}
-
-/* ── Checklist grid ── */
-.dc-checklist {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0;
-    padding: 0;
-}
-@media (max-width: 640px) { .dc-checklist { grid-template-columns: repeat(2, 1fr); } }
-.dc-check-item {
-    display: flex; align-items: center; gap: 10px;
-    padding: 11px 20px;
-    border-bottom: 1px solid #f5f6fb;
-    border-right: 1px solid #f5f6fb;
-    font-size: 13px; color: #2d3748;
-}
-.dc-check-item:nth-child(3n) { border-right: none; }
-.dc-check-item label { display: flex; align-items: center; gap: 9px; cursor: pointer; font-size: 13px; color: #2d3748; margin: 0; }
-.dc-check-item input[type="checkbox"] { width: 15px !important; height: 15px !important; cursor: pointer; accent-color: #3c4758; }
-.dc-pill-yes { background: #edfaf3; color: #1a7d4a; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
-.dc-pill-no  { background: #f5f6fb; color: #8b92a9; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
-
-/* ── Form inputs ── */
-.dc-page input[type="text"],
-.dc-page input[type="number"],
-.dc-page select,
-.dc-page textarea {
+.mc-selector-row select {
     padding: 8px 12px !important;
     border: 1.5px solid #e2e5f0 !important;
     border-radius: 8px !important;
@@ -582,372 +236,600 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
     color: #2d3748 !important;
     background: #fafbfe !important;
     outline: none !important;
-    transition: border-color 0.15s, box-shadow 0.15s !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
+    transition: border-color 0.15s !important;
+    min-width: 260px; flex: 1; cursor: pointer;
 }
-.dc-page input[type="text"]:focus,
-.dc-page input[type="number"]:focus,
-.dc-page select:focus,
-.dc-page textarea:focus {
-    border-color: #3c4758 !important;
-    box-shadow: 0 0 0 3px rgba(60,71,88,0.1) !important;
-    background: #fff !important;
+.mc-selector-row select:focus { border-color: #3c4758 !important; box-shadow: 0 0 0 3px rgba(60,71,88,0.1) !important; }
+.mc-odometer {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(60,71,88,0.06); border: 1px solid #e2e5f0;
+    border-radius: 8px; padding: 8px 16px; margin-left: auto;
 }
-.dc-page input[type="checkbox"] { width: auto !important; cursor: pointer; }
-.dc-page textarea { resize: vertical !important; }
+.mc-odometer-icon { color: #3c4758; font-size: 15px; }
+.mc-odometer-val  { font-family: 'DM Mono', monospace; font-size: 17px; font-weight: 600; color: #3c4758; line-height: 1; }
+.mc-odometer-lbl  { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #8b92a9; font-weight: 500; }
 
-/* ── Bottom action bar ── */
-.dc-action-bar {
-    display: flex; align-items: center; justify-content: flex-end;
-    gap: 8px; padding: 18px 0 4px;
-    flex-wrap: wrap;
+/* ── Alert banners ── */
+.mc-alert {
+    display: flex; align-items: flex-start; gap: 14px;
+    padding: 14px 20px; border-left-width: 3px; border-left-style: solid;
 }
-.dc-action-bar-left { margin-right: auto; }
+.mc-alert + .mc-alert { border-top: 1px solid #f0f2f8; }
+.mc-alert.critical { background: #fff5f5; border-left-color: #dc2626; }
+.mc-alert.warning  { background: #fffbeb; border-left-color: #d97706; }
+.mc-alert.ok       { background: #f0fdf4; border-left-color: #16a34a; }
+.mc-alert-icon {
+    width: 30px; height: 30px; border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; flex-shrink: 0; margin-top: 1px;
+}
+.mc-alert.critical .mc-alert-icon { background: rgba(220,38,38,0.1);  color: #dc2626; }
+.mc-alert.warning  .mc-alert-icon { background: rgba(217,119,6,0.1);  color: #d97706; }
+.mc-alert.ok       .mc-alert-icon { background: rgba(22,163,74,0.1);  color: #16a34a; }
+.mc-alert-body { flex: 1; }
+.mc-alert-title {
+    font-size: 12.5px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.4px; margin-bottom: 6px;
+}
+.mc-alert.critical .mc-alert-title { color: #dc2626; }
+.mc-alert.warning  .mc-alert-title { color: #d97706; }
+.mc-alert.ok       .mc-alert-title { color: #16a34a; }
+.mc-alert-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.mc-alert-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 600;
+}
+.mc-alert.critical .mc-alert-tag { background: rgba(220,38,38,0.08); color: #b91c1c; border: 1px solid rgba(220,38,38,0.15); }
+.mc-alert.warning  .mc-alert-tag { background: rgba(217,119,6,0.08);  color: #b45309; border: 1px solid rgba(217,119,6,0.15); }
 
-/* ── Ref tag ── */
-.dc-ref-tag {
-    font-family: 'DM Mono', monospace; font-size: 13px;
+/* ── Stats row ── */
+.mc-stats-grid {
+    display: grid; grid-template-columns: repeat(4,1fr);
+    gap: 0; border-bottom: 1px solid #f0f2f8;
+}
+@media(max-width:640px) { .mc-stats-grid { grid-template-columns: repeat(2,1fr); } }
+.mc-stat-tile {
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 20px; border-right: 1px solid #f0f2f8;
+}
+.mc-stat-tile:last-child { border-right: none; }
+.mc-stat-bar { width: 4px; height: 32px; border-radius: 2px; flex-shrink: 0; }
+.mc-stat-bar.red   { background: #dc2626; }
+.mc-stat-bar.amber { background: #d97706; }
+.mc-stat-bar.green { background: #16a34a; }
+.mc-stat-bar.muted { background: #d1d5e0; }
+.mc-stat-num { font-family: 'DM Mono', monospace; font-size: 26px; font-weight: 600; line-height: 1; }
+.mc-stat-num.red   { color: #dc2626; }
+.mc-stat-num.amber { color: #d97706; }
+.mc-stat-num.green { color: #16a34a; }
+.mc-stat-num.muted { color: #c4c9d8; }
+.mc-stat-lbl { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: #8b92a9; font-weight: 600; margin-top: 2px; }
+
+/* ── Section separator ── */
+.mc-section-sep {
+    display: flex; align-items: center; gap: 10px;
+    margin: 24px 0 10px;
+}
+.mc-section-sep-line { flex: 1; height: 1px; background: #e8eaf0; }
+.mc-section-sep-label {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 1.2px;
+    text-transform: uppercase; white-space: nowrap;
+    display: flex; align-items: center; gap: 7px;
+    padding: 3px 10px; border-radius: 20px;
+}
+.mc-section-sep-label.critical { background: #fff5f5; color: #dc2626; border: 1px solid rgba(220,38,38,0.2); }
+.mc-section-sep-label.warning  { background: #fffbeb; color: #d97706; border: 1px solid rgba(217,119,6,0.2); }
+.mc-section-sep-label.ok       { background: #f0fdf4; color: #16a34a; border: 1px solid rgba(22,163,74,0.2); }
+.mc-section-sep-label.unknown  { background: #f7f8fc; color: #8b92a9; border: 1px solid #e8eaf0; }
+.mc-section-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.mc-section-sep-label.critical .mc-section-dot { background: #dc2626; }
+.mc-section-sep-label.warning  .mc-section-dot { background: #d97706; }
+.mc-section-sep-label.ok       .mc-section-dot { background: #16a34a; }
+.mc-section-sep-label.unknown  .mc-section-dot { background: #c4c9d8; }
+
+/* ── Maintenance table ── */
+.mc-table { width: 100%; border-collapse: collapse; }
+.mc-table thead tr { background: #f7f8fc; border-bottom: 1px solid #e8eaf0; }
+.mc-table thead th {
+    padding: 10px 16px; text-align: left;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+    text-transform: uppercase; color: #8b92a9; white-space: nowrap;
+}
+.mc-table tbody tr {
+    border-bottom: 1px solid #f5f6fb;
+    transition: background 0.12s; cursor: pointer;
+}
+.mc-table tbody tr:last-child { border-bottom: none; }
+.mc-table tbody tr:hover { background: #f7f8fc; }
+.mc-table td { padding: 12px 16px; vertical-align: middle; }
+
+.mc-stripe { width: 4px; padding: 0 !important; }
+.mc-stripe.critical { background: #dc2626; }
+.mc-stripe.warning  { background: #d97706; }
+.mc-stripe.ok       { background: #16a34a; }
+.mc-stripe.unknown  { background: #e8eaf0; }
+
+.mc-row-icon {
+    width: 34px; height: 34px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+}
+.mc-row-icon.critical { background: rgba(220,38,38,0.08);  color: #dc2626; }
+.mc-row-icon.warning  { background: rgba(217,119,6,0.08);  color: #d97706; }
+.mc-row-icon.ok       { background: rgba(22,163,74,0.08);  color: #16a34a; }
+.mc-row-icon.unknown  { background: rgba(60,71,88,0.06);   color: #8b92a9; }
+
+.mc-row-name   { font-size: 13.5px; font-weight: 600; color: #2d3748; }
+.mc-row-badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+.mc-row-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 1px 7px; border-radius: 4px;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+}
+.mc-row-badge.critical { background: rgba(220,38,38,0.08);  color: #b91c1c; border: 1px solid rgba(220,38,38,0.15); }
+.mc-row-badge.warning  { background: rgba(217,119,6,0.08);  color: #b45309; border: 1px solid rgba(217,119,6,0.15); }
+.mc-row-badge.ok       { background: rgba(22,163,74,0.08);  color: #15803d; border: 1px solid rgba(22,163,74,0.15); }
+.mc-row-badge.unknown  { background: #f7f8fc; color: #8b92a9; border: 1px solid #e8eaf0; }
+.mc-row-badge.safety   { background: rgba(109,40,217,0.07); color: #6d28d9; border: 1px solid rgba(109,40,217,0.15); }
+
+.mc-prog-wrap { min-width: 160px; }
+.mc-prog-meta { display: flex; justify-content: space-between; font-size: 10px; color: #8b92a9; margin-bottom: 5px; font-weight: 500; }
+.mc-prog-pct  { font-family: 'DM Mono', monospace; font-size: 10px; font-weight: 600; }
+.mc-prog-pct.critical { color: #dc2626; }
+.mc-prog-pct.warning  { color: #d97706; }
+.mc-prog-pct.ok       { color: #16a34a; }
+.mc-prog-track { height: 5px; background: #f0f2f8; border-radius: 99px; overflow: hidden; }
+.mc-prog-fill  { height: 100%; border-radius: 99px; transition: width 0.8s ease; }
+.mc-prog-fill.critical { background: #dc2626; }
+.mc-prog-fill.warning  { background: #d97706; }
+.mc-prog-fill.ok       { background: #16a34a; }
+.mc-prog-fill.unknown  { background: #e8eaf0; }
+
+.mc-num-val  { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 600; line-height: 1; }
+.mc-num-val.critical { color: #dc2626; }
+.mc-num-val.warning  { color: #d97706; }
+.mc-num-val.ok       { color: #16a34a; }
+.mc-num-val.muted    { color: #c4c9d8; }
+.mc-num-unit { font-size: 9px; letter-spacing: 0.8px; text-transform: uppercase; color: #c4c9d8; margin-top: 2px; font-weight: 600; }
+
+.mc-interval  { font-family: 'DM Mono', monospace; font-size: 11px; color: #8b92a9; line-height: 1.5; }
+.mc-last-date { font-family: 'DM Mono', monospace; font-size: 11px; font-weight: 500; color: #5a6482; }
+.mc-last-tech { font-size: 11px; color: #8b92a9; margin-top: 2px; }
+
+.mc-log-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 6px 12px; border-radius: 6px;
+    background: #fff; border: 1.5px solid #d1d5e0;
+    font-family: 'DM Sans', sans-serif; font-size: 11px; font-weight: 600;
+    color: #5a6482; cursor: pointer; transition: all 0.15s;
+    text-transform: uppercase; letter-spacing: 0.4px;
+}
+.mc-log-btn:hover { background: #3c4758; border-color: #3c4758; color: #fff; }
+
+/* ── Empty state ── */
+.mc-empty { padding: 64px 24px; text-align: center; }
+.mc-empty-icon {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: #f7f8fc; border: 2px dashed #d1d5e0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; color: #c4c9d8; margin: 0 auto 20px;
+}
+.mc-empty h3 { font-size: 17px; font-weight: 700; color: #8b92a9; margin: 0 0 8px; }
+.mc-empty p  { font-size: 13px; color: #c4c9d8; margin: 0; }
+
+/* ── Modal ── */
+.mc-modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(15,20,35,0.55); z-index: 9000;
+    align-items: center; justify-content: center;
+    backdrop-filter: blur(3px);
+}
+.mc-modal-overlay.open { display: flex; }
+.mc-modal {
+    background: #fff; border: 1px solid #e8eaf0;
+    border-radius: 14px; padding: 28px; width: 480px; max-width: 95vw;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.12);
+    animation: modalIn .2s cubic-bezier(.16,1,.3,1);
+}
+@keyframes modalIn { from{opacity:0;transform:scale(.96) translateY(10px)} to{opacity:1;transform:none} }
+.mc-modal-head {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 22px; padding-bottom: 18px;
+    border-bottom: 1px solid #f0f2f8;
+}
+.mc-modal-head-icon {
+    width: 38px; height: 38px; border-radius: 10px;
     background: rgba(60,71,88,0.08); color: #3c4758;
-    padding: 4px 10px; border-radius: 6px; font-weight: 500;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
+}
+.mc-modal-title { font-size: 16px; font-weight: 700; color: #1a1f2e; }
+.mc-modal-sub   { font-size: 11px; color: #8b92a9; margin-top: 2px; font-family: 'DM Mono', monospace; }
+.mc-modal-field { margin-bottom: 14px; }
+.mc-modal-field label {
+    display: block; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.8px; text-transform: uppercase; color: #8b92a9; margin-bottom: 6px;
+}
+.mc-modal-field input,
+.mc-modal-field textarea {
+    width: 100%; padding: 9px 12px;
+    border: 1.5px solid #e2e5f0; border-radius: 8px;
+    font-size: 13px; font-family: 'DM Sans', sans-serif;
+    color: #2d3748; background: #fafbfe; outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    box-sizing: border-box;
+}
+.mc-modal-field input:focus,
+.mc-modal-field textarea:focus {
+    border-color: #3c4758; box-shadow: 0 0 0 3px rgba(60,71,88,0.1); background: #fff;
+}
+.mc-modal-field textarea { resize: vertical; min-height: 72px; }
+.mc-modal-actions {
+    display: flex; gap: 8px; justify-content: flex-end;
+    margin-top: 22px; padding-top: 18px; border-top: 1px solid #f0f2f8;
 }
 
-/* ── Fix Dolibarr date/time widget styling ── */
-.dc-page .tcms { display:inline-flex !important; align-items:center !important; gap:4px !important; flex-wrap:wrap !important; }
-.dc-page input.hasDatepicker,
-.dc-page input[id^="datetime_out"],
-.dc-page input[id^="datetime_in"] {
-    padding: 7px 10px !important;
-    border: 1.5px solid #e2e5f0 !important;
-    border-radius: 8px !important;
-    font-size: 13px !important;
-    font-family: 'DM Sans', sans-serif !important;
-    color: #2d3748 !important;
-    background: #fafbfe !important;
-    width: 120px !important;
-    box-sizing: border-box !important;
-}
-.dc-page select[id^="datetime_outhour"],
-.dc-page select[id^="datetime_outmin"],
-.dc-page select[id^="datetime_inhour"],
-.dc-page select[id^="datetime_inmin"] {
-    padding: 7px 6px !important;
-    border: 1.5px solid #e2e5f0 !important;
-    border-radius: 8px !important;
-    font-size: 13px !important;
-    font-family: 'DM Sans', sans-serif !important;
-    color: #2d3748 !important;
-    background: #fafbfe !important;
-    width: auto !important;
-}
-.dc-page img[id$="DatePicker"] { display:none !important; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ── Responsive ── */
+@media(max-width:1024px) { .mc-col-interval, .mc-col-last { display: none; } }
+@media(max-width:768px)  { .mc-col-days { display: none; } }
+@media(max-width:580px)  { .mc-col-km, .mc-col-progress { display: none; } }
 </style>
+
+<div class="mc-page">
+
+<!-- ══ HEADER ════════════════════════════════════════════════════════════════ -->
+<div class="dc-header">
+    <div class="dc-header-left">
+        <div class="dc-header-icon"><i class="fa fa-tools"></i></div>
+        <div>
+            <div class="dc-header-title"><?= $langs->trans('MaintenanceAlerts') ?></div>
+            <div class="dc-header-sub">
+                <?php if ($vehicle): ?>
+                    [<?= dol_escape_htmltag($vehicle->ref) ?>] <?= dol_escape_htmltag($vehicle->label) ?> &nbsp;&bull;&nbsp;
+                <?php endif; ?>
+                <?= $langs->trans('FleetManagement') ?>
+            </div>
+        </div>
+    </div>
+    <div class="dc-header-actions">
+        <?php if ($vehicle): ?>
+            <?php if ($criticalCount > 0): ?>
+            <span class="dc-btn" style="background:#fff5f5;color:#dc2626;border:1.5px solid rgba(220,38,38,0.25);cursor:default;">
+                <span style="width:7px;height:7px;border-radius:50%;background:#dc2626;animation:blink 1s infinite;display:inline-block;"></span>
+                <?= $criticalCount ?> <?= $langs->trans('Overdue') ?>
+            </span>
+            <?php elseif ($warningCount > 0): ?>
+            <span class="dc-btn" style="background:#fffbeb;color:#d97706;border:1.5px solid rgba(217,119,6,0.25);cursor:default;">
+                <span style="width:7px;height:7px;border-radius:50%;background:#d97706;display:inline-block;"></span>
+                <?= $warningCount ?> <?= $langs->trans('DueSoon') ?>
+            </span>
+            <?php else: ?>
+            <span class="dc-btn" style="background:#f0fdf4;color:#16a34a;border:1.5px solid rgba(22,163,74,0.25);cursor:default;">
+                <span style="width:7px;height:7px;border-radius:50%;background:#16a34a;display:inline-block;"></span>
+                <?= $langs->trans('AllClear') ?>
+            </span>
+            <?php endif; ?>
+        <?php endif; ?>
+        <a class="dc-btn dc-btn-ghost" href="<?= dol_buildpath('/flotte/inspection_list.php', 1) ?>">
+            <i class="fa fa-arrow-left"></i> <?= $langs->trans('BackToList') ?>
+        </a>
+    </div>
+</div>
+
+<!-- ══ VEHICLE SELECTOR ═══════════════════════════════════════════════════════ -->
+<div class="dc-card">
+    <div class="dc-card-header">
+        <div class="dc-card-header-icon blue"><i class="fa fa-car"></i></div>
+        <span class="dc-card-title"><?= $langs->trans('Vehicle') ?></span>
+    </div>
+    <form method="GET" action="<?= $_SERVER['PHP_SELF'] ?>">
+    <div class="mc-selector-row">
+        <label><i class="fa fa-car" style="margin-right:5px;"></i><?= $langs->trans('SelectVehicle') ?></label>
+        <select name="fk_vehicle" onchange="this.form.submit()">
+            <option value=""><?= $langs->trans('SelectAVehicle') ?>…</option>
+            <?php foreach ($vehicles as $vid => $v): ?>
+            <option value="<?= (int)$vid ?>" <?= ($fk_vehicle == $vid ? 'selected' : '') ?>>
+                [<?= dol_escape_htmltag($v['ref']) ?>] <?= dol_escape_htmltag($v['label']) ?>
+            </option>
+            <?php endforeach; ?>
+        </select>
+        <?php if ($vehicle && $currentKm > 0): ?>
+        <div class="mc-odometer">
+            <i class="fa fa-tachometer-alt mc-odometer-icon"></i>
+            <div>
+                <div class="mc-odometer-lbl">Odometer</div>
+                <div class="mc-odometer-val"><?= number_format($currentKm) ?> <span style="font-size:11px;opacity:.6;">km</span></div>
+            </div>
+        </div>
+        <?php endif; ?>
+    </div>
+    </form>
+</div>
+
+<?php if (!$vehicle): ?>
+<!-- ══ EMPTY STATE ════════════════════════════════════════════════════════════ -->
+<div class="dc-card">
+    <div class="mc-empty">
+        <div class="mc-empty-icon"><i class="fa fa-car"></i></div>
+        <h3><?= $langs->trans('SelectVehicleToBegin') ?></h3>
+        <p><?= $langs->trans('ChooseVehicleFromDropdown') ?></p>
+    </div>
+</div>
+
+<?php else: ?>
+
+<!-- ══ ALERT BANNERS ══════════════════════════════════════════════════════════ -->
 <?php
+$critItems = array_filter($alertData, function($a){ return $a['status']==='critical'; });
+$warnItems = array_filter($alertData, function($a){ return $a['status']==='warning'; });
+?>
+<?php if (!empty($critItems) || !empty($warnItems) || $okCount > 0): ?>
+<div class="dc-card" style="overflow:hidden;">
+    <?php if (!empty($critItems)): ?>
+    <div class="mc-alert critical">
+        <div class="mc-alert-icon"><i class="fa fa-exclamation-triangle"></i></div>
+        <div class="mc-alert-body">
+            <div class="mc-alert-title"><i class="fa fa-shield-alt" style="margin-right:5px;"></i><?= $langs->trans('ServiceOverdue') ?> — <?= $langs->trans('ImmediateAttentionRequired') ?></div>
+            <div class="mc-alert-tags">
+                <?php foreach ($critItems as $key => $a): ?>
+                <span class="mc-alert-tag"><i class="fa <?= $maintenanceItems[$key]['icon'] ?>"></i><?= dol_escape_htmltag($maintenanceItems[$key]['label']) ?></span>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+    <?php if (!empty($warnItems)): ?>
+    <div class="mc-alert warning">
+        <div class="mc-alert-icon"><i class="fa fa-bell"></i></div>
+        <div class="mc-alert-body">
+            <div class="mc-alert-title"><?= $langs->trans('ServiceDueSoon') ?> — <?= $langs->trans('ScheduleServiceSoon') ?></div>
+            <div class="mc-alert-tags">
+                <?php foreach ($warnItems as $key => $a): ?>
+                <span class="mc-alert-tag"><i class="fa <?= $maintenanceItems[$key]['icon'] ?>"></i><?= dol_escape_htmltag($maintenanceItems[$key]['label']) ?></span>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+    <?php if (empty($critItems) && empty($warnItems) && $okCount > 0): ?>
+    <div class="mc-alert ok">
+        <div class="mc-alert-icon"><i class="fa fa-check-circle"></i></div>
+        <div class="mc-alert-body">
+            <div class="mc-alert-title"><?= $langs->trans('AllServicesUpToDate') ?></div>
+        </div>
+    </div>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
 
-// Confirmation to delete
-if ($action == 'delete') {
-    $formconfirm = $form->formconfirm(
-        $_SERVER["PHP_SELF"] . '?id=' . $id,
-        $langs->trans('DeleteInspection'),
-        $langs->trans('ConfirmDeleteInspection'),
-        'confirm_delete',
-        '',
-        0,
-        1
-    );
-    print $formconfirm;
-}
+<!-- ══ STATS ══════════════════════════════════════════════════════════════════ -->
+<div class="dc-card" style="overflow:hidden;">
+    <div class="mc-stats-grid">
+        <div class="mc-stat-tile">
+            <div class="mc-stat-bar red"></div>
+            <div>
+                <div class="mc-stat-num red"><?= $criticalCount ?></div>
+                <div class="mc-stat-lbl"><?= $langs->trans('Overdue') ?></div>
+            </div>
+        </div>
+        <div class="mc-stat-tile">
+            <div class="mc-stat-bar amber"></div>
+            <div>
+                <div class="mc-stat-num amber"><?= $warningCount ?></div>
+                <div class="mc-stat-lbl"><?= $langs->trans('DueSoon') ?></div>
+            </div>
+        </div>
+        <div class="mc-stat-tile">
+            <div class="mc-stat-bar green"></div>
+            <div>
+                <div class="mc-stat-num green"><?= $okCount ?></div>
+                <div class="mc-stat-lbl"><?= $langs->trans('UpToDate') ?></div>
+            </div>
+        </div>
+        <div class="mc-stat-tile">
+            <div class="mc-stat-bar muted"></div>
+            <div>
+                <div class="mc-stat-num muted"><?= $unknownCount ?></div>
+                <div class="mc-stat-lbl"><?= $langs->trans('NoRecord') ?></div>
+            </div>
+        </div>
+    </div>
+</div>
 
-// Show error messages
-if (!empty($errors)) {
-    foreach ($errors as $error_msg) {
-        setEventMessage($error_msg, 'errors');
-    }
-}
-
-$isEdit   = ($action == 'edit');
-$isCreate = ($action == 'create');
-$isView   = (!$isEdit && !$isCreate);
-
-$pageTitle = $isCreate ? $langs->trans('NewInspection') : ($isEdit ? $langs->trans('EditInspection') : $langs->trans('Inspection'));
-$pageSub   = $isCreate ? $langs->trans('FillInInspectionDetails') : (isset($object->ref) ? $object->ref : '');
-
-// Form start
-if ($isCreate || $isEdit) {
-    print '<form method="POST" action="'.$_SERVER['PHP_SELF'].($id > 0 ? '?id='.$id : '').'">';
-    print '<input type="hidden" name="action" value="'.($isCreate ? 'add' : 'update').'">';
-    print '<input type="hidden" name="token" value="'.newToken().'">';
-    if ($id > 0) {
-        print '<input type="hidden" name="id" value="'.$id.'">';
-    }
-}
-
-print '<div class="dc-page">';
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   PAGE HEADER
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-print '<div class="dc-header">';
-print '  <div class="dc-header-left">';
-print '    <div class="dc-header-icon"><i class="fa fa-clipboard-list"></i></div>';
-print '    <div>';
-print '      <div class="dc-header-title">'.dol_escape_htmltag($pageTitle).'</div>';
-if ($pageSub) print '      <div class="dc-header-sub">'.dol_escape_htmltag($pageSub).'</div>';
-print '    </div>';
-print '  </div>';
-print '  <div class="dc-header-actions">';
-if ($isView && $id > 0) {
-    print '<a class="dc-btn dc-btn-ghost" href="'.dol_buildpath('/flotte/inspection_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('BackToList').'</a>';
-    print '<a class="dc-btn dc-btn-ghost" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=edit"><i class="fa fa-pen"></i> '.$langs->trans('Modify').'</a>';
-    print '<a class="dc-btn dc-btn-danger" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=delete"><i class="fa fa-trash"></i> '.$langs->trans('Delete').'</a>';
-}
-print '  </div>';
-print '</div>';
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   ROW 1 — Inspection Info + Meter & Fuel
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-print '<div class="dc-grid">';
-
-/* ── Card: Inspection Information ── */
-print '<div class="dc-card">';
-print '  <div class="dc-card-header">';
-print '    <div class="dc-card-header-icon blue"><i class="fa fa-clipboard-list"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('InspectionInformation').'</span>';
-print '  </div>';
-print '  <div class="dc-card-body">';
-
-// Reference
-print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Reference').'</div>';
-print '    <div class="dc-field-value">';
-if ($isCreate) {
-    print '<em style="color:#9aa0b4;font-size:12.5px;">'.$langs->trans('AutoGenerated').'</em>';
-    print '<input type="hidden" name="ref" value="'.(isset($object->ref) ? dol_escape_htmltag($object->ref) : '').'">';
-} elseif ($isEdit) {
-    print '<input type="text" name="ref" value="'.(isset($object->ref) ? dol_escape_htmltag($object->ref) : '').'" readonly style="background:#f5f6fa!important;color:#9aa0b4!important;">';
-} else {
-    print '<span class="dc-ref-tag">'.dol_escape_htmltag($object->ref).'</span>';
-}
-print '    </div></div>';
-
-// Vehicle
-print '  <div class="dc-field">';
-print '    <div class="dc-field-label required">'.$langs->trans('Vehicle').'</div>';
-print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) {
-    $vehicles = array();
-    $sql = "SELECT rowid, ref, maker, model FROM ".MAIN_DB_PREFIX."flotte_vehicle WHERE entity IN (".getEntity('flotte').")";
-    $resql = $db->query($sql);
-    if ($resql) {
-        while ($obj = $db->fetch_object($resql)) {
-            $vehicles[$obj->rowid] = $obj->ref . ' - ' . $obj->maker . ' ' . $obj->model;
-        }
-    }
-    print $form->selectarray('fk_vehicle', $vehicles, (isset($object->fk_vehicle) ? $object->fk_vehicle : ''), 1);
-} else {
-    if (!empty($object->fk_vehicle)) {
-        $sql = "SELECT ref, maker, model FROM ".MAIN_DB_PREFIX."flotte_vehicle WHERE rowid = ".((int) $object->fk_vehicle);
-        $resql = $db->query($sql);
-        if ($resql && $db->num_rows($resql) > 0) {
-            $obj = $db->fetch_object($resql);
-            print '<span class="dc-chip"><i class="fa fa-car" style="font-size:11px;opacity:0.6;"></i>'.dol_escape_htmltag($obj->ref.' - '.$obj->maker.' '.$obj->model).'</span>';
-        } else {
-            print '<span style="color:#c4c9d8;">&mdash;</span>';
-        }
-    } else {
-        print '<span style="color:#c4c9d8;">&mdash;</span>';
-    }
-}
-print '    </div></div>';
-
-// Registration Number
-print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('RegistrationNumber').'</div>';
-print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) {
-    print '<input type="text" name="registration_number" value="'.(isset($object->registration_number) ? dol_escape_htmltag($object->registration_number) : '').'">';
-} else {
-    print (!empty($object->registration_number) ? '<span class="dc-mono">'.dol_escape_htmltag($object->registration_number).'</span>' : '&mdash;');
-}
-print '    </div></div>';
-
-// Date Out
-print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('DateOut').'</div>';
-print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) {
-    print $form->selectDate((isset($object->datetime_out) ? $object->datetime_out : ''), 'datetime_out', 1, 1, 1, '', 1, 1);
-} else {
-    print (!empty($object->datetime_out) ? dol_print_date($db->jdate($object->datetime_out), 'dayhour') : '&mdash;');
-}
-print '    </div></div>';
-
-// Date In
-print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('DateIn').'</div>';
-print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) {
-    print $form->selectDate((isset($object->datetime_in) ? $object->datetime_in : ''), 'datetime_in', 1, 1, 1, '', 1, 1);
-} else {
-    print (!empty($object->datetime_in) ? dol_print_date($db->jdate($object->datetime_in), 'dayhour') : '&mdash;');
-}
-print '    </div></div>';
-
-print '  </div>';// card-body
-print '</div>';  // dc-card
-
-/* ── Card: Meter & Fuel Information ── */
-print '<div class="dc-card">';
-print '  <div class="dc-card-header">';
-print '    <div class="dc-card-header-icon amber"><i class="fa fa-tachometer-alt"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('MeterAndFuelInformation').'</span>';
-print '  </div>';
-print '  <div class="dc-card-body">';
-
-// Meter Out
-print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('MeterOut').'</div>';
-print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) {
-    print '<input type="number" name="meter_out" value="'.(isset($object->meter_out) ? dol_escape_htmltag($object->meter_out) : '').'" min="0">';
-} else {
-    print (!empty($object->meter_out) ? '<span class="dc-mono">'.number_format((int)$object->meter_out).' km</span>' : '&mdash;');
-}
-print '    </div></div>';
-
-// Meter In
-print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('MeterIn').'</div>';
-print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) {
-    print '<input type="number" name="meter_in" value="'.(isset($object->meter_in) ? dol_escape_htmltag($object->meter_in) : '').'" min="0">';
-} else {
-    print (!empty($object->meter_in) ? '<span class="dc-mono">'.number_format((int)$object->meter_in).' km</span>' : '&mdash;');
-}
-print '    </div></div>';
-
-// Fuel Out
-print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('FuelOut').'</div>';
-print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) {
-    print '<input type="text" name="fuel_out" value="'.(isset($object->fuel_out) ? dol_escape_htmltag($object->fuel_out) : '').'">';
-} else {
-    print (!empty($object->fuel_out) ? '<span class="dc-mono">'.dol_escape_htmltag($object->fuel_out).'</span>' : '&mdash;');
-}
-print '    </div></div>';
-
-// Fuel In
-print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('FuelIn').'</div>';
-print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) {
-    print '<input type="text" name="fuel_in" value="'.(isset($object->fuel_in) ? dol_escape_htmltag($object->fuel_in) : '').'">';
-} else {
-    print (!empty($object->fuel_in) ? '<span class="dc-mono">'.dol_escape_htmltag($object->fuel_in).'</span>' : '&mdash;');
-}
-print '    </div></div>';
-
-print '  </div>';// card-body
-print '</div>';  // dc-card
-
-print '</div>';// dc-grid row1
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   ROW 2 — Inspection Checklist
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-$checklist_items = array(
-    'petrol_card'        => $langs->trans('PetrolCard'),
-    'lights_indicators'  => $langs->trans('LightsIndicators'),
-    'inverter_cigarette' => $langs->trans('InverterCigarette'),
-    'mats_seats'         => $langs->trans('MatsSeats'),
-    'interior_damage'    => $langs->trans('InteriorDamage'),
-    'interior_lights'    => $langs->trans('InteriorLights'),
-    'exterior_damage'    => $langs->trans('ExteriorDamage'),
-    'tyres_condition'    => $langs->trans('TyresCondition'),
-    'ladders'            => $langs->trans('Ladders'),
-    'extension_leeds'    => $langs->trans('ExtensionLeeds'),
-    'power_tools'        => $langs->trans('PowerTools'),
-    'ac_working'         => $langs->trans('ACWorking'),
-    'headlights_working' => $langs->trans('HeadlightsWorking'),
-    'locks_alarms'       => $langs->trans('LocksAlarms'),
-    'windows_condition'  => $langs->trans('WindowsCondition'),
-    'seats_condition'    => $langs->trans('SeatsCondition'),
-    'oil_check'          => $langs->trans('OilCheck'),
-    'suspension'         => $langs->trans('Suspension'),
-    'toolboxes_condition'=> $langs->trans('ToolboxesCondition'),
+<!-- ══ MAINTENANCE TABLES ═════════════════════════════════════════════════════ -->
+<?php
+$sectionMeta = array(
+    'critical' => array('label' => $langs->trans('Overdue').' — '.$langs->trans('ImmediateAttentionRequired'), 'cls' => 'critical'),
+    'warning'  => array('label' => $langs->trans('DueSoon'),  'cls' => 'warning'),
+    'ok'       => array('label' => $langs->trans('UpToDate'), 'cls' => 'ok'),
+    'unknown'  => array('label' => $langs->trans('NoRecord'), 'cls' => 'unknown'),
 );
 
-print '<div class="dc-card" style="margin-bottom:20px;">';
-print '  <div class="dc-card-header">';
-print '    <div class="dc-card-header-icon green"><i class="fa fa-check-double"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('InspectionChecklist').'</span>';
-print '  </div>';
-print '  <div class="dc-card-body">';
-print '  <div class="dc-checklist">';
-
-foreach ($checklist_items as $field => $label) {
-    print '<div class="dc-check-item">';
-    if ($isCreate || $isEdit) {
-        print '<label>';
-        print '<input type="checkbox" name="'.$field.'" value="1"'.(isset($object->$field) && $object->$field ? ' checked' : '').'>';
-        print dol_escape_htmltag($label);
-        print '</label>';
-    } else {
-        if (isset($object->$field) && $object->$field) {
-            print '<span class="dc-pill-yes"><i class="fa fa-check" style="font-size:10px;"></i> '.dol_escape_htmltag($label).'</span>';
-        } else {
-            print '<span class="dc-pill-no"><i class="fa fa-times" style="font-size:10px;"></i> '.dol_escape_htmltag($label).'</span>';
-        }
+foreach (array('critical','warning','ok','unknown') as $sectionStatus):
+    $keys = array();
+    foreach ($maintenanceItems as $k => $item) {
+        if ($alertData[$k]['status'] === $sectionStatus) $keys[] = $k;
     }
-    print '</div>';
+    if (empty($keys)) continue;
+    $sec = $sectionMeta[$sectionStatus];
+?>
+
+<div class="mc-section-sep">
+    <div class="mc-section-sep-line"></div>
+    <div class="mc-section-sep-label <?= $sec['cls'] ?>">
+        <span class="mc-section-dot"></span>
+        <?= $sec['label'] ?>
+    </div>
+    <div class="mc-section-sep-line"></div>
+</div>
+
+<div class="dc-card" style="overflow:hidden;">
+<table class="mc-table">
+<thead>
+<tr>
+    <th style="width:4px;padding:0;"></th>
+    <th style="width:42px;"></th>
+    <th><?= $langs->trans('Service') ?></th>
+    <th class="mc-col-progress"><?= $langs->trans('Progress') ?></th>
+    <th class="mc-col-km" style="text-align:center;"><?= $langs->trans('KmLeft') ?></th>
+    <th class="mc-col-days" style="text-align:center;"><?= $langs->trans('DaysLeft') ?></th>
+    <th class="mc-col-interval" style="text-align:center;"><?= $langs->trans('Interval') ?></th>
+    <th class="mc-col-last"><?= $langs->trans('LastService') ?></th>
+    <th></th>
+</tr>
+</thead>
+<tbody>
+<?php foreach ($keys as $key):
+    $item  = $maintenanceItems[$key];
+    $rec   = isset($maintenanceRecords[$key]) ? $maintenanceRecords[$key] : null;
+    $a     = $alertData[$key];
+    $pct   = $sectionStatus === 'critical' ? 100 : ($sectionStatus === 'unknown' ? 0 : min(100, (int)$a['progress']));
+    $kmVal = $a['km_remaining']   !== null ? (int)$a['km_remaining']   : null;
+    $dVal  = $a['days_remaining'] !== null ? (int)$a['days_remaining'] : null;
+    $kmClass = ($kmVal !== null) ? ($kmVal <= 0 ? 'critical' : ($kmVal <= $item['warning_km'] ? 'warning' : 'ok')) : 'muted';
+    $dClass  = ($dVal  !== null) ? ($dVal  <= 0 ? 'critical' : ($dVal  <= $item['warning_days'] ? 'warning' : 'ok')) : 'muted';
+?>
+<tr onclick="openModal('<?= $key ?>')">
+    <td class="mc-stripe <?= $sectionStatus ?>"></td>
+    <td style="padding:12px 8px 12px 16px;">
+        <div class="mc-row-icon <?= $sectionStatus ?>"><i class="fa <?= $item['icon'] ?>"></i></div>
+    </td>
+    <td>
+        <div class="mc-row-name"><?= dol_escape_htmltag($item['label']) ?></div>
+        <div class="mc-row-badges">
+            <span class="mc-row-badge <?= $sectionStatus ?>">
+                <?= array('critical'=>$langs->trans('Overdue'),'warning'=>$langs->trans('DueSoon'),'ok'=>'OK','unknown'=>$langs->trans('NoRecord'))[$sectionStatus] ?>
+            </span>
+            <?php if (!empty($item['critical'])): ?>
+            <span class="mc-row-badge safety"><i class="fa fa-bolt" style="font-size:9px;"></i> <?= $langs->trans('Safety') ?></span>
+            <?php endif; ?>
+        </div>
+    </td>
+    <td class="mc-col-progress">
+        <div class="mc-prog-wrap">
+            <div class="mc-prog-meta">
+                <span><?= $sectionStatus === 'critical' ? $langs->trans('Overdue') : $langs->trans('IntervalUsed') ?></span>
+                <span class="mc-prog-pct <?= $sectionStatus !== 'unknown' ? $sectionStatus : '' ?>"><?= $pct ?>%</span>
+            </div>
+            <div class="mc-prog-track">
+                <div class="mc-prog-fill <?= $sectionStatus ?>" style="width:<?= $pct ?>%"></div>
+            </div>
+        </div>
+    </td>
+    <td class="mc-col-km" style="text-align:center;">
+        <?php if ($kmVal !== null && $item['interval_km'] > 0): ?>
+        <div class="mc-num-val <?= $kmClass ?>"><?= $kmVal <= 0 ? '+'.number_format(abs($kmVal)) : number_format($kmVal) ?></div>
+        <div class="mc-num-unit"><?= $kmVal <= 0 ? $langs->trans('KmOverdue') : 'km' ?></div>
+        <?php else: ?><div class="mc-num-val muted">—</div><?php endif; ?>
+    </td>
+    <td class="mc-col-days" style="text-align:center;">
+        <?php if ($dVal !== null): ?>
+        <div class="mc-num-val <?= $dClass ?>"><?= abs($dVal) ?></div>
+        <div class="mc-num-unit"><?= $dVal <= 0 ? $langs->trans('DaysLate') : $langs->trans('days') ?></div>
+        <?php else: ?><div class="mc-num-val muted">—</div><?php endif; ?>
+    </td>
+    <td class="mc-col-interval" style="text-align:center;">
+        <div class="mc-interval">
+            <?php if ($item['interval_km'] > 0): ?><?= $langs->trans('Every') ?> <?= number_format($item['interval_km']) ?> km<?php endif; ?>
+            <?php if ($item['interval_km'] > 0 && $item['interval_days'] > 0): ?><br><?php endif; ?>
+            <?php if ($item['interval_days'] > 0): ?><?= $item['interval_days'] ?> <?= $langs->trans('days') ?><?php endif; ?>
+        </div>
+    </td>
+    <td class="mc-col-last">
+        <?php if ($rec): ?>
+        <div class="mc-last-date"><?= dol_escape_htmltag($rec->last_date) ?> · <?= number_format((int)$rec->last_km) ?> km</div>
+        <?php if (!empty($rec->technician)): ?>
+        <div class="mc-last-tech"><i class="fa fa-user-cog" style="margin-right:4px;color:#c4c9d8;"></i><?= dol_escape_htmltag($rec->technician) ?></div>
+        <?php endif; ?>
+        <?php else: ?>
+        <div class="mc-last-date" style="color:#c4c9d8;"><?= $langs->trans('NoRecord') ?></div>
+        <?php endif; ?>
+    </td>
+    <td style="text-align:right;padding-right:16px;">
+        <button class="mc-log-btn" onclick="event.stopPropagation();openModal('<?= $key ?>')">
+            <i class="fa fa-plus"></i> <?= $langs->trans('Log') ?>
+        </button>
+    </td>
+</tr>
+<?php endforeach; ?>
+</tbody>
+</table>
+</div>
+
+<?php endforeach; ?>
+
+<?php endif; ?>
+</div><!-- /mc-page -->
+
+<!-- ══ MODAL ══════════════════════════════════════════════════════════════════ -->
+<div class="mc-modal-overlay" id="serviceModal">
+    <div class="mc-modal">
+        <div class="mc-modal-head">
+            <div class="mc-modal-head-icon"><i class="fa fa-wrench"></i></div>
+            <div>
+                <div class="mc-modal-title" id="modal-title-text"><?= $langs->trans('LogService') ?></div>
+                <div class="mc-modal-sub" id="modal-interval-text"></div>
+            </div>
+        </div>
+        <form method="POST" action="<?= $_SERVER['PHP_SELF'] ?>?fk_vehicle=<?= (int)$fk_vehicle ?>">
+            <input type="hidden" name="action" value="save_maintenance">
+            <input type="hidden" name="token" value="<?= newToken() ?>">
+            <input type="hidden" name="service_type" id="modal-service-type">
+            <div class="mc-modal-field">
+                <label><i class="fa fa-calendar-alt" style="margin-right:5px;"></i><?= $langs->trans('ServiceDate') ?></label>
+                <input type="date" name="last_date" value="<?= date('Y-m-d') ?>" required>
+            </div>
+            <div class="mc-modal-field">
+                <label><i class="fa fa-tachometer-alt" style="margin-right:5px;"></i><?= $langs->trans('OdometerAtService') ?> (km)</label>
+                <input type="number" name="last_km" id="modal-km" value="<?= $currentKm ?>" min="0" required>
+            </div>
+            <div class="mc-modal-field">
+                <label><i class="fa fa-user-cog" style="margin-right:5px;"></i><?= $langs->trans('TechnicianGarage') ?></label>
+                <input type="text" name="technician" placeholder="<?= $langs->trans('ExAutoProGarage') ?>">
+            </div>
+            <div class="mc-modal-field">
+                <label><i class="fa fa-sticky-note" style="margin-right:5px;"></i><?= $langs->trans('Notes') ?></label>
+                <textarea name="notes" placeholder="<?= $langs->trans('PartsReplacedObservations') ?>"></textarea>
+            </div>
+            <div class="mc-modal-actions">
+                <button type="button" class="dc-btn dc-btn-ghost" onclick="closeModal()"><i class="fa fa-times"></i> <?= $langs->trans('Cancel') ?></button>
+                <button type="submit" class="dc-btn dc-btn-primary"><i class="fa fa-save"></i> <?= $langs->trans('SaveRecord') ?></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+var maintenanceItems = <?php
+    $out = array();
+    foreach ($maintenanceItems as $k => $v) {
+        $out[$k] = array('label'=>$v['label'],'interval_km'=>$v['interval_km'],'interval_days'=>$v['interval_days']);
+    }
+    echo json_encode($out);
+?>;
+
+function openModal(serviceType) {
+    var item = maintenanceItems[serviceType];
+    if (!item) return;
+    document.getElementById('modal-service-type').value = serviceType;
+    document.getElementById('modal-title-text').textContent = item.label;
+    var parts = [];
+    if (item.interval_km > 0)   parts.push('Every ' + item.interval_km.toLocaleString() + ' km');
+    if (item.interval_days > 0) parts.push('Every ' + item.interval_days + ' days');
+    document.getElementById('modal-interval-text').textContent = parts.join(' · ');
+    document.getElementById('serviceModal').classList.add('open');
 }
-
-print '  </div>';// dc-checklist
-print '  </div>';// card-body
-print '</div>';  // dc-card
-
-
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   NOTES CARD
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-print '<div class="dc-card" style="margin-bottom:20px;">';
-print '  <div class="dc-card-header">';
-print '    <div class="dc-card-header-icon purple"><i class="fa fa-sticky-note"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('Notes').'</span>';
-print '  </div>';
-print '  <div class="dc-card-body" style="padding:16px 20px;">';
-if ($isCreate || $isEdit) {
-    print '<textarea name="note" rows="5" style="width:100%;">'.(isset($object->note) ? dol_escape_htmltag($object->note, 1) : '').'</textarea>';
-} else {
-    print (!empty($object->note) ? '<p style="margin:4px 0;font-size:13.5px;color:#2d3748;line-height:1.6;white-space:pre-wrap;">'.dol_escape_htmltag($object->note, 1).'</p>' : '<span style="color:#c4c9d8;">&mdash;</span>');
+function closeModal() {
+    document.getElementById('serviceModal').classList.remove('open');
 }
-print '  </div>';
-print '</div>';
+document.getElementById('serviceModal').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
+document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeModal(); });
+</script>
 
-/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   BOTTOM ACTION BAR
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-if ($isCreate || $isEdit) {
-    print '<div class="dc-action-bar">';
-    print '<a class="dc-btn dc-btn-ghost dc-action-bar-left" href="'.dol_buildpath('/flotte/inspection_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('BackToList').'</a>';
-    print '<a class="dc-btn dc-btn-ghost" href="'.($id > 0 ? $_SERVER['PHP_SELF'].'?id='.$id : dol_buildpath('/flotte/inspection_list.php', 1)).'"><i class="fa fa-times"></i> '.$langs->trans('Cancel').'</a>';
-    print '<button type="submit" class="dc-btn dc-btn-primary"><i class="fa fa-check"></i> '.($isCreate ? $langs->trans('Create') : $langs->trans('Save')).'</button>';
-    print '</div>';
-    print '</form>';
-} elseif ($id > 0) {
-    print '<div class="dc-action-bar">';
-    print '<a class="dc-btn dc-btn-ghost dc-action-bar-left" href="'.dol_buildpath('/flotte/inspection_list.php', 1).'"><i class="fa fa-arrow-left"></i> '.$langs->trans('BackToList').'</a>';
-    print '<a class="dc-btn dc-btn-ghost" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=edit"><i class="fa fa-pen"></i> '.$langs->trans('Modify').'</a>';
-    print '<a class="dc-btn dc-btn-danger" href="'.$_SERVER['PHP_SELF'].'?id='.$id.'&action=delete"><i class="fa fa-trash"></i> '.$langs->trans('Delete').'</a>';
-    print '</div>';
-}
-
-print '</div>';// dc-page
-
-// End of page
+<?php
 llxFooter();
 $db->close();
 ?>
