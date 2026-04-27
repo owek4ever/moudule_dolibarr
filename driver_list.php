@@ -136,8 +136,8 @@ if ($_chk_sp && $db->num_rows($_chk_sp) == 0) {
     $db->query("ALTER TABLE ".MAIN_DB_PREFIX."flotte_driver ADD COLUMN fk_socpeople INT DEFAULT NULL");
 }
 
-// ── Import from Contacts/Addresses ───────────────────────────────────────
-if ($action == 'import_contacts' && $user->rights->flotte->write) {
+// ── Auto-sync from Contacts/Addresses (runs on every page load) ──────────
+if ($user->rights->flotte->write) {
     $cnt_added   = 0;
     $cnt_updated = 0;
     $cnt_skipped = 0;
@@ -249,21 +249,7 @@ if ($action == 'import_contacts' && $user->rights->flotte->write) {
         $db->free($resql_sp);
     }
 
-    $msg_parts = array();
-    if ($cnt_added   > 0) $msg_parts[] = '<strong>'.$cnt_added.'</strong> '.$langs->trans('ContactsImportAdded');
-    if ($cnt_updated > 0) $msg_parts[] = '<strong>'.$cnt_updated.'</strong> '.$langs->trans('ContactsImportUpdated');
-    if ($cnt_skipped > 0) $msg_parts[] = '<strong>'.$cnt_skipped.'</strong> '.$langs->trans('ContactsImportSkipped');
-    if (!empty($msg_parts)) {
-        setEventMessages('<i class="fa fa-users"></i> '.$langs->trans('ImportFromContactsDone').': '.implode(' — ', $msg_parts), null, 'mesgs');
-    } else {
-        setEventMessages($langs->trans('ImportFromContactsNone'), null, 'warnings');
-    }
-    foreach ($debug_msgs as $dm) {
-        setEventMessages($dm, null, 'warnings');
-    }
-
-    header('Location: '.$_SERVER['PHP_SELF']);
-    exit;
+    // Sync runs silently — no messages, no redirect
 }
 
 // ── Download CSV template ─────────────────────────────────────────────────
@@ -1087,11 +1073,6 @@ table.vl-table tbody td.center { text-align: center; }
         </button>
         <?php } ?>
         <?php if ($user->rights->flotte->write) { ?>
-        <button type="button" class="vl-btn" style="background:#e8f5e9!important;color:#2e7d32!important;border:1.5px solid #a5d6a7!important;" onclick="dlOpenContactsImport()">
-            <i class="fa fa-users"></i> <?php echo $langs->trans('ImportFromContacts'); ?>
-        </button>
-        <?php } ?>
-        <?php if ($user->rights->flotte->write) { ?>
         <a class="vl-btn vl-btn-primary" href="<?php echo DOL_URL_ROOT; ?>/contact/card.php?action=create">
             <i class="fa fa-plus"></i> <?php echo $langs->trans('NewDriver'); ?>
         </a>
@@ -1437,8 +1418,6 @@ function dlToggleFields(btn) {
         chevron.className = 'fa fa-chevron-down';
     }
 }
-function dlOpenContactsImport()  { document.getElementById('dl-contacts-modal').classList.add('open'); }
-function dlCloseContactsImport() { document.getElementById('dl-contacts-modal').classList.remove('open'); }
 (function(){
     var dz = document.getElementById('dl-dropzone');
     if (!dz) return;
@@ -1446,60 +1425,13 @@ function dlCloseContactsImport() { document.getElementById('dl-contacts-modal').
     dz.addEventListener('dragleave', function(){ dz.classList.remove('drag-over'); });
     dz.addEventListener('drop',      function(){ dz.classList.remove('drag-over'); });
 })();
-document.addEventListener('keydown', function(e){ if (e.key === 'Escape') { dlCloseImport(); dlCloseContactsImport(); } });
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') { dlCloseImport(); } });
+    var dz = document.getElementById('dl-dropzone');
+    if (!dz) return;
+
 </script>
 
-<?php if ($user->rights->flotte->write) { ?>
-<!-- ═══════════════════════════════════════════════════════
-     IMPORT FROM CONTACTS/ADDRESSES MODAL
-═══════════════════════════════════════════════════════ -->
-<div class="vl-modal-overlay" id="dl-contacts-modal" onclick="if(event.target===this)dlCloseContactsImport()">
-  <div class="vl-modal" style="max-width:520px;">
 
-    <div class="vl-modal-header">
-      <div class="vl-modal-header-left">
-        <div class="vl-modal-icon" style="background:rgba(46,125,50,0.1);color:#2e7d32;"><i class="fa fa-users"></i></div>
-        <div>
-          <p class="vl-modal-title"><?php echo $langs->trans('ImportFromContacts'); ?></p>
-          <p class="vl-modal-sub"><?php echo $langs->trans('ImportFromContactsSubtitle'); ?></p>
-        </div>
-      </div>
-      <button class="vl-modal-close" onclick="dlCloseContactsImport()" title="<?php echo $langs->trans('Close'); ?>">&#x2715;</button>
-    </div>
-
-    <div class="vl-modal-body">
-      <div class="vl-import-notice" style="background:#e8f5e9;border-color:#a5d6a7;color:#1b5e20;">
-        <i class="fa fa-info-circle" style="color:#2e7d32;"></i>
-        <div>
-          <?php echo $langs->trans('ImportFromContactsInfo'); ?>
-          <br><small style="color:#388e3c;font-size:11.5px;"><?php echo $langs->trans('ImportFromContactsNote'); ?></small>
-        </div>
-      </div>
-
-      <ul style="font-size:13px;color:#3c4758;margin:0 0 20px 18px;line-height:2;">
-        <li><?php echo $langs->trans('ImportFromContactsRule1'); ?></li>
-        <li><?php echo $langs->trans('ImportFromContactsRule2'); ?></li>
-        <li><?php echo $langs->trans('ImportFromContactsRule3'); ?></li>
-      </ul>
-
-      <form method="POST" action="<?php echo dol_buildpath('/flotte/driver_list.php', 1); ?>">
-        <input type="hidden" name="token"  value="<?php echo newToken(); ?>">
-        <input type="hidden" name="action" value="import_contacts">
-
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0 0;border-top:1px solid #eaecf5;gap:10px;flex-wrap:wrap;">
-          <button type="button" class="vl-btn" style="background:#fff;color:#5a6482;border:1.5px solid #d1d5e0;" onclick="dlCloseContactsImport()">
-            <i class="fa fa-times"></i> <?php echo $langs->trans('Cancel'); ?>
-          </button>
-          <button type="submit" class="vl-btn" style="background:#2e7d32!important;color:#fff!important;border:none!important;">
-            <i class="fa fa-sync-alt"></i> <?php echo $langs->trans('ProceedImport'); ?>
-          </button>
-        </div>
-      </form>
-    </div>
-
-  </div>
-</div>
-<?php } ?>
 
 </div><?php
 if ($resql) { $db->free($resql); }

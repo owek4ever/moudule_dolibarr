@@ -30,7 +30,7 @@ if ($cancel) { $action = 'view'; }
 
 /* ── Maintenance Interval Definitions ───────────────────────────────────── */
 $maintenanceItems = array(
-    'oil_change'      => array('label'=>'Oil Change',          'icon'=>'fa-oil-can',         'interval_km'=>5000,  'interval_days'=>180,  'warning_km'=>500,  'warning_days'=>14,  'critical'=>true),
+    'oil_change'      => array('label'=>'Oil Change',          'icon'=>'fa-oil-can',         'interval_km'=>30000, 'interval_days'=>180,  'warning_km'=>500,  'warning_days'=>14,  'critical'=>true),
     'oil_filter'      => array('label'=>'Oil Filter',          'icon'=>'fa-filter',          'interval_km'=>5000,  'interval_days'=>180,  'warning_km'=>500,  'warning_days'=>14,  'critical'=>true),
     'air_filter'      => array('label'=>'Air Filter',          'icon'=>'fa-wind',            'interval_km'=>15000, 'interval_days'=>365,  'warning_km'=>1000, 'warning_days'=>21,  'critical'=>false),
     'cabin_filter'    => array('label'=>'Cabin Air Filter',    'icon'=>'fa-snowflake',       'interval_km'=>15000, 'interval_days'=>365,  'warning_km'=>1000, 'warning_days'=>21,  'critical'=>false),
@@ -43,7 +43,7 @@ $maintenanceItems = array(
     'timing_belt'     => array('label'=>'Timing Belt',         'icon'=>'fa-clock',           'interval_km'=>80000, 'interval_days'=>1825, 'warning_km'=>5000, 'warning_days'=>60,  'critical'=>true),
     'battery'         => array('label'=>'Battery Check',       'icon'=>'fa-battery-half',    'interval_km'=>0,     'interval_days'=>365,  'warning_km'=>0,    'warning_days'=>30,  'critical'=>false),
     'wheel_alignment' => array('label'=>'Wheel Alignment',     'icon'=>'fa-arrows-alt-h',    'interval_km'=>20000, 'interval_days'=>365,  'warning_km'=>1500, 'warning_days'=>14,  'critical'=>false),
-    'ac_service'      => array('label'=>'A/C Service',         'icon'=>'fa-wind',            'interval_km'=>0,     'interval_days'=>730,  'warning_km'=>0,    'warning_days'=>30,  'critical'=>false),
+    'ac_service'      => array('label'=>'A/C Service',         'icon'=>'fa-fan',             'interval_km'=>0,     'interval_days'=>730,  'warning_km'=>0,    'warning_days'=>30,  'critical'=>false),
 );
 
 /* ── Load Vehicles ──────────────────────────────────────────────────────── */
@@ -68,7 +68,7 @@ if ($fk_vehicle > 0) {
     $resql = $db->query($sql);
     if ($resql) { $obj = $db->fetch_object($resql); if ($obj && $obj->last_km) $currentKm = (int)$obj->last_km; }
 
-    $sql = "SELECT service_type, last_km, last_date, next_km, next_date, technician, notes FROM ".MAIN_DB_PREFIX."flotte_maintenance WHERE fk_vehicle=".((int)$fk_vehicle)." AND entity=".((int)$conf->entity)." ORDER BY last_date DESC";
+    $sql = "SELECT service_type, meter_in AS last_km, DATE(datetime_in) AS last_date, next_km, next_date, technician, service_notes AS notes FROM ".MAIN_DB_PREFIX."flotte_inspection WHERE fk_vehicle=".((int)$fk_vehicle)." AND entity=".((int)$conf->entity)." AND service_type IS NOT NULL ORDER BY datetime_in DESC";
     $resql = $db->query($sql);
     if ($resql) {
         while ($obj = $db->fetch_object($resql)) {
@@ -79,29 +79,99 @@ if ($fk_vehicle > 0) {
 
 /* ── Save Maintenance ───────────────────────────────────────────────────── */
 if ($action === 'save_maintenance' && $fk_vehicle > 0) {
-    $db->begin();
+    // CSRF check — version-safe: checkToken() only exists in Dolibarr 16+
+    $postedToken  = GETPOST('token', 'alpha');
+    $sessionToken = isset($_SESSION['newtoken']) ? $_SESSION['newtoken'] : (isset($_SESSION['token']) ? $_SESSION['token'] : '');
+    if (function_exists('checkToken')) {
+        if (!checkToken()) {
+            setEventMessages($langs->trans("InvalidToken"), null, 'errors');
+            header("Location: ".$_SERVER['PHP_SELF']."?fk_vehicle=".$fk_vehicle);
+            exit;
+        }
+    } elseif (empty($postedToken) || empty($sessionToken) || $postedToken !== $sessionToken) {
+        setEventMessages($langs->trans("InvalidToken"), null, 'errors');
+        header("Location: ".$_SERVER['PHP_SELF']."?fk_vehicle=".$fk_vehicle);
+        exit;
+    }
+
     $service_type = GETPOST('service_type', 'alpha');
-    $last_km      = GETPOST('last_km', 'int');
+    $last_km      = (int) GETPOST('last_km', 'int');
     $last_date    = GETPOST('last_date', 'alpha');
     $technician   = GETPOST('technician', 'alpha');
     $notes        = GETPOST('notes', 'restricthtml');
-    if (!empty($service_type) && isset($maintenanceItems[$service_type])) {
-        $item      = $maintenanceItems[$service_type];
-        $next_km   = $last_km + $item['interval_km'];
-        $next_date = '';
-        if (!empty($last_date) && $item['interval_days'] > 0)
-            $next_date = date('Y-m-d', strtotime("+{$item['interval_days']} days", strtotime($last_date)));
-        $sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."flotte_maintenance WHERE fk_vehicle=".((int)$fk_vehicle)." AND service_type='".$db->escape($service_type)."' AND entity=".((int)$conf->entity);
-        $resql = $db->query($sql);
-        if ($resql && $db->num_rows($resql) > 0) {
-            $obj = $db->fetch_object($resql);
-            $sql = "UPDATE ".MAIN_DB_PREFIX."flotte_maintenance SET last_km=".((int)$last_km).",last_date='".$db->escape($last_date)."',next_km=".((int)$next_km).",next_date='".$db->escape($next_date)."',technician='".$db->escape($technician)."',notes='".$db->escape($notes)."',tms=NOW() WHERE rowid=".((int)$obj->rowid);
-        } else {
-            $sql = "INSERT INTO ".MAIN_DB_PREFIX."flotte_maintenance (entity,fk_vehicle,service_type,last_km,last_date,next_km,next_date,technician,notes,datec) VALUES (".((int)$conf->entity).",".((int)$fk_vehicle).",'".$db->escape($service_type)."',".((int)$last_km).",'".$db->escape($last_date)."',".((int)$next_km).",'".$db->escape($next_date)."','".$db->escape($technician)."','".$db->escape($notes)."',NOW())";
-        }
-        if ($db->query($sql)) { $db->commit(); setEventMessages($langs->trans("MaintenanceSaved"), null, 'mesgs'); }
-        else { $db->rollback(); setEventMessages($langs->trans("Error"), null, 'errors'); }
+
+    // Validate required fields before touching the DB
+    if (empty($service_type) || !isset($maintenanceItems[$service_type])) {
+        setEventMessages('Invalid service type.', null, 'errors');
+        header("Location: ".$_SERVER['PHP_SELF']."?fk_vehicle=".$fk_vehicle);
+        exit;
     }
+    if (empty($last_date) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $last_date)) {
+        setEventMessages('Invalid or missing service date.', null, 'errors');
+        header("Location: ".$_SERVER['PHP_SELF']."?fk_vehicle=".$fk_vehicle);
+        exit;
+    }
+
+    $item      = $maintenanceItems[$service_type];
+    $next_km   = ($item['interval_km'] > 0) ? $last_km + $item['interval_km'] : 0;
+    $next_date = '';
+    if ($item['interval_days'] > 0) {
+        $ts = strtotime($last_date);
+        if ($ts !== false) $next_date = date('Y-m-d', strtotime("+{$item['interval_days']} days", $ts));
+    }
+
+    $db->begin();
+
+    // Check if a record already exists for this vehicle + service type
+    $sql = "SELECT rowid FROM ".MAIN_DB_PREFIX."flotte_inspection"
+         ." WHERE fk_vehicle=".((int)$fk_vehicle)
+         ." AND service_type='".$db->escape($service_type)."'"
+         ." AND entity=".((int)$conf->entity);
+    $resql = $db->query($sql);
+
+    if (!$resql) {
+        $db->rollback();
+        setEventMessages('DB lookup failed: '.$db->lasterror(), null, 'errors');
+        header("Location: ".$_SERVER['PHP_SELF']."?fk_vehicle=".$fk_vehicle);
+        exit;
+    }
+
+    if ($db->num_rows($resql) > 0) {
+        $obj = $db->fetch_object($resql);
+        $sql = "UPDATE ".MAIN_DB_PREFIX."flotte_inspection SET"
+             ." meter_in=".((int)$last_km).","
+             ." datetime_in='".$db->escape($last_date)."',"
+             ." next_km=".((int)$next_km).","
+             ." next_date='".$db->escape($next_date)."',"
+             ." technician='".$db->escape($technician)."',"
+             ." service_notes='".$db->escape($notes)."',"
+             ." tms=NOW()"
+             ." WHERE rowid=".((int)$obj->rowid);
+    } else {
+        $sql = "INSERT INTO ".MAIN_DB_PREFIX."flotte_inspection"
+             ." (ref,entity,fk_vehicle,service_type,meter_in,datetime_in,next_km,next_date,technician,service_notes)"
+             ." VALUES ("
+             ."'".$db->escape('MAINT-'.$fk_vehicle.'-'.strtoupper($service_type).'-'.date('YmdHis'))."',"
+             .((int)$conf->entity).","
+             .((int)$fk_vehicle).","
+             ."'".$db->escape($service_type)."',"
+             .((int)$last_km).","
+             ."'".$db->escape($last_date)."',"
+             .((int)$next_km).","
+             ."'".$db->escape($next_date)."',"
+             ."'".$db->escape($technician)."',"
+             ."'".$db->escape($notes)."')";
+    }
+
+    if ($db->query($sql)) {
+        $db->commit();
+        setEventMessages($langs->trans("MaintenanceSaved"), null, 'mesgs');
+    } else {
+        $db->rollback();
+        // Show the real DB error so it's actionable
+        setEventMessages('Save failed: '.$db->lasterror(), null, 'errors');
+    }
+
     header("Location: ".$_SERVER['PHP_SELF']."?fk_vehicle=".$fk_vehicle);
     exit;
 }
@@ -139,7 +209,15 @@ if ($criticalCount>0)    { $overallStatus='critical'; }
 elseif ($warningCount>0) { $overallStatus='warning'; }
 else                     { $overallStatus='ok'; }
 
-llxHeader('', $langs->trans('MaintenanceAlerts'), '');
+// Map overall status to a page subtitle indicator used in the header
+$overallStatusLabel = array(
+    'critical' => '🔴 '.$langs->trans('ServiceOverdue'),
+    'warning'  => '🟡 '.$langs->trans('ServiceDueSoon'),
+    'ok'       => '🟢 '.$langs->trans('AllServicesUpToDate'),
+);
+$pageSubTitle = $vehicle ? ($overallStatusLabel[$overallStatus] ?? '') : '';
+
+llxHeader('', $langs->trans('MaintenanceAlerts').($pageSubTitle ? ' — '.$pageSubTitle : ''), '');
 ?>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
@@ -474,8 +552,20 @@ button.dc-btn-ghost { background: #fff !important; color: #5a6482 !important; bo
 
 /* ── Responsive ── */
 @media(max-width:1024px) { .mc-col-interval, .mc-col-last { display: none; } }
+@media(max-width:900px)  { .mc-col-nextdue { display: none; } }
 @media(max-width:768px)  { .mc-col-days { display: none; } }
 @media(max-width:580px)  { .mc-col-km, .mc-col-progress { display: none; } }
+
+/* ── Print styles ── */
+@media print {
+    .dc-header-actions, .mc-selector-row button, .mc-log-btn,
+    .mc-modal-overlay, #mc-search { display: none !important; }
+    .mc-page { max-width: 100%; padding: 0; }
+    .dc-card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; }
+    .mc-col-interval, .mc-col-last, .mc-col-nextdue,
+    .mc-col-days, .mc-col-km, .mc-col-progress { display: table-cell !important; }
+    body { font-size: 11px; }
+}
 </style>
 
 <div class="mc-page">
@@ -513,6 +603,11 @@ button.dc-btn-ghost { background: #fff !important; color: #5a6482 !important; bo
             </span>
             <?php endif; ?>
         <?php endif; ?>
+        <?php if ($vehicle): ?>
+        <button class="dc-btn dc-btn-ghost" onclick="window.print()" title="<?= $langs->trans('Print') ?>">
+            <i class="fa fa-print"></i> <?= $langs->trans('Print') ?>
+        </button>
+        <?php endif; ?>
         <a class="dc-btn dc-btn-ghost" href="<?= dol_buildpath('/flotte/inspection_list.php', 1) ?>">
             <i class="fa fa-arrow-left"></i> <?= $langs->trans('BackToList') ?>
         </a>
@@ -540,12 +635,21 @@ button.dc-btn-ghost { background: #fff !important; color: #5a6482 !important; bo
         <div class="mc-odometer">
             <i class="fa fa-tachometer-alt mc-odometer-icon"></i>
             <div>
-                <div class="mc-odometer-lbl">Odometer</div>
+                <div class="mc-odometer-lbl"><?= $langs->trans('Odometer') ?></div>
                 <div class="mc-odometer-val"><?= number_format($currentKm) ?> <span style="font-size:11px;opacity:.6;">km</span></div>
             </div>
         </div>
         <?php endif; ?>
     </div>
+    <?php if ($vehicle): ?>
+    <div class="mc-selector-row" style="border-top:1px solid #f0f2f8;padding-top:12px;">
+        <label><i class="fa fa-search" style="margin-right:5px;"></i><?= $langs->trans('Filter') ?></label>
+        <input type="text" id="mc-search" placeholder="<?= dol_escape_htmltag($langs->trans('SearchService')) ?>…"
+               oninput="filterRows(this.value)"
+               style="padding:7px 12px;border:1.5px solid #e2e5f0;border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;color:#2d3748;background:#fafbfe;outline:none;min-width:220px;flex:1;">
+        <noscript><span style="font-size:11px;color:#c4c9d8;"><?= $langs->trans('JavaScriptRequired') ?></span></noscript>
+    </div>
+    <?php endif; ?>
     </form>
 </div>
 
@@ -676,6 +780,7 @@ foreach (array('critical','warning','ok','unknown') as $sectionStatus):
     <th class="mc-col-progress"><?= $langs->trans('Progress') ?></th>
     <th class="mc-col-km" style="text-align:center;"><?= $langs->trans('KmLeft') ?></th>
     <th class="mc-col-days" style="text-align:center;"><?= $langs->trans('DaysLeft') ?></th>
+    <th class="mc-col-nextdue" style="text-align:center;"><?= $langs->trans('NextDue') ?></th>
     <th class="mc-col-interval" style="text-align:center;"><?= $langs->trans('Interval') ?></th>
     <th class="mc-col-last"><?= $langs->trans('LastService') ?></th>
     <th></th>
@@ -691,8 +796,11 @@ foreach (array('critical','warning','ok','unknown') as $sectionStatus):
     $dVal  = $a['days_remaining'] !== null ? (int)$a['days_remaining'] : null;
     $kmClass = ($kmVal !== null) ? ($kmVal <= 0 ? 'critical' : ($kmVal <= $item['warning_km'] ? 'warning' : 'ok')) : 'muted';
     $dClass  = ($dVal  !== null) ? ($dVal  <= 0 ? 'critical' : ($dVal  <= $item['warning_days'] ? 'warning' : 'ok')) : 'muted';
+    // Next-due values for the new column
+    $nextKmVal   = ($rec && $rec->next_km > 0 && $item['interval_km'] > 0) ? (int)$rec->next_km : null;
+    $nextDateVal = ($rec && !empty($rec->next_date) && $item['interval_days'] > 0) ? $rec->next_date : null;
 ?>
-<tr onclick="openModal('<?= $key ?>')">
+<tr onclick="openModal('<?= $key ?>')" data-label="<?= dol_escape_htmltag(strtolower($item['label'])) ?>" class="mc-data-row">>
     <td class="mc-stripe <?= $sectionStatus ?>"></td>
     <td style="padding:12px 8px 12px 16px;">
         <div class="mc-row-icon <?= $sectionStatus ?>"><i class="fa <?= $item['icon'] ?>"></i></div>
@@ -729,6 +837,18 @@ foreach (array('critical','warning','ok','unknown') as $sectionStatus):
         <?php if ($dVal !== null): ?>
         <div class="mc-num-val <?= $dClass ?>"><?= abs($dVal) ?></div>
         <div class="mc-num-unit"><?= $dVal <= 0 ? $langs->trans('DaysLate') : $langs->trans('days') ?></div>
+        <?php else: ?><div class="mc-num-val muted">—</div><?php endif; ?>
+    </td>
+    <td class="mc-col-nextdue" style="text-align:center;">
+        <?php if ($nextDateVal || $nextKmVal): ?>
+        <div class="mc-interval" style="text-align:center;">
+            <?php if ($nextDateVal): ?>
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:#5a6482;font-weight:500;"><?= dol_escape_htmltag($nextDateVal) ?></div>
+            <?php endif; ?>
+            <?php if ($nextKmVal): ?>
+            <div style="font-family:'DM Mono',monospace;font-size:11px;color:#8b92a9;"><?= number_format($nextKmVal) ?> km</div>
+            <?php endif; ?>
+        </div>
         <?php else: ?><div class="mc-num-val muted">—</div><?php endif; ?>
     </td>
     <td class="mc-col-interval" style="text-align:center;">
@@ -811,14 +931,21 @@ var maintenanceItems = <?php
     echo json_encode($out);
 ?>;
 
+// Translated strings for use in JS (avoids hardcoding English)
+var i18n = {
+    every: <?= json_encode($langs->trans('Every')) ?>,
+    km:    'km',
+    days:  <?= json_encode($langs->trans('days')) ?>
+};
+
 function openModal(serviceType) {
     var item = maintenanceItems[serviceType];
     if (!item) return;
     document.getElementById('modal-service-type').value = serviceType;
     document.getElementById('modal-title-text').textContent = item.label;
     var parts = [];
-    if (item.interval_km > 0)   parts.push('Every ' + item.interval_km.toLocaleString() + ' km');
-    if (item.interval_days > 0) parts.push('Every ' + item.interval_days + ' days');
+    if (item.interval_km > 0)   parts.push(i18n.every + ' ' + item.interval_km.toLocaleString() + ' ' + i18n.km);
+    if (item.interval_days > 0) parts.push(i18n.every + ' ' + item.interval_days + ' ' + i18n.days);
     document.getElementById('modal-interval-text').textContent = parts.join(' · ');
     document.getElementById('serviceModal').classList.add('open');
 }
@@ -827,6 +954,26 @@ function closeModal() {
 }
 document.getElementById('serviceModal').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
 document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeModal(); });
+
+// Search / filter rows
+function filterRows(query) {
+    var q = query.toLowerCase().trim();
+    var rows = document.querySelectorAll('tr.mc-data-row');
+    rows.forEach(function(row) {
+        var label = (row.getAttribute('data-label') || '').toLowerCase();
+        row.style.display = (!q || label.indexOf(q) !== -1) ? '' : 'none';
+    });
+    // Hide section separators and cards that have no visible rows
+    document.querySelectorAll('.dc-card').forEach(function(card) {
+        var visible = card.querySelectorAll('tr.mc-data-row:not([style*="display: none"])');
+        card.style.display = (visible.length === 0 && card.querySelector('tr.mc-data-row')) ? 'none' : '';
+    });
+    document.querySelectorAll('.mc-section-sep').forEach(function(sep, i) {
+        // Show separator only if next sibling card is visible
+        var next = sep.nextElementSibling;
+        sep.style.display = (next && next.style.display === 'none') ? 'none' : '';
+    });
+}
 </script>
 
 <?php
