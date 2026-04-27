@@ -57,6 +57,7 @@ if (!$res) {
 
 // Libraries
 require_once DOL_DOCUMENT_ROOT."/core/lib/admin.lib.php";
+require_once DOL_DOCUMENT_ROOT."/core/lib/files.lib.php";
 require_once '../lib/flotte.lib.php';
 //require_once "../class/myclass.class.php";
 
@@ -425,6 +426,80 @@ if ($action == 'updateMask') {
 	}
 }
 
+// ── Cachet & Signature upload actions ────────────────────────────────────────
+$cachetDir    = DOL_DATA_ROOT.'/flotte/img/cachet/';
+$signatureDir = DOL_DATA_ROOT.'/flotte/img/signature/';
+dol_mkdir($cachetDir);
+dol_mkdir($signatureDir);
+
+if ($action == 'save_images' && $user->admin) {
+	$allowedTypes = array('image/jpeg', 'image/png', 'image/gif', 'image/webp');
+
+	// Handle cachet upload
+	if (!empty($_FILES['cachet_file']['name'])) {
+		$fileType = mime_content_type($_FILES['cachet_file']['tmp_name']);
+		if (!in_array($fileType, $allowedTypes)) {
+			$error++;
+			setEventMessages($langs->trans('ErrorBadImageFormat'), null, 'errors');
+		} else {
+			$oldVal = getDolGlobalString('FLOTTE_CACHET_FILE');
+			if ($oldVal && file_exists(DOL_DATA_ROOT.'/'.$oldVal)) {
+				dol_delete_file(DOL_DATA_ROOT.'/'.$oldVal);
+			}
+			$ext      = strtolower(pathinfo($_FILES['cachet_file']['name'], PATHINFO_EXTENSION));
+			$newName  = 'cachet_'.dol_print_date(dol_now(), '%Y%m%d%H%M%S').'.'.$ext;
+			$destPath = $cachetDir.$newName;
+			if (dol_move_uploaded_file($_FILES['cachet_file']['tmp_name'], $destPath, 1, 0, $_FILES['cachet_file']) > 0) {
+				dolibarr_set_const($db, 'FLOTTE_CACHET_FILE', 'flotte/img/cachet/'.$newName, 'chaine', 0, '', $conf->entity);
+			} else {
+				$error++;
+				setEventMessages($langs->trans('ErrorUploadCachet'), null, 'errors');
+			}
+		}
+	}
+
+	// Handle signature upload
+	if (!empty($_FILES['signature_file']['name'])) {
+		$fileType = mime_content_type($_FILES['signature_file']['tmp_name']);
+		if (!in_array($fileType, $allowedTypes)) {
+			$error++;
+			setEventMessages($langs->trans('ErrorBadImageFormat'), null, 'errors');
+		} else {
+			$oldVal = getDolGlobalString('FLOTTE_SIGNATURE_FILE');
+			if ($oldVal && file_exists(DOL_DATA_ROOT.'/'.$oldVal)) {
+				dol_delete_file(DOL_DATA_ROOT.'/'.$oldVal);
+			}
+			$ext      = strtolower(pathinfo($_FILES['signature_file']['name'], PATHINFO_EXTENSION));
+			$newName  = 'signature_'.dol_print_date(dol_now(), '%Y%m%d%H%M%S').'.'.$ext;
+			$destPath = $signatureDir.$newName;
+			if (dol_move_uploaded_file($_FILES['signature_file']['tmp_name'], $destPath, 1, 0, $_FILES['signature_file']) > 0) {
+				dolibarr_set_const($db, 'FLOTTE_SIGNATURE_FILE', 'flotte/img/signature/'.$newName, 'chaine', 0, '', $conf->entity);
+			} else {
+				$error++;
+				setEventMessages($langs->trans('ErrorUploadSignature'), null, 'errors');
+			}
+		}
+	}
+
+	if (!$error) {
+		setEventMessages($langs->trans('SetupSaved'), null, 'mesgs');
+	}
+} elseif ($action == 'delete_cachet' && $user->admin) {
+	$oldVal = getDolGlobalString('FLOTTE_CACHET_FILE');
+	if ($oldVal && file_exists(DOL_DATA_ROOT.'/'.$oldVal)) {
+		dol_delete_file(DOL_DATA_ROOT.'/'.$oldVal);
+	}
+	dolibarr_set_const($db, 'FLOTTE_CACHET_FILE', '', 'chaine', 0, '', $conf->entity);
+	setEventMessages($langs->trans('RecordDeleted'), null, 'mesgs');
+} elseif ($action == 'delete_signature' && $user->admin) {
+	$oldVal = getDolGlobalString('FLOTTE_SIGNATURE_FILE');
+	if ($oldVal && file_exists(DOL_DATA_ROOT.'/'.$oldVal)) {
+		dol_delete_file(DOL_DATA_ROOT.'/'.$oldVal);
+	}
+	dolibarr_set_const($db, 'FLOTTE_SIGNATURE_FILE', '', 'chaine', 0, '', $conf->entity);
+	setEventMessages($langs->trans('RecordDeleted'), null, 'mesgs');
+}
+
 $action = 'edit';
 
 
@@ -466,6 +541,68 @@ if (!empty($formSetup->items)) {
 	print $formSetup->generateOutput(true);
 	print '<br>';
 }
+
+// ── Section: Cachet & Signature ───────────────────────────────────────────────
+$cachetFile    = getDolGlobalString('FLOTTE_CACHET_FILE');
+$signatureFile = getDolGlobalString('FLOTTE_SIGNATURE_FILE');
+
+print load_fiche_titre($langs->trans('FlotteImagesSetup'), '', 'fa-image');
+
+print '<form method="POST" action="'.$_SERVER['PHP_SELF'].'" enctype="multipart/form-data">';
+print '<input type="hidden" name="token" value="'.newToken().'">';
+print '<input type="hidden" name="action" value="save_images">';
+
+print '<table class="noborder centpercent">';
+print '<tr class="liste_titre">';
+print '<td class="titlefield">'.$langs->trans('Parameter').'</td>';
+print '<td>'.$langs->trans('Value').'</td>';
+print '</tr>';
+
+// ── Cachet row ───────────────────────────────────────────────────────────────
+print '<tr class="oddeven">';
+print '<td><strong>'.$langs->trans('CachetImage').'</strong><br>';
+print '<span class="opacitymedium">'.$langs->trans('CachetImageDesc').'</span></td>';
+print '<td>';
+if ($cachetFile && file_exists(DOL_DATA_ROOT.'/'.$cachetFile)) {
+	print '<div style="margin-bottom:10px;">';
+	print '<img src="'.DOL_URL_ROOT.'/viewimage.php?modulepart=flotte&file='.urlencode('img/cachet/'.basename($cachetFile)).'"';
+	print ' alt="Cachet" style="max-height:80px;max-width:220px;border:1px solid #ccc;padding:4px;border-radius:4px;" />';
+	print '</div>';
+	print '<a href="'.$_SERVER['PHP_SELF'].'?action=delete_cachet&token='.newToken().'" class="butActionDelete" style="margin-bottom:8px;display:inline-block;">';
+	print img_picto('', 'delete', 'class="pictofixedwidth"').$langs->trans('Delete');
+	print '</a><br><br>';
+}
+print '<input type="file" name="cachet_file" accept="image/jpeg,image/png,image/gif,image/webp" />';
+print '<br><span class="opacitymedium small">'.img_picto('', 'fa-info-circle', 'class="pictofixedwidth"').'JPG, PNG, GIF, WEBP</span>';
+print '</td>';
+print '</tr>';
+
+// ── Signature row ────────────────────────────────────────────────────────────
+print '<tr class="oddeven">';
+print '<td><strong>'.$langs->trans('SignatureImage').'</strong><br>';
+print '<span class="opacitymedium">'.$langs->trans('SignatureImageDesc').'</span></td>';
+print '<td>';
+if ($signatureFile && file_exists(DOL_DATA_ROOT.'/'.$signatureFile)) {
+	print '<div style="margin-bottom:10px;">';
+	print '<img src="'.DOL_URL_ROOT.'/viewimage.php?modulepart=flotte&file='.urlencode('img/signature/'.basename($signatureFile)).'"';
+	print ' alt="Signature" style="max-height:80px;max-width:220px;border:1px solid #ccc;padding:4px;border-radius:4px;" />';
+	print '</div>';
+	print '<a href="'.$_SERVER['PHP_SELF'].'?action=delete_signature&token='.newToken().'" class="butActionDelete" style="margin-bottom:8px;display:inline-block;">';
+	print img_picto('', 'delete', 'class="pictofixedwidth"').$langs->trans('Delete');
+	print '</a><br><br>';
+}
+print '<input type="file" name="signature_file" accept="image/jpeg,image/png,image/gif,image/webp" />';
+print '<br><span class="opacitymedium small">'.img_picto('', 'fa-info-circle', 'class="pictofixedwidth"').'JPG, PNG, GIF, WEBP</span>';
+print '</td>';
+print '</tr>';
+
+print '</table>';
+
+print '<div class="tabsAction">';
+print '<input type="submit" class="butAction" value="'.$langs->trans('Save').'" />';
+print '</div>';
+
+print '</form>';
 
 
 foreach ($myTmpObjects as $myTmpObjectKey => $myTmpObjectArray) {

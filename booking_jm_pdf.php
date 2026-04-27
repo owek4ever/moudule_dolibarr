@@ -1,10 +1,6 @@
 <?php
 /* Journey Management PDF View - flotte module
- * Generates a printable JM card matching the optimalogistic design.
- *
- * FIX (v2): Removed v.plate / v.type / v.max_load which do NOT exist in
- *   llx_flotte_vehicle.  Vehicle table only exposes: ref, maker, model.
- *   Also aliased d.employee_id → d_cin (used as the national-ID / CIN field).
+ * Redesigned UI — Clean, Professional A4 Document format
  */
 
 // Load Dolibarr environment
@@ -33,41 +29,24 @@ $id = GETPOST('id', 'int');
 if ($id <= 0) { accessforbidden(); }
 
 /* ── Load booking ──────────────────────────────────────────────────────── */
-/*
- * IMPORTANT: only select columns that actually exist in each joined table.
- *
- * llx_flotte_vehicle  →  rowid, ref, maker, model  (no plate / type / max_load)
- * llx_flotte_driver   →  firstname, middlename, lastname, phone, employee_id,
- *                         license_number, license_issue_date, license_expiry_date,
- *                         driver_image, license_image, documents
- */
 $sql = "SELECT b.*,
         v.ref        AS v_ref,
         v.maker      AS v_maker,
         v.model      AS v_model,
         d.firstname  AS d_firstname,
         d.lastname   AS d_lastname,
-        d.middlename AS d_middlename,
         d.phone      AS d_phone,
-        d.employee_id        AS d_cin,
-        d.license_number     AS d_license,
-        d.license_issue_date  AS d_lic_issue,
-        d.license_expiry_date AS d_lic_expiry,
-        d.driver_image  AS d_image,
-        d.license_image AS d_lic_image,
-        d.documents     AS d_documents,
-        s.nom           AS s_name,
+        s.name          AS s_name,
         c.nom           AS c_name
         FROM ".MAIN_DB_PREFIX."flotte_booking b
         LEFT JOIN ".MAIN_DB_PREFIX."flotte_vehicle v ON v.rowid = b.fk_vehicle
-        LEFT JOIN ".MAIN_DB_PREFIX."flotte_driver  d ON d.rowid = b.fk_driver
-        LEFT JOIN ".MAIN_DB_PREFIX."societe         s ON s.rowid = b.fk_vendor
+        LEFT JOIN ".MAIN_DB_PREFIX."socpeople       d ON d.rowid = b.fk_driver
+        LEFT JOIN ".MAIN_DB_PREFIX."flotte_vendor   s ON s.rowid = b.fk_vendor
         LEFT JOIN ".MAIN_DB_PREFIX."societe         c ON c.rowid = b.fk_customer
         WHERE b.rowid = ".((int)$id);
 
 $resql = $db->query($sql);
 if (!$resql) {
-    // Show a more useful error in dev; in production this hides internals
     header("HTTP/1.0 500 Internal Server Error");
     print "Erreur SQL : " . dol_escape_htmltag($db->lasterror());
     exit;
@@ -79,36 +58,254 @@ if (!$db->num_rows($resql)) {
 }
 $o = $db->fetch_object($resql);
 
-/* ── Helper: format a stored date/datetime string ─────────── */
+/* ── Load flotte_driver row — used for name fallback AND document fields ──
+ * Always query flotte_driver when fk_driver is set.  The row may hold
+ * d_image, d_lic_image, d_documents even when the booking row itself does
+ * not (fields left empty at booking creation time).                         */
+$_flotte_driver_obj = null;
+if (!empty($o->fk_driver)) {
+    // Try by rowid first, then by fk_socpeople link
+    foreach (array(
+        "SELECT * FROM ".MAIN_DB_PREFIX."flotte_driver WHERE rowid = ".((int)$o->fk_driver),
+        "SELECT * FROM ".MAIN_DB_PREFIX."flotte_driver WHERE fk_socpeople = ".((int)$o->fk_driver),
+    ) as $_fdsql) {
+        $_fdres = @$db->query($_fdsql);
+        if ($_fdres && $db->num_rows($_fdres)) {
+            $_flotte_driver_obj = $db->fetch_object($_fdres);
+            break;
+        }
+    }
+    if ($_flotte_driver_obj) {
+        $dobj = $_flotte_driver_obj;
+        // Populate name if missing from the socpeople JOIN
+        if (empty($o->d_firstname) && empty($o->d_lastname)) {
+            $o->d_firstname = isset($dobj->firstname) ? $dobj->firstname
+                            : (isset($dobj->prenom)   ? $dobj->prenom
+                            : (isset($dobj->nom)       ? $dobj->nom : null));
+            $o->d_lastname  = isset($dobj->lastname)  ? $dobj->lastname
+                            : (isset($dobj->name)      ? $dobj->name : null);
+            $o->d_phone     = isset($dobj->phone)     ? $dobj->phone
+                            : (isset($dobj->tel)       ? $dobj->tel
+                            : (isset($dobj->mobile)    ? $dobj->mobile : null));
+        }
+        // Pull document fields from flotte_driver if the booking row has none
+        if (empty($o->d_image)     && isset($dobj->d_image))     $o->d_image     = $dobj->d_image;
+        if (empty($o->d_lic_image) && isset($dobj->d_lic_image)) $o->d_lic_image = $dobj->d_lic_image;
+        if (empty($o->d_documents) && isset($dobj->d_documents)) $o->d_documents = $dobj->d_documents;
+        // Also handle alternate column names modules sometimes use
+        if (empty($o->d_image)     && isset($dobj->cin_image))   $o->d_image     = $dobj->cin_image;
+        if (empty($o->d_lic_image) && isset($dobj->license_image)) $o->d_lic_image = $dobj->license_image;
+        if (empty($o->d_lic_image) && isset($dobj->permis_image))  $o->d_lic_image = $dobj->permis_image;
+    }
+}
+
+/* ── Resolve the socpeople ID to use for document lookups ──────────────────
+ * fk_driver on the booking points to flotte_driver.rowid, but documents
+ * are attached to the socpeople (contact) record via flotte_driver.fk_socpeople.
+ * Use that ID for both the ecm_files query and the filesystem directory scan. */
+$_doc_lookup_socpeople_id = (int)$o->fk_driver;   // safe default
+if (!empty($_flotte_driver_obj) && !empty($_flotte_driver_obj->fk_socpeople)) {
+    $_doc_lookup_socpeople_id = (int)$_flotte_driver_obj->fk_socpeople;
+}
+
+/* ── Helpers ───────────────────────────────────────────────────────────── */
 function jmDate($val, $withTime = false) {
     if (empty($val) || $val === '0000-00-00' || $val === '0000-00-00 00:00:00') return '—';
     $ts = strtotime($val);
     if (!$ts) return htmlspecialchars($val);
-    return $withTime ? date('Y-m-d H:i', $ts) : date('Y-m-d', $ts);
+    return $withTime ? date('d/m/Y H:i', $ts) : date('d/m/Y', $ts);
 }
 function jmVal($v, $fallback = '—') {
     return (!empty($v) && $v !== '0') ? htmlspecialchars($v) : $fallback;
 }
 
-/* ── Driver document image helper ─────────────────────────── */
-$driver_upload_dir = DOL_DATA_ROOT.'/flotte/driver/';
-function jmImgTag($filename, $alt = '', $style = '') {
-    global $driver_upload_dir;
-    if (empty($filename)) return '';
-    $path = $driver_upload_dir . $filename;
-    if (!file_exists($path)) return '';
+/* ── Load driver's linked files from Dolibarr ecm_files table ─────────── */
+$driver_ecm_files   = array();
+$_debug_ecm_rows    = array();   // ALL ecm_files rows for this driver (any type)
+$_debug_ecm_sql_err = '';
+if (!empty($o->fk_driver)) {
+    // Narrow query (original)
+    $fsql = "SELECT rowid, filename, filepath, label, description, src_object_type"
+          . " FROM ".MAIN_DB_PREFIX."ecm_files"
+          . " WHERE src_object_type IN ('contact', 'socpeople')"
+          . "   AND src_object_id = ".$_doc_lookup_socpeople_id
+          . " ORDER BY position ASC, rowid ASC";
+    $fres = $db->query($fsql);
+    if ($fres) {
+        while ($fobj = $db->fetch_object($fres)) {
+            $driver_ecm_files[] = array(
+                'filename' => $fobj->filename,
+                'filepath' => $fobj->filepath,
+                'label'    => !empty($fobj->label) ? $fobj->label : $fobj->filename,
+            );
+        }
+    } else {
+        $_debug_ecm_sql_err = $db->lasterror();
+    }
+
+    // Wide query — find ALL ecm_files rows for this src_object_id regardless of type
+    $fsql2 = "SELECT rowid, filename, filepath, src_object_type, src_object_id, label"
+           . " FROM ".MAIN_DB_PREFIX."ecm_files"
+           . " WHERE src_object_id = ".$_doc_lookup_socpeople_id
+           . " ORDER BY rowid ASC LIMIT 50";
+    $fres2 = @$db->query($fsql2);
+    if ($fres2) {
+        while ($fobj2 = $db->fetch_object($fres2)) {
+            $_debug_ecm_rows[] = (array)$fobj2;
+        }
+    }
+}
+
+/* ── Resolve full disk path for an ecm_files record ───────────────────── */
+function jmEcmFullPath($filepath, $filename) {
+    global $conf;
+    $fp = trim($filepath, '/');
+    $candidates = array(
+        DOL_DATA_ROOT.'/'.$fp.'/'.$filename,
+        DOL_DATA_ROOT.'/'.$conf->entity.'/'.$fp.'/'.$filename,
+    );
+    foreach ($candidates as $p) {
+        if (file_exists($p)) return $p;
+    }
+    return '';
+}
+
+/* ── Render an ECM image as a base64 <img> tag ─────────────────────────── */
+function jmEcmImgTag($filepath, $filename, $alt = '', $style = '') {
+    $path = jmEcmFullPath($filepath, $filename);
+    if (empty($path)) return '';
+    $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    if (!in_array($ext, array('jpg','jpeg','png','gif','webp'))) return '';
     $mime = 'image/jpeg';
-    $ext  = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
     if ($ext === 'png')  $mime = 'image/png';
     if ($ext === 'gif')  $mime = 'image/gif';
     if ($ext === 'webp') $mime = 'image/webp';
-    if (!in_array($ext, array('jpg','jpeg','png','gif','webp'))) return '';
     $data = base64_encode(file_get_contents($path));
-    $s = $style ?: 'max-width:100%;max-height:160px;border-radius:6px;border:1px solid #ccd0db;object-fit:contain;';
+    $s = $style ?: 'max-width:100%;max-height:300px;object-fit:cover;display:block; border-radius:4px;';
     return '<img src="data:'.$mime.';base64,'.$data.'" alt="'.htmlspecialchars($alt).'" style="'.$s.'">';
 }
 
-/* ── Company logo (Dolibarr global logo) ─────────────────── */
+/* ── Load driver's contact files (Files From Contact) ──────────────────── */
+$contact_files_images = array();
+$contact_files_docs   = array();
+if (!empty($o->fk_driver)) {
+    $_sp_id = $_doc_lookup_socpeople_id;
+    $_ent = isset($conf->entity) ? (int)$conf->entity : 1;
+    $_contact_dir_candidates = array(
+        // ── Most common standard Dolibarr layout ──────────────────────────
+        DOL_DATA_ROOT.'/societe/contact/'.$_sp_id,
+        // ── Multi-entity variants ─────────────────────────────────────────
+        DOL_DATA_ROOT.'/'.$_ent.'/societe/contact/'.$_sp_id,
+        // ── Via module dir_output (set in conf) ───────────────────────────
+        (isset($conf->societe->dir_output) ? $conf->societe->dir_output.'/contact/'.$_sp_id : ''),
+        (isset($conf->contact->dir_output) ? $conf->contact->dir_output.'/'.$_sp_id : ''),
+        // ── Legacy / alternate layouts ────────────────────────────────────
+        DOL_DATA_ROOT.'/contact/'.$_sp_id,
+        DOL_DATA_ROOT.'/'.$_ent.'/contact/'.$_sp_id,
+    );
+    $_contact_dir = '';
+    $_contact_dir_tried = array();
+    foreach ($_contact_dir_candidates as $_c) {
+        if (empty($_c)) continue;
+        $_contact_dir_tried[] = $_c;
+        if (is_dir($_c)) { $_contact_dir = $_c; break; }
+    }
+    if (!empty($_contact_dir)) {
+        $_dh = opendir($_contact_dir);
+        if ($_dh) {
+            $_all_cf = array();
+            while (($_fn = readdir($_dh)) !== false) {
+                if ($_fn === '.' || $_fn === '..') continue;
+                if (is_file($_contact_dir.'/'.$_fn)) $_all_cf[] = $_fn;
+            }
+            closedir($_dh);
+            sort($_all_cf);
+            $_img_exts_cf = array('jpg','jpeg','png','gif','webp');
+            foreach ($_all_cf as $_fn) {
+                $_ext_cf = strtolower(pathinfo($_fn, PATHINFO_EXTENSION));
+                if (in_array($_ext_cf, $_img_exts_cf)) {
+                    $contact_files_images[] = array('filename' => $_fn, 'path' => $_contact_dir.'/'.$_fn, 'ext' => $_ext_cf);
+                } else {
+                    $contact_files_docs[] = array('filename' => $_fn, 'path' => $_contact_dir.'/'.$_fn, 'ext' => $_ext_cf);
+                }
+            }
+        }
+    }
+}
+
+/* ── Merge ECM-tracked files into the contact_files arrays ─────────────────
+ * $driver_ecm_files was queried from llx_ecm_files but never fed into the
+ * display arrays.  Do that now so uploads made through Dolibarr's file
+ * manager are always visible, regardless of filesystem path resolution.     */
+$_ecm_img_exts = array('jpg','jpeg','png','gif','webp');
+foreach ($driver_ecm_files as $_ecm) {
+    $_ecm_fn  = $_ecm['filename'];
+    $_ecm_fp  = $_ecm['filepath'];
+    $_ecm_ext = strtolower(pathinfo($_ecm_fn, PATHINFO_EXTENSION));
+
+    // Build the full disk path using the same helper used elsewhere
+    $_ecm_full = jmEcmFullPath($_ecm_fp, $_ecm_fn);
+    if (empty($_ecm_full)) continue;           // file not readable on disk — skip
+
+    // Avoid duplicates already found via filesystem scan
+    $_already = false;
+    foreach (array_merge($contact_files_images, $contact_files_docs) as $_ex) {
+        if ($_ex['filename'] === $_ecm_fn) { $_already = true; break; }
+    }
+    if ($_already) continue;
+
+    $_entry = array('filename' => $_ecm_fn, 'path' => $_ecm_full, 'ext' => $_ecm_ext,
+                    'label' => $_ecm['label']);
+    if (in_array($_ecm_ext, $_ecm_img_exts)) {
+        $contact_files_images[] = $_entry;
+    } else {
+        $contact_files_docs[] = $_entry;
+    }
+}
+
+/* ── Render a contact image file as a base64 <img> tag ─────────────────── */
+function jmContactImgTag($path, $alt = '', $style = '') {
+    if (empty($path) || !file_exists($path)) return '';
+    $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+    if (!in_array($ext, array('jpg','jpeg','png','gif','webp'))) return '';
+    $mime = 'image/jpeg';
+    if ($ext === 'png')  $mime = 'image/png';
+    if ($ext === 'gif')  $mime = 'image/gif';
+    if ($ext === 'webp') $mime = 'image/webp';
+    $data = base64_encode(file_get_contents($path));
+    $s = $style ?: 'max-width:100%;max-height:300px;object-fit:cover;display:block;border-radius:4px;';
+    return '<img src="data:'.$mime.';base64,'.$data.'" alt="'.htmlspecialchars($alt).'" style="'.$s.'">';
+}
+
+// Driver upload directory (custom flotte module storage)
+$driver_upload_dir = DOL_DATA_ROOT.'/flotte/driver/';
+
+function jmDriverPath($f) {
+    global $driver_upload_dir;
+    if (empty($f)) return '';
+    $p = $driver_upload_dir . basename($f);
+    return file_exists($p) ? $p : '';
+}
+
+function jmImgTag($f, $alt = '', $style = '') {
+    $path = jmDriverPath($f);
+    if (empty($path)) return '';
+    $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+    if (!in_array($ext, array('jpg','jpeg','png','gif','webp'))) return '';
+    $mime = 'image/jpeg';
+    if ($ext === 'png')  $mime = 'image/png';
+    if ($ext === 'gif')  $mime = 'image/gif';
+    if ($ext === 'webp') $mime = 'image/webp';
+    $data = base64_encode(file_get_contents($path));
+    $s = $style ?: 'max-width:100%;max-height:300px;object-fit:cover;display:block; border-radius:4px;';
+    return '<img src="data:'.$mime.';base64,'.$data.'" alt="'.htmlspecialchars($alt).'" style="'.$s.'">';
+}
+
+$_img_exts   = array('jpg','jpeg','png','gif','webp');
+$has_cin_img = false;
+$has_lic_img = false;
+$has_doc_img = false;
+
 function jmLogo() {
     global $conf;
     $logo_path = '';
@@ -119,672 +316,614 @@ function jmLogo() {
         $ext  = strtolower(pathinfo($logo_path, PATHINFO_EXTENSION));
         $mime = ($ext === 'png') ? 'image/png' : (($ext === 'gif') ? 'image/gif' : 'image/jpeg');
         $data = base64_encode(file_get_contents($logo_path));
-        return '<img src="data:'.$mime.';base64,'.$data.'" alt="Logo" style="max-height:60px;max-width:200px;">';
+        return '<img src="data:'.$mime.';base64,'.$data.'" alt="Logo" style="max-height:60px;max-width:250px;object-fit:contain;">';
     }
-    return '<div style="font-size:22px;font-weight:800;color:#1a5276;letter-spacing:-0.5px;">optima<span style="color:#e67e22;">logistic</span></div>';
+    return '<span style="font-size:24px;font-weight:bold;color:#1e3a8a;">OPTIMA LOGISTIC S.A</span>';
 }
 
-/* ── Vehicle label helper ─────────────────────────────────── */
-/*
- * v_ref   = vehicle reference (used as registration / plate in this system)
- * v_maker = manufacturer
- * v_model = model
- * We build a human-readable label from these.
- */
-function jmVehicleLabel($o) {
-    $parts = array();
-    if (!empty($o->v_maker)) $parts[] = htmlspecialchars($o->v_maker);
-    if (!empty($o->v_model)) $parts[] = htmlspecialchars($o->v_model);
-    return implode(' ', $parts) ?: '—';
-}
-
-/* ── Build stops list from JSON ───────────────────────────── */
+/* ── Data preparation ──────────────────────────────────────────────────── */
 $stops_list = array();
 if (!empty($o->stops)) {
     $decoded = json_decode($o->stops, true);
     if (is_array($decoded)) $stops_list = $decoded;
 }
 
-/* ── Map availability ───────────────────────────────────────*/
 $has_map = (!empty($o->dep_lat) && !empty($o->dep_lon) && !empty($o->arr_lat) && !empty($o->arr_lon));
 
-/* ── Driver name ────────────────────────────────────────────*/
 $driver_fullname = trim(
     jmVal($o->d_firstname, '') .
-    (!empty($o->d_middlename) ? ' ' . htmlspecialchars($o->d_middlename) : '') .
-    (!empty($o->d_lastname)   ? ' ' . htmlspecialchars($o->d_lastname)   : '')
+    (!empty($o->d_lastname) ? ' ' . htmlspecialchars($o->d_lastname) : '')
 );
 if (empty($driver_fullname)) $driver_fullname = '—';
 
-/* ── Merchandise type from note_public or buying_unit ───────*/
 $merchandise_type = '';
 if (!empty($o->note_public))  $merchandise_type = trim($o->note_public);
 if (empty($merchandise_type) && !empty($o->buying_unit)) $merchandise_type = trim($o->buying_unit);
 
-/* ── Page print ─────────────────────────────────────────────*/
+/* ── i18n ───────────────────────────────────────────────────────────────── */
+$_jmLang = (substr($langs->defaultlang, 0, 2) === 'fr') ? 'fr' : 'en';
+
+$_jmStrings = array(
+    'back'                => array('fr' => 'Retour',                    'en' => 'Back'),
+    'print_pdf'           => array('fr' => 'Imprimer / PDF',            'en' => 'Print / PDF'),
+    'subtitle'            => array('fr' => 'ORDRE DE TRANSPORT',        'en' => 'TRANSPORT ORDER'),
+    'stat_vehicle'        => array('fr' => 'Véhicule',                  'en' => 'Vehicle'),
+    'stat_driver'         => array('fr' => 'Chauffeur',                 'en' => 'Driver'),
+    'stat_distance'       => array('fr' => 'Distance estimée',          'en' => 'Est. Distance'),
+    'customer'            => array('fr' => 'Client',                    'en' => 'Customer'),
+    'vendor'              => array('fr' => 'Fournisseur',               'en' => 'Vendor'),
+    'merchandise'         => array('fr' => 'Marchandise',               'en' => 'Merchandise'),
+    'loading'             => array('fr' => 'Date de chargement',        'en' => 'Loading Date'),
+    'est_arrival'         => array('fr' => 'Arrivée estimée',           'en' => 'Est. Arrival Date'),
+    'company_stamp'       => array('fr' => 'Cachet Entreprise',          'en' => 'Company Stamp'),
+    'company_signature'   => array('fr' => 'Signature Entreprise',       'en' => 'Company Signature'),
+    'departure'           => array('fr' => 'Lieu de Départ',            'en' => 'Departure Location'),
+    'stop'                => array('fr' => 'Étape',                     'en' => 'Stop'),
+    'arrival'             => array('fr' => 'Lieu d\'Arrivée',           'en' => 'Arrival Location'),
+    'driver_docs'         => array('fr' => 'DOCUMENTS DU CHAUFFEUR',    'en' => 'DRIVER DOCUMENTS'),
+    'contact_imgs'        => array('fr' => 'Images',                    'en' => 'Images'),
+    'contact_other_docs'  => array('fr' => 'Documents',                 'en' => 'Documents'),
+    'no_contact_files'    => array('fr' => 'Aucun fichier trouvé',      'en' => 'No files found'),
+    'driving_license'     => array('fr' => 'Permis de conduire',        'en' => 'Driving License'),
+    'id_card'             => array('fr' => "Carte d'identité (CIN)",    'en' => 'Identity Card (CIN)'),
+    'other_docs'          => array('fr' => 'Autres documents',          'en' => 'Other Documents'),
+    'not_available'       => array('fr' => 'Non disponible',            'en' => 'Not available'),
+);
+
+function jmT($key) {
+    global $_jmStrings, $_jmLang;
+    return isset($_jmStrings[$key][$_jmLang]) ? $_jmStrings[$key][$_jmLang] : $key;
+}
+
+function jmResolveFile($raw, $uploadDir = '') {
+    if (empty($raw)) return '';
+    $decoded = json_decode($raw, true);
+    if (is_array($decoded)) {
+        foreach ($decoded as $f) {
+            $f = trim($f);
+            if (!empty($f) && !empty(jmDriverPath($f))) return $f;
+        }
+        foreach ($decoded as $f) {
+            $f = trim($f);
+            if (!empty($f)) return $f;
+        }
+        return '';
+    }
+    return trim($raw);
+}
+
+function jmResolveAllFiles($raw) {
+    if (empty($raw)) return array();
+    $decoded = json_decode($raw, true);
+    if (is_array($decoded)) {
+        return array_values(array_filter(array_map('trim', $decoded)));
+    }
+    $single = trim($raw);
+    return $single !== '' ? array($single) : array();
+}
+
+$_d_image_file    = jmResolveFile($o->d_image,     $driver_upload_dir);
+$_d_lic_img_file  = jmResolveFile($o->d_lic_image, $driver_upload_dir);
+$_d_doc_files     = jmResolveAllFiles($o->d_documents);
+
+$has_cin_img = !empty($_d_image_file)   && !empty(jmDriverPath($_d_image_file))  && in_array(strtolower(pathinfo($_d_image_file,  PATHINFO_EXTENSION)), $_img_exts);
+$has_lic_img = !empty($_d_lic_img_file) && !empty(jmDriverPath($_d_lic_img_file)) && in_array(strtolower(pathinfo($_d_lic_img_file, PATHINFO_EXTENSION)), $_img_exts);
+$has_doc_img = !empty($_d_doc_files);
 ?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Journey Management – <?= jmVal($o->ref) ?></title>
+<title><?= jmT('subtitle') ?> - <?= jmVal($o->ref) ?></title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+/* ═══════════════════════════════════════════════════
+   CSS RESET & VARIABLES (Professional Document Style)
+═══════════════════════════════════════════════════ */
+:root {
+    --text-main: #111827;
+    --text-muted: #4b5563;
+    --border-color: #d1d5db;
+    --bg-page: #f3f4f6;
+    --bg-paper: #ffffff;
+    --brand-color: #1e3a8a;
+    --accent-bg: #f9fafb;
+}
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-    font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+    font-family: 'Inter', sans-serif;
     font-size: 13px;
-    color: #1a1f2e;
-    background: #f0f2f5;
+    background: var(--bg-page);
+    color: var(--text-main);
     padding: 20px;
+    line-height: 1.5;
 }
 
-/* ── Print / action bar ──────────────────────────────────── */
-.jm-print-bar {
-    max-width: 900px;
-    margin: 0 auto 12px;
+/* ═══════════════════════════════════════════════════
+   ACTION BAR (Screen only)
+═══════════════════════════════════════════════════ */
+.action-bar {
+    max-width: 210mm;
+    margin: 0 auto 20px;
     display: flex;
+    justify-content: flex-end;
     gap: 10px;
-    align-items: center;
 }
-.jm-btn-back {
-    background: #fff;
-    color: #3c4758;
-    border: 1.5px solid #d1d5e0;
-    border-radius: 7px;
+.btn {
     padding: 8px 16px;
+    border-radius: 4px;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 500;
     cursor: pointer;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-family: inherit;
-}
-.jm-btn-print {
-    background: #1a5276;
-    color: #fff;
-    border: none;
-    border-radius: 7px;
-    padding: 8px 20px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    font-family: inherit;
-    transition: background 0.15s;
-}
-.jm-btn-print:hover { background: #154360; }
-
-/* ── Card wrapper ─────────────────────────────────────────── */
-.jm-card {
-    max-width: 900px;
-    margin: 0 auto 24px;
+    border: 1px solid var(--border-color);
     background: #fff;
-    border-radius: 14px;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.09);
-    overflow: hidden;
-    border: 1px solid #e2e5ee;
+    color: var(--text-main);
+    transition: background 0.2s;
 }
+.btn:hover { background: #f3f4f6; }
+.btn-primary {
+    background: var(--brand-color);
+    color: #fff;
+    border-color: var(--brand-color);
+}
+.btn-primary:hover { background: #1e40af; }
 
-/* ── Top header ───────────────────────────────────────────── */
-.jm-header {
-    text-align: center;
-    padding: 24px 32px 18px;
-    border-bottom: 1.5px solid #e8eaf0;
-}
-.jm-header-logo {
-    margin-bottom: 12px;
-}
-.jm-header-logo img {
-    max-height: 52px;
-    max-width: 200px;
-}
-.jm-header-title {
-    font-size: 17px;
-    font-weight: 800;
-    color: #1a2e44;
-    letter-spacing: 0.2px;
-    margin-bottom: 6px;
-}
-.jm-header-time {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    font-weight: 500;
-    color: #5a6482;
-}
-.jm-header-time svg {
-    width: 15px; height: 15px;
-    fill: none; stroke: #5a6482; stroke-width: 2;
-    stroke-linecap: round; stroke-linejoin: round;
-    flex-shrink: 0;
-}
-
-/* ── Two-column body ──────────────────────────────────────── */
-.jm-body {
-    display: grid;
-    grid-template-columns: 45% 55%;
-}
-.jm-left {
-    padding: 26px 24px 26px 32px;
-    border-right: 1.5px solid #e8eaf0;
-}
-.jm-right {
-    padding: 26px 32px 26px 24px;
+/* ═══════════════════════════════════════════════════
+   A4 DOCUMENT PAGE
+═══════════════════════════════════════════════════ */
+.a4-page {
+    width: 210mm;
+    min-height: 297mm;
+    background: var(--bg-paper);
+    margin: 0 auto 20px auto;
+    padding: 15mm;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
     display: flex;
     flex-direction: column;
-    gap: 0;
 }
 
-/* ── Info rows ────────────────────────────────────────────── */
-.jm-row {
+/* ═══════════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════════ */
+.doc-header {
     display: flex;
+    justify-content: space-between;
     align-items: flex-start;
-    gap: 16px;
+    border-bottom: 2px solid var(--brand-color);
+    padding-bottom: 15px;
     margin-bottom: 20px;
 }
-.jm-row:last-child { margin-bottom: 0; }
-
-/* The large orange ring bullet */
-.jm-bullet {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    border: 2.5px solid #e07b39;
-    background: #fff;
-    flex-shrink: 0;
-    margin-top: 1px;
+.doc-title-area {
+    text-align: right;
 }
-
-.jm-row-content { flex: 1; min-width: 0; }
-
-.jm-row-label {
-    font-size: 13px;
+.doc-title-area h1 {
+    font-size: 20px;
     font-weight: 700;
-    color: #1a2e44;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    color: var(--brand-color);
     margin-bottom: 5px;
+    text-transform: uppercase;
 }
-.jm-row-label .lico {
-    font-size: 14px;
+.doc-meta {
+    font-size: 12px;
+    color: var(--text-muted);
 }
+.doc-meta strong { color: var(--text-main); }
 
-.jm-row-value {
+/* ═══════════════════════════════════════════════════
+   DATA TABLES
+═══════════════════════════════════════════════════ */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+.data-table th, .data-table td {
+    border: 1px solid var(--border-color);
+    padding: 10px 12px;
+    vertical-align: middle;
+}
+.data-table th {
+    background-color: var(--accent-bg);
+    width: 20%;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+.data-table td {
+    width: 30%;
+    font-weight: 600;
     font-size: 13px;
-    color: #374151;
-    line-height: 1.7;
-}
-.jm-row-value strong {
-    color: #1a2e44;
-    font-weight: 700;
-}
-.jm-row-value .sub-line {
-    display: block;
-    font-size: 12.5px;
-    color: #5a6482;
-    line-height: 1.6;
 }
 
-/* ── Route stops ──────────────────────────────────────────── */
-.jm-route {
+/* ═══════════════════════════════════════════════════
+   ROUTE & MAP LAYOUT
+═══════════════════════════════════════════════════ */
+.route-section {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+    flex: 1; /* Pushes signature to bottom */
+}
+.map-col {
+    flex: 1;
+    border: 1px solid var(--border-color);
+    padding: 5px;
+    background: var(--accent-bg);
+}
+#jm-map {
+    width: 100%;
+    height: 450px; /* Large map like PDF */
+    background: #e5e5e5;
+}
+.address-col {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 0;
-    position: relative;
-    padding-left: 4px;
+    gap: 15px;
 }
-.jm-route-stop {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    position: relative;
-    padding-bottom: 14px;
-}
-.jm-route-stop:last-child { padding-bottom: 0; }
-
-/* Vertical line connecting stops */
-.jm-route-stop:not(:last-child)::before {
-    content: '';
-    position: absolute;
-    left: 6px;
-    top: 16px;
-    bottom: 0;
-    width: 1.5px;
-    background: #d1d5e0;
-}
-
-.jm-stop-dot {
-    width: 14px;
-    height: 14px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    margin-top: 3px;
-    position: relative;
-    z-index: 1;
-}
-.jm-stop-dot.dep { background: #16a34a; }
-.jm-stop-dot.arr { background: #dc2626; }
-.jm-stop-dot.mid { background: #ea580c; }
-
-.jm-stop-name {
-    font-size: 13px;
-    font-weight: 700;
-    color: #1a5276;
-    margin-bottom: 2px;
-}
-.jm-stop-addr {
-    font-size: 12px;
-    color: #5a6482;
-    line-height: 1.5;
-}
-
-/* ── Stamp area (bottom of left col) ─────────────────────── */
-.jm-stamp-area {
-    margin-top: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-}
-.jm-stamp-area img {
-    max-height: 110px;
-    max-width: 200px;
-    object-fit: contain;
-}
-.jm-stamp-placeholder {
-    border: 1.5px dashed #c5cae0;
-    border-radius: 8px;
-    padding: 14px 18px;
-    text-align: center;
-    color: #b0b8cc;
-    font-size: 11.5px;
-    min-width: 150px;
-}
-
-/* ── Map ──────────────────────────────────────────────────── */
-#jm-map {
-    height: 100%;
-    min-height: 340px;
-    border-radius: 10px;
-    border: 1.5px solid #ccd0db;
+.address-box {
+    border: 1px solid var(--border-color);
+    padding: 15px;
+    background: #fff;
     flex: 1;
 }
-.jm-map-placeholder {
-    height: 340px;
-    border-radius: 10px;
-    border: 1.5px solid #e2e5f0;
-    background: #f7f8fc;
+.address-header {
+    font-size: 11px;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 8px;
     display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+}
+.dot {
+    width: 10px; height: 10px; border-radius: 50%;
+}
+.dot.green { background: #10b981; }
+.dot.orange { background: #f59e0b; }
+.dot.red { background: #ef4444; }
+
+.address-text {
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════════════
+   STAMPS
+═══════════════════════════════════════════════════ */
+.stamp-section {
+    display: flex;
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+.stamp-box {
+    width: 45%;
+    min-height: 120px;
+    border: 1px dashed var(--border-color);
+    border-radius: 4px;
+    padding: 15px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: #b0b8cc;
-    font-size: 13px;
-    flex-direction: column;
     gap: 10px;
-    flex: 1;
 }
-.jm-map-placeholder svg {
-    width: 48px; height: 48px; opacity: 0.25;
+.stamp-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+.stamp-box img {
+    max-height: 80px;
+    max-width: 100%;
+    object-fit: contain;
 }
 
-/* ── Documents section (page 2) ───────────────────────────── */
-.jm-docs-card {
-    max-width: 900px;
-    margin: 0 auto;
-    background: #fff;
-    border-radius: 14px;
-    box-shadow: 0 2px 20px rgba(0,0,0,0.09);
-    overflow: hidden;
-    border: 1px solid #e2e5ee;
-    padding: 28px 32px;
-}
-.jm-docs-section-title {
-    font-size: 11px;
+/* ═══════════════════════════════════════════════════
+   DOCUMENTS GRID (Page 2)
+═══════════════════════════════════════════════════ */
+.doc-grid-header {
+    text-align: center;
+    font-size: 18px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: #9aa0b4;
-    margin-bottom: 18px;
-    padding-bottom: 10px;
-    border-bottom: 1.5px solid #f0f2f8;
+    margin-bottom: 20px;
+    color: var(--brand-color);
 }
-.jm-docs-grid {
+.docs-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-bottom: 24px;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
 }
-.jm-doc-block {}
-.jm-doc-label {
+.doc-item {
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    background: var(--accent-bg);
+    text-align: center;
+}
+.doc-item-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+.doc-item img {
+    width: 100%;
+    height: 350px;
+    object-fit: cover;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+.doc-section-title {
     font-size: 11px;
     font-weight: 700;
+    color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    color: #7b8299;
+    letter-spacing: 0.6px;
+    margin: 18px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-color);
+}
+.doc-section-title:first-child { margin-top: 0; }
+.doc-file-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--accent-bg);
     margin-bottom: 8px;
 }
-.jm-doc-img-wrap {
-    border: 1px solid #d1d5e0;
-    border-radius: 10px;
-    overflow: hidden;
-    background: #f7f8fc;
-    min-height: 130px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.doc-file-icon {
+    width: 34px; height: 34px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0;
 }
-.jm-doc-img-wrap img {
-    max-width: 100%;
-    max-height: 200px;
-    object-fit: contain;
-    display: block;
+.doc-file-name {
+    font-size: 12px; font-weight: 600; color: var(--text-main);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.jm-doc-empty {
-    color: #c4c9d8;
-    font-size: 12px;
-    padding: 16px;
-    text-align: center;
+.doc-file-ext {
+    font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-top: 2px;
 }
 
-/* ── Print styles ─────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════
+   PRINT STYLES
+═══════════════════════════════════════════════════ */
 @media print {
-    body { background: #fff; padding: 0; }
-    .jm-print-bar { display: none !important; }
-    .jm-card, .jm-docs-card { box-shadow: none; border-radius: 0; margin: 0; border: none; }
-    .jm-docs-card { page-break-before: always; }
-    #jm-map { min-height: 280px; }
-    .jm-body { grid-template-columns: 45% 55%; }
-}
-
-@media (max-width: 640px) {
-    body { padding: 10px; }
-    .jm-body { grid-template-columns: 1fr; }
-    .jm-left { border-right: none; border-bottom: 1.5px solid #e8eaf0; padding: 20px 18px; }
-    .jm-right { padding: 20px 18px; }
-    .jm-docs-grid { grid-template-columns: 1fr 1fr; }
-    #jm-map { min-height: 240px; }
+    body {
+        background: #fff;
+        padding: 0;
+        margin: 0;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    .action-bar { display: none !important; }
+    .a4-page {
+        box-shadow: none;
+        margin: 0;
+        padding: 10mm;
+        width: 100%;
+        min-height: auto;
+    }
+    .page-break {
+        page-break-before: always;
+        break-before: page;
+    }
+    .route-section {
+        flex: none;
+    }
+    #jm-map {
+        height: 320px;
+    }
+    .stamp-section {
+        margin-top: 15px;
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
 }
 </style>
 </head>
 <body>
 
-<!-- ── Print bar ─────────────────────────────────────────── -->
-<div class="jm-print-bar">
-    <a class="jm-btn-back" href="javascript:history.back()">&#8592; Retour</a>
-    <button class="jm-btn-print" onclick="window.print()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-        Imprimer / PDF
+<div class="action-bar">
+    <a class="btn" href="javascript:history.back()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+        <?= jmT('back') ?>
+    </a>
+    <button class="btn btn-primary" onclick="window.print()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+        <?= jmT('print_pdf') ?>
     </button>
 </div>
 
-<!-- ══════════════════════════════════════════════════════
-     PAGE 1 — Journey Management Card
-══════════════════════════════════════════════════════ -->
-<div class="jm-card">
-
-    <!-- Header -->
-    <div class="jm-header">
-        <div class="jm-header-logo">
-            <?= jmLogo() ?>
-        </div>
-        <div class="jm-header-title">Journey Management &ndash; <?= jmVal($o->ref) ?></div>
-        <div class="jm-header-time">
-            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            <?= jmDate($o->booking_date, true) ?>
+<div class="a4-page">
+    
+    <div class="doc-header">
+        <div><?= jmLogo() ?></div>
+        <div class="doc-title-area">
+            <h1><?= jmT('subtitle') ?></h1>
+            <div class="doc-meta">
+                <strong>Réf:</strong> <?= jmVal($o->bl_number) ?> &nbsp;|&nbsp; 
+                <strong>Date:</strong> <?= jmDate($o->booking_date, true) ?>
+            </div>
         </div>
     </div>
 
-    <!-- Body: left info + right map -->
-    <div class="jm-body">
+    <table class="data-table">
+        <tbody>
+            <tr>
+                <th><?= jmT('stat_vehicle') ?></th>
+                <td><?= jmVal($o->v_ref) ?> <br><span style="font-size:11px;font-weight:400;"><?= trim(jmVal($o->v_maker) . ' ' . jmVal($o->v_model)) ?></span></td>
+                <th><?= jmT('stat_driver') ?></th>
+                <td><?= $driver_fullname ?> <br><span style="font-size:11px;font-weight:400;">Tél: <?= jmVal($o->d_phone) ?></span></td>
+            </tr>
+            <tr>
+                <th><?= jmT('customer') ?></th>
+                <td><?= jmVal($o->c_name) ?></td>
+                <th><?= jmT('vendor') ?></th>
+                <td><?= jmVal($o->s_name) ?></td>
+            </tr>
+            <tr>
+                <th><?= jmT('merchandise') ?></th>
+                <td colspan="3"><?= htmlspecialchars($merchandise_type ?: '—') ?></td>
+            </tr>
+            <tr>
+                <th><?= jmT('loading') ?></th>
+                <td><?= jmDate($o->pickup_datetime, true) ?></td>
+                <th><?= jmT('est_arrival') ?></th>
+                <td><?= jmDate($o->dropoff_datetime, true) ?></td>
+            </tr>
+            <tr>
+                <th><?= jmT('stat_distance') ?></th>
+                <td colspan="3"><?= (!empty($o->distance) && $o->distance > 0) ? (int)$o->distance . ' KM' : '—' ?></td>
+            </tr>
+        </tbody>
+    </table>
 
-        <!-- ── LEFT: Info rows ─────────────────────────────── -->
-        <div class="jm-left">
-
-            <!-- Véhicule -->
-            <div class="jm-row">
-                <div class="jm-bullet"></div>
-                <div class="jm-row-content">
-                    <div class="jm-row-label">
-                        <span class="lico">🚛</span> Véhicule :
-                    </div>
-                    <div class="jm-row-value">
-                        <?php
-                        $vtype = '';
-                        if (!empty($o->v_maker)) $vtype .= htmlspecialchars($o->v_maker);
-                        if (!empty($o->v_model)) $vtype .= ' '.htmlspecialchars($o->v_model);
-                        echo $vtype ?: '—';
-                        ?>
-                        <?php if (!empty($o->v_ref)): ?>
-                        <span class="sub-line"><strong>Tracteur :</strong> <?= jmVal($o->v_ref) ?></span>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Chauffeur -->
-            <div class="jm-row">
-                <div class="jm-bullet"></div>
-                <div class="jm-row-content">
-                    <div class="jm-row-label">
-                        <span class="lico">👤</span> Chauffeur :
-                    </div>
-                    <div class="jm-row-value">
-                        <span class="sub-line"><strong>Nom complet :</strong> <?= $driver_fullname ?></span>
-                        <?php if (!empty($o->d_cin)): ?>
-                        <span class="sub-line"><strong>CIN :</strong> <?= jmVal($o->d_cin) ?></span>
-                        <?php endif; ?>
-                        <?php if (!empty($o->d_phone)): ?>
-                        <span class="sub-line"><strong>Téléphone :</strong> <?= jmVal($o->d_phone) ?></span>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Type de marchandise -->
-            <?php if (!empty($merchandise_type)): ?>
-            <div class="jm-row">
-                <div class="jm-bullet"></div>
-                <div class="jm-row-content">
-                    <div class="jm-row-label">
-                        <span class="lico">📦</span> Type de marchandise :
-                    </div>
-                    <div class="jm-row-value">
-                        <?= htmlspecialchars($merchandise_type) ?>
-                    </div>
-                </div>
-            </div>
-            <?php endif; ?>
-
-            <!-- Distance + Dates -->
-            <div class="jm-row">
-                <div class="jm-bullet"></div>
-                <div class="jm-row-content">
-                    <div class="jm-row-label">
-                        <span class="lico">📍</span>
-                        <?php if (!empty($o->distance) && $o->distance > 0): ?>
-                            Distance estimée : <strong><?= (int)$o->distance ?> KM</strong>
-                        <?php else: ?>
-                            Distance &amp; Dates
-                        <?php endif; ?>
-                    </div>
-                    <div class="jm-row-value">
-                        <?php if (!empty($o->pickup_datetime) && $o->pickup_datetime !== '0000-00-00 00:00:00'): ?>
-                        <span class="sub-line">
-                            <strong>Date de chargement:</strong> <?= jmDate($o->pickup_datetime, true) ?>
-                        </span>
-                        <?php endif; ?>
-                        <?php if (!empty($o->dropoff_datetime) && $o->dropoff_datetime !== '0000-00-00 00:00:00'): ?>
-                        <span class="sub-line">
-                            <strong>heure d&rsquo;arrivée estimée :</strong> <?= jmDate($o->dropoff_datetime, true) ?>
-                        </span>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Route / Itinéraire -->
-            <div class="jm-row">
-                <div class="jm-bullet"></div>
-                <div class="jm-row-content">
-                    <div class="jm-route">
-
-                        <!-- Departure -->
-                        <div class="jm-route-stop">
-                            <div class="jm-stop-dot dep"></div>
-                            <div>
-                                <?php
-                                // Try to extract location name from departure_address (first line)
-                                $dep_lines = array_filter(array_map('trim', explode("\n", $o->departure_address ?? '')));
-                                $dep_name  = !empty($dep_lines) ? array_shift($dep_lines) : '';
-                                $dep_rest  = implode(', ', $dep_lines);
-                                ?>
-                                <?php if (!empty($dep_name)): ?>
-                                <div class="jm-stop-name"><?= htmlspecialchars($dep_name) ?></div>
-                                <?php endif; ?>
-                                <div class="jm-stop-addr"><?= nl2br(htmlspecialchars($dep_rest ?: ($o->departure_address ?? '—'))) ?></div>
-                            </div>
-                        </div>
-
-                        <!-- Intermediate stops -->
-                        <?php foreach ($stops_list as $idx => $st):
-                            $sa = is_array($st) ? ($st['address'] ?? (is_string($st) ? $st : '')) : $st;
-                            if (empty($sa)) continue;
-                        ?>
-                        <div class="jm-route-stop">
-                            <div class="jm-stop-dot mid"></div>
-                            <div>
-                                <div class="jm-stop-name">Étape <?= $idx + 1 ?></div>
-                                <div class="jm-stop-addr"><?= nl2br(htmlspecialchars($sa)) ?></div>
-                            </div>
-                        </div>
-                        <?php endforeach; ?>
-
-                        <!-- Arrival -->
-                        <div class="jm-route-stop">
-                            <div class="jm-stop-dot arr"></div>
-                            <div>
-                                <?php
-                                $arr_lines = array_filter(array_map('trim', explode("\n", $o->arriving_address ?? '')));
-                                $arr_name  = !empty($arr_lines) ? array_shift($arr_lines) : '';
-                                $arr_rest  = implode(', ', $arr_lines);
-                                ?>
-                                <?php if (!empty($arr_name)): ?>
-                                <div class="jm-stop-name"><?= htmlspecialchars($arr_name) ?></div>
-                                <?php endif; ?>
-                                <div class="jm-stop-addr"><?= nl2br(htmlspecialchars($arr_rest ?: ($o->arriving_address ?? '—'))) ?></div>
-                            </div>
-                        </div>
-
-                    </div><!-- /.jm-route -->
-                </div>
-            </div>
-
-            <!-- Company stamp -->
-            <div class="jm-stamp-area">
-                <?php
-                // Try to show company stamp/logo
-                $stamp_shown = false;
-                if (!empty($conf->global->MAIN_INFO_SOCIETE_LOGO)) {
-                    $lp = DOL_DATA_ROOT.'/mycompany/logos/'.$conf->global->MAIN_INFO_SOCIETE_LOGO;
-                    if (file_exists($lp)) {
-                        $ext = strtolower(pathinfo($lp, PATHINFO_EXTENSION));
-                        $mime = $ext === 'png' ? 'image/png' : ($ext === 'gif' ? 'image/gif' : 'image/jpeg');
-                        $data = base64_encode(file_get_contents($lp));
-                        echo '<img src="data:'.$mime.';base64,'.$data.'" alt="Cachet" style="max-height:110px;max-width:200px;object-fit:contain;">';
-                        $stamp_shown = true;
-                    }
-                }
-                if (!$stamp_shown): ?>
-                <div class="jm-stamp-placeholder">
-                    Cachet &amp; Signature<br>expéditeur
-                </div>
-                <?php endif; ?>
-            </div>
-
-        </div><!-- /.jm-left -->
-
-        <!-- ── RIGHT: Map ─────────────────────────────────── -->
-        <div class="jm-right">
+    <div class="route-section">
+        <div class="map-col">
             <?php if ($has_map): ?>
-            <div id="jm-map"></div>
+                <div id="jm-map"></div>
             <?php else: ?>
-            <div class="jm-map-placeholder">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
-                <span>Carte non disponible</span>
-            </div>
+                <div style="height: 100%; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
+                    <?= jmT('not_available') ?> (GPS)
+                </div>
             <?php endif; ?>
-        </div><!-- /.jm-right -->
-
-    </div><!-- /.jm-body -->
-
-</div><!-- /.jm-card -->
-
-
-<!-- ══════════════════════════════════════════════════════
-     PAGE 2 — Driver Documents
-══════════════════════════════════════════════════════ -->
-<?php
-$has_cin_img  = !empty($o->d_image)     && file_exists($driver_upload_dir.$o->d_image)     && in_array(strtolower(pathinfo($o->d_image,     PATHINFO_EXTENSION)), array('jpg','jpeg','png','gif','webp'));
-$has_lic_img  = !empty($o->d_lic_image) && file_exists($driver_upload_dir.$o->d_lic_image) && in_array(strtolower(pathinfo($o->d_lic_image,  PATHINFO_EXTENSION)), array('jpg','jpeg','png','gif','webp'));
-$has_doc_img  = !empty($o->d_documents) && file_exists($driver_upload_dir.$o->d_documents) && in_array(strtolower(pathinfo($o->d_documents,  PATHINFO_EXTENSION)), array('jpg','jpeg','png','gif','webp'));
-$has_any_doc  = $has_cin_img || $has_lic_img || $has_doc_img;
-?>
-<div class="jm-docs-card">
-
-    <div class="jm-docs-section-title">📎 Documents chauffeur</div>
-
-    <div class="jm-docs-grid">
-
-        <!-- Permis de conduire -->
-        <div class="jm-doc-block">
-            <div class="jm-doc-label">Permis de conduire</div>
-            <div class="jm-doc-img-wrap">
-                <?php if ($has_lic_img): ?>
-                    <?= jmImgTag($o->d_lic_image, 'Permis', 'max-width:100%;max-height:200px;object-fit:contain;display:block;') ?>
-                <?php else: ?>
-                    <span class="jm-doc-empty">Non disponible</span>
-                <?php endif; ?>
-            </div>
         </div>
 
-        <!-- CIN -->
-        <div class="jm-doc-block">
-            <div class="jm-doc-label">Carte d&rsquo;identité (CIN)</div>
-            <div class="jm-doc-img-wrap">
-                <?php if ($has_cin_img): ?>
-                    <?= jmImgTag($o->d_image, 'CIN', 'max-width:100%;max-height:200px;object-fit:contain;display:block;') ?>
-                <?php else: ?>
-                    <span class="jm-doc-empty">Non disponible</span>
-                <?php endif; ?>
+        <div class="address-col">
+            <div class="address-box">
+                <div class="address-header">
+                    <div class="dot green"></div> <?= jmT('departure') ?>
+                </div>
+                <div class="address-text"><?= nl2br(htmlspecialchars($o->departure_address ?? '—')) ?></div>
+            </div>
+
+            <?php foreach ($stops_list as $idx => $st):
+                $sa = is_array($st) ? ($st['address'] ?? (is_string($st) ? $st : '')) : $st;
+                if (empty($sa)) continue;
+            ?>
+            <div class="address-box">
+                <div class="address-header">
+                    <div class="dot orange"></div> <?= jmT('stop') ?> <?= $idx + 1 ?>
+                </div>
+                <div class="address-text"><?= nl2br(htmlspecialchars($sa)) ?></div>
+            </div>
+            <?php endforeach; ?>
+
+            <div class="address-box">
+                <div class="address-header">
+                    <div class="dot red"></div> <?= jmT('arrival') ?>
+                </div>
+                <div class="address-text"><?= nl2br(htmlspecialchars($o->arriving_address ?? '—')) ?></div>
             </div>
         </div>
+    </div>
 
-        <!-- Autres documents (carte grise / etc.) -->
-        <div class="jm-doc-block">
-            <div class="jm-doc-label">Autres documents</div>
-            <div class="jm-doc-img-wrap">
-                <?php if ($has_doc_img): ?>
-                    <?= jmImgTag($o->d_documents, 'Document', 'max-width:100%;max-height:200px;object-fit:contain;display:block;') ?>
-                <?php else: ?>
-                    <span class="jm-doc-empty">Non disponible</span>
-                <?php endif; ?>
-            </div>
+    <div class="stamp-section">
+        <div class="stamp-box">
+            <div class="stamp-title"><?= jmT('company_stamp') ?></div>
+            <?php
+            $flotteCachetFile = getDolGlobalString('FLOTTE_CACHET_FILE');
+            if (!empty($flotteCachetFile) && file_exists(DOL_DATA_ROOT.'/'.$flotteCachetFile)) {
+                $ext = strtolower(pathinfo($flotteCachetFile, PATHINFO_EXTENSION));
+                $mime = ($ext === 'png') ? 'image/png' : 'image/jpeg';
+                $data = base64_encode(file_get_contents(DOL_DATA_ROOT.'/'.$flotteCachetFile));
+                echo '<img src="data:'.$mime.';base64,'.$data.'" alt="Cachet">';
+            }
+            ?>
         </div>
+        <div class="stamp-box">
+            <div class="stamp-title"><?= jmT('company_signature') ?></div>
+            <?php
+            $flotteSignatureFile = getDolGlobalString('FLOTTE_SIGNATURE_FILE');
+            if (!empty($flotteSignatureFile) && file_exists(DOL_DATA_ROOT.'/'.$flotteSignatureFile)) {
+                $ext = strtolower(pathinfo($flotteSignatureFile, PATHINFO_EXTENSION));
+                $mime = ($ext === 'png') ? 'image/png' : 'image/jpeg';
+                $data = base64_encode(file_get_contents(DOL_DATA_ROOT.'/'.$flotteSignatureFile));
+                echo '<img src="data:'.$mime.';base64,'.$data.'" alt="Signature">';
+            } else {
+                echo '<div style="height: 60px;"></div>';
+            }
+            ?>
+        </div>
+    </div>
 
-    </div><!-- /.jm-docs-grid -->
+</div>
 
-</div><!-- /.jm-docs-card -->
+<div class="a4-page page-break">
+
+    <div class="doc-grid-header">
+        <?= jmT('driver_docs') ?> — <?= $driver_fullname ?>
+    </div>
+
+    <?php if (!empty($contact_files_images)): ?>
+    <div class="doc-section-title"><?= jmT('contact_imgs') ?></div>
+    <div class="docs-grid">
+        <?php foreach ($contact_files_images as $_cf): ?>
+        <div class="doc-item">
+            <div class="doc-item-title"><?= htmlspecialchars(!empty($_cf['label']) ? $_cf['label'] : $_cf['filename']) ?></div>
+            <?= jmContactImgTag($_cf['path'], $_cf['filename']) ?>
+        </div>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+
+    <?php if (!empty($contact_files_docs)): ?>
+    <div class="doc-section-title"><?= jmT('contact_other_docs') ?></div>
+    <?php foreach ($contact_files_docs as $_df):
+        $_dext  = strtolower($_df['ext'] ?? pathinfo($_df['filename'], PATHINFO_EXTENSION));
+        $_dicon_color = $_dext === 'pdf' ? '#dc2626' : (in_array($_dext, array('doc','docx')) ? '#2563eb' : '#4b5563');
+        $_dicon_fa    = $_dext === 'pdf' ? 'fa-file-pdf' : (in_array($_dext, array('doc','docx')) ? 'fa-file-word' : 'fa-file-alt');
+    ?>
+    <div class="doc-file-row">
+        <div class="doc-file-icon" style="background:<?= $_dicon_color ?>1a;">
+            <i class="fa <?= $_dicon_fa ?>" style="color:<?= $_dicon_color ?>;"></i>
+        </div>
+        <div style="flex:1;min-width:0;">
+            <div class="doc-file-name"><?= htmlspecialchars(!empty($_df['label']) ? $_df['label'] : $_df['filename']) ?></div>
+            <div class="doc-file-ext"><?= strtoupper(htmlspecialchars($_dext)) ?> File</div>
+        </div>
+    </div>
+    <?php endforeach; ?>
+    <?php endif; ?>
+
+    <?php if (empty($contact_files_images) && empty($contact_files_docs)): ?>
+    <div style="text-align:center;padding:40px 0;color:var(--text-muted);">
+        <i class="fa fa-folder-open" style="font-size:32px;opacity:0.3;display:block;margin-bottom:10px;"></i>
+        <?= jmT('no_contact_files') ?>
+        <!-- PATHS TRIED: <?= implode(' | ', array_map('htmlspecialchars', $_contact_dir_tried ?? [])) ?> -->
+    </div>
+    <?php endif; ?>
+
+</div>
 
 <?php if ($has_map): ?>
 <script>
@@ -802,16 +941,18 @@ $has_any_doc  = $has_cin_img || $has_lic_img || $has_doc_img;
     var mapEl = document.getElementById('jm-map');
     if (!mapEl) return;
 
-    var map = L.map('jm-map', { zoomControl: true, attributionControl: false });
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+    var map = L.map('jm-map', { zoomControl: false, attributionControl: false });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18,
+        crossOrigin: true
+    }).addTo(map);
 
-    function mkIcon(color, size) {
-        size = size || 14;
+    function mkIcon(color) {
         return L.divIcon({
             className: '',
-            html: '<div style="background:'+color+';width:'+size+'px;height:'+size+'px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35);"></div>',
-            iconSize: [size, size],
-            iconAnchor: [size/2, size/2]
+            html: '<div style="background:'+color+';width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>',
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
         });
     }
 
@@ -819,33 +960,51 @@ $has_any_doc  = $has_cin_img || $has_lic_img || $has_doc_img;
     stops.forEach(function(s){ wps.push([s.lat, s.lon]); });
     wps.push([arrLat, arrLon]);
 
-    // Markers
-    L.marker([depLat, depLon], { icon: mkIcon('#16a34a', 16) }).addTo(map);
-    stops.forEach(function(s){ L.marker([s.lat, s.lon], { icon: mkIcon('#ea580c', 12) }).addTo(map); });
-    L.marker([arrLat, arrLon], { icon: mkIcon('#dc2626', 16) }).addTo(map);
+    L.marker([depLat, depLon], { icon: mkIcon('#10b981') }).addTo(map); // Green start
+    stops.forEach(function(s){ L.marker([s.lat, s.lon], { icon: mkIcon('#f59e0b') }).addTo(map); }); // Orange stops
+    L.marker([arrLat, arrLon], { icon: mkIcon('#ef4444') }).addTo(map); // Red end
 
-    // Route
     var coordStr = wps.map(function(c){ return c[1]+','+c[0]; }).join(';');
     var proxyUrl = '<?= dol_buildpath('/flotte/booking_card.php', 1) ?>?osrm_proxy=1&coords=' + encodeURIComponent(coordStr);
+    
     fetch(proxyUrl)
         .then(function(r){ return r.json(); })
         .then(function(data){
             if (data && data.routes && data.routes[0]) {
                 var coords = data.routes[0].geometry.coordinates.map(function(c){ return [c[1], c[0]]; });
-                L.polyline(coords, { color:'#ffffff', weight:8, opacity:1 }).addTo(map);
-                L.polyline(coords, { color:'#3c4758', weight:4.5, opacity:0.9 }).addTo(map);
-                map.fitBounds(L.polyline(coords).getBounds(), { padding:[28,28] });
+                L.polyline(coords, { color:'#1e3a8a', weight:5, opacity:0.8 }).addTo(map);
+                map.fitBounds(L.polyline(coords).getBounds(), { padding:[20,20] });
             } else { fallback(); }
         }).catch(function(){ fallback(); });
 
     function fallback() {
-        L.polyline(wps, { color:'#ffffff', weight:8, opacity:1 }).addTo(map);
-        L.polyline(wps, { color:'#3c4758', weight:4.5, opacity:0.9 }).addTo(map);
-        map.fitBounds(L.latLngBounds(wps), { padding:[28,28] });
+        L.polyline(wps, { color:'#1e3a8a', weight:4, opacity:0.8, dashArray: '5, 10' }).addTo(map);
+        map.fitBounds(L.latLngBounds(wps), { padding:[20,20] });
     }
+    // Capture map as static image before printing (tiles are cross-origin, cannot be drawn otherwise)
+    var _jmPrintImg = null;
+    window.addEventListener('beforeprint', function() {
+        if (typeof html2canvas !== 'undefined' && mapEl) {
+            // Synchronous-style: create canvas capture, inject image, hide live map
+            html2canvas(mapEl, { useCORS: true, allowTaint: false, logging: false }).then(function(canvas) {
+                _jmPrintImg = document.createElement('img');
+                _jmPrintImg.src = canvas.toDataURL('image/png');
+                _jmPrintImg.style.cssText = 'width:100%;height:320px;object-fit:cover;display:block;border-radius:2px;';
+                mapEl.style.display = 'none';
+                mapEl.parentNode.insertBefore(_jmPrintImg, mapEl);
+            });
+        } else {
+            setTimeout(function() { map.invalidateSize(); }, 100);
+        }
+    });
+    window.addEventListener('afterprint', function() {
+        if (_jmPrintImg) { _jmPrintImg.remove(); _jmPrintImg = null; }
+        if (mapEl) mapEl.style.display = '';
+    });
 })();
 </script>
 <?php endif; ?>
+
 
 </body>
 </html>
