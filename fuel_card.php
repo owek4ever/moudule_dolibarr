@@ -753,6 +753,23 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
     .dc-live-total { flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 14px; }
     .dc-live-total-value { font-size: 18px; }
 }
+/* ── OSM Location Autocomplete ── */
+.osm-autocomplete-wrap { position: relative; width: 100%; }
+.osm-suggestions {
+    position: fixed; z-index: 2147483647; left: 0; top: 0;
+    background: #fff; border: 1.5px solid #e2e5f0; border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.10); list-style: none;
+    margin: 0; padding: 4px 0; max-height: 220px; overflow-y: auto; display: none;
+}
+.osm-suggestions li {
+    padding: 9px 14px; font-size: 12.5px; color: #2d3748; cursor: pointer;
+    display: flex; align-items: flex-start; gap: 8px; line-height: 1.4;
+}
+.osm-suggestions li:hover, .osm-suggestions li.active { background: #f0f4ff; color: #3c4758; }
+.osm-suggestions li i { color: #16a34a; margin-top: 2px; flex-shrink: 0; }
+.osm-suggestions li.osm-loading { color: #8b92a9; cursor: default; }
+.osm-suggestions li.osm-loading:hover { background: none; }
+
 /* ── File upload zone ── */
 .dc-page input[type="file"] {
     font-size: 12.5px; color: #5a6482;
@@ -916,23 +933,20 @@ if ($isCreate || $isEdit) {
 }
 print '    </div></div>';
 
-// State
+// State / Province (location autocomplete)
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('State').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('StateProvince').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    $state_options = array(
-        'pending'   => $langs->trans('Pending'),
-        'approved'  => $langs->trans('Approved'),
-        'rejected'  => $langs->trans('Rejected'),
-        'completed' => $langs->trans('Completed'),
-    );
-    print $form->selectarray('state', $state_options, (isset($object->state) ? $object->state : 'pending'), 0);
+    print '<div class="osm-autocomplete-wrap">';
+    print '<input type="text" id="fuel_state" name="state" value="'.dol_escape_htmltag(isset($object->state) ? $object->state : '').'" placeholder="'.$langs->trans('TypeToSearch').'" autocomplete="off">';
+    print '<ul class="osm-suggestions" id="fuel-state-suggestions"></ul>';
+    print '</div>';
 } else {
     if (!empty($object->state)) {
-        $stClass = strtolower($object->state);
-        $stLabel = $langs->trans(ucfirst($object->state));
-        print '<span class="dc-badge '.$stClass.'">'.dol_escape_htmltag($stLabel).'</span>';
+        print '<span class="dc-chip"><i class="fa fa-map-marker-alt" style="font-size:11px;opacity:0.6;"></i> '.dol_escape_htmltag($object->state).'</span>';
+    } else {
+        print '<span style="color:#c4c9d8;">&mdash;</span>';
     }
 }
 print '    </div></div>';
@@ -1224,6 +1238,95 @@ if ($isCreate || $isEdit) {
         });
     })();
     </script>';
+}
+
+// OSM location autocomplete for State/Province field (create/edit only)
+if ($isCreate || $isEdit) {
+    print '<script>
+(function() {
+    "use strict";
+    var ntTimer = null;
+
+    function setupLocationAutocomplete(inId, sugId) {
+        var inp = document.getElementById(inId);
+        var lst = document.getElementById(sugId);
+        if (!inp || !lst) return;
+
+        // Move suggestion list to <body> so it is never clipped by any ancestor stacking context
+        document.body.appendChild(lst);
+        lst.style.position = "fixed";
+        lst.style.zIndex   = "2147483647";
+        lst.style.display  = "none";
+
+        function positionList() {
+            var r = inp.getBoundingClientRect();
+            lst.style.top   = (r.bottom + 2) + "px";
+            lst.style.left  = r.left + "px";
+            lst.style.width = r.width + "px";
+        }
+
+        function escH(str) {
+            var d = document.createElement("div");
+            d.appendChild(document.createTextNode(str));
+            return d.innerHTML;
+        }
+
+        inp.addEventListener("input", function() {
+            var q = inp.value.trim();
+            lst.innerHTML = "";
+            lst.style.display = "none";
+            if (q.length < 3) return;
+
+            clearTimeout(ntTimer);
+            ntTimer = setTimeout(function() {
+                positionList();
+                lst.innerHTML = "<li class=\'osm-loading\'><i class=\'fa fa-spinner fa-spin\'></i> Searching...</li>";
+                lst.style.display = "block";
+
+                // Search Nominatim — filter to administrative areas (states, provinces, regions)
+                var url = "https://nominatim.openstreetmap.org/search?format=json"
+                        + "&q=" + encodeURIComponent(q)
+                        + "&limit=6&accept-language=en"
+                        + "&featuretype=state";
+
+                fetch(url)
+                    .then(function(r) { return r.json(); })
+                    .then(function(data) {
+                        lst.innerHTML = "";
+                        if (!data.length) {
+                            lst.innerHTML = "<li style=\'color:#8b92a9;padding:9px 14px;font-size:12.5px;\'>No results</li>";
+                            positionList();
+                            lst.style.display = "block";
+                            return;
+                        }
+                        data.forEach(function(p) {
+                            var li = document.createElement("li");
+                            li.innerHTML = "<i class=\'fa fa-map-marker-alt\'></i><span>" + escH(p.display_name) + "</span>";
+                            li.addEventListener("mousedown", function(e) {
+                                e.preventDefault();
+                                inp.value = p.display_name;
+                                lst.style.display = "none";
+                            });
+                            lst.appendChild(li);
+                        });
+                        positionList();
+                        lst.style.display = "block";
+                    })
+                    .catch(function() { lst.style.display = "none"; });
+            }, 400);
+        });
+
+        window.addEventListener("scroll", function() { if (lst.style.display !== "none") positionList(); }, true);
+        window.addEventListener("resize", function() { if (lst.style.display !== "none") positionList(); });
+        inp.addEventListener("blur", function() { setTimeout(function() { lst.style.display = "none"; }, 200); });
+        inp.addEventListener("focus", function() { if (lst.children.length) { positionList(); lst.style.display = "block"; } });
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        setupLocationAutocomplete("fuel_state", "fuel-state-suggestions");
+    });
+})();
+</script>';
 }
 
 // End of page

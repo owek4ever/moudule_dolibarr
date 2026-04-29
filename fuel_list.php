@@ -133,7 +133,7 @@ if ($search_reference) {
     $sql .= " AND t.reference LIKE '%".$db->escape($search_reference)."%'";
 }
 if ($search_state) {
-    $sql .= " AND t.state = '".$db->escape($search_state)."'";
+    $sql .= " AND t.state LIKE '%".$db->escape($search_state)."%'";
 }
 if ($search_fuel_source) {
     $sql .= " AND t.fuel_source = '".$db->escape($search_fuel_source)."'";
@@ -203,14 +203,7 @@ function fl_sortHref($field, $sortfield, $sortorder, $self, $param) {
 
 $self = $_SERVER["PHP_SELF"];
 
-// Count by state
-$cnt_pending = 0; $cnt_approved = 0; $cnt_completed = 0; $cnt_rejected = 0;
-foreach ($rows as $r) {
-    if ($r->state == 'pending') $cnt_pending++;
-    elseif ($r->state == 'approved') $cnt_approved++;
-    elseif ($r->state == 'completed') $cnt_completed++;
-    elseif ($r->state == 'rejected') $cnt_rejected++;
-}
+// No per-state counting needed — state is now a free-text location field
 ?>
 
 <style>
@@ -587,15 +580,9 @@ table.vl-table tbody td.center { text-align: center; }
             <option value="Other"   <?php echo $search_fuel_source === 'Other'   ? 'selected' : ''; ?>><?php echo $langs->trans('Other'); ?></option>
         </select>
     </div>
-    <div class="vl-filter-group" style="max-width:160px;">
-        <label><?php echo $langs->trans('State'); ?></label>
-        <select name="search_state">
-            <option value=""><?php echo $langs->trans('All'); ?></option>
-            <option value="pending"   <?php echo $search_state === 'pending'   ? 'selected' : ''; ?>><?php echo $langs->trans('Pending'); ?></option>
-            <option value="approved"  <?php echo $search_state === 'approved'  ? 'selected' : ''; ?>><?php echo $langs->trans('Approved'); ?></option>
-            <option value="completed" <?php echo $search_state === 'completed' ? 'selected' : ''; ?>><?php echo $langs->trans('Completed'); ?></option>
-            <option value="rejected"  <?php echo $search_state === 'rejected'  ? 'selected' : ''; ?>><?php echo $langs->trans('Rejected'); ?></option>
-        </select>
+    <div class="vl-filter-group" style="max-width:200px;">
+        <label><?php echo $langs->trans('StateProvince'); ?></label>
+        <input type="text" name="search_state" placeholder="<?php echo $langs->trans('SearchState'); ?>" value="<?php echo dol_escape_htmltag($search_state); ?>">
     </div>
     <div class="vl-filter-actions">
         <button type="submit" class="vl-btn-filter apply"><i class="fa fa-search"></i> <?php echo $langs->trans('Search'); ?></button>
@@ -608,26 +595,6 @@ table.vl-table tbody td.center { text-align: center; }
     <div class="vl-stat-chip">
         <span class="vl-stat-num"><?php echo $nbtotalofrecords; ?></span> <?php echo $langs->trans('Total'); ?>
     </div>
-    <?php if ($cnt_pending > 0) { ?>
-    <div class="vl-stat-chip" style="background:#fffbeb;color:#92400e;">
-        <span class="vl-stat-num" style="color:#92400e;"><?php echo $cnt_pending; ?></span> <?php echo $langs->trans('Pending'); ?>
-    </div>
-    <?php } ?>
-    <?php if ($cnt_approved > 0) { ?>
-    <div class="vl-stat-chip approved">
-        <span class="vl-stat-num"><?php echo $cnt_approved; ?></span> <?php echo $langs->trans('Approved'); ?>
-    </div>
-    <?php } ?>
-    <?php if ($cnt_completed > 0) { ?>
-    <div class="vl-stat-chip completed">
-        <span class="vl-stat-num"><?php echo $cnt_completed; ?></span> <?php echo $langs->trans('Completed'); ?>
-    </div>
-    <?php } ?>
-    <?php if ($cnt_rejected > 0) { ?>
-    <div class="vl-stat-chip rejected">
-        <span class="vl-stat-num"><?php echo $cnt_rejected; ?></span> <?php echo $langs->trans('Rejected'); ?>
-    </div>
-    <?php } ?>
 </div>
 
 <!-- Table -->
@@ -645,7 +612,7 @@ table.vl-table tbody td.center { text-align: center; }
                 <th class="center"><a href="<?php echo fl_sortHref('t.cost_unit', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('CostUnit'); ?> <?php echo fl_sortArrow('t.cost_unit', $sortfield, $sortorder); ?></a></th>
                 <th class="center"><a href="<?php echo fl_sortHref('total_cost', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('TotalCost'); ?> <?php echo fl_sortArrow('total_cost', $sortfield, $sortorder); ?></a></th>
                 <th class="center"><a href="<?php echo fl_sortHref('t.fuel_source', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('FuelSource'); ?> <?php echo fl_sortArrow('t.fuel_source', $sortfield, $sortorder); ?></a></th>
-                <th class="center"><a href="<?php echo fl_sortHref('t.state', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('State'); ?> <?php echo fl_sortArrow('t.state', $sortfield, $sortorder); ?></a></th>
+                <th class="center"><a href="<?php echo fl_sortHref('t.state', $sortfield, $sortorder, $self, $param); ?>"><?php echo $langs->trans('StateProvince'); ?> <?php echo fl_sortArrow('t.state', $sortfield, $sortorder); ?></a></th>
                 <th class="center"><?php echo $langs->trans('Actions'); ?></th>
             </tr>
         </thead>
@@ -720,16 +687,14 @@ table.vl-table tbody td.center { text-align: center; }
                     ?>
                 </td>
 
-                <!-- State -->
-                <td class="center" data-label="<?php echo $langs->trans('State'); ?>">
-                    <?php
-                    $st = $obj->state;
-                    if ($st == 'pending')        echo '<span class="vl-badge pending">'.$langs->trans('Pending').'</span>';
-                    elseif ($st == 'approved')   echo '<span class="vl-badge approved">'.$langs->trans('Approved').'</span>';
-                    elseif ($st == 'completed')  echo '<span class="vl-badge completed">'.$langs->trans('Completed').'</span>';
-                    elseif ($st == 'rejected')   echo '<span class="vl-badge rejected">'.$langs->trans('Rejected').'</span>';
-                    else                         echo '<span style="color:#c4c9d8;font-size:13px;">—</span>';
-                    ?>
+                <!-- State / Province -->
+                <td class="center" data-label="<?php echo $langs->trans('StateProvince'); ?>">
+                    <?php if (!empty($obj->state)) { ?>
+                    <span class="vl-mono" style="display:inline-flex;align-items:center;gap:5px;max-width:180px;white-space:normal;text-align:left;line-height:1.3;">
+                        <i class="fa fa-map-marker-alt" style="color:#16a34a;flex-shrink:0;font-size:11px;"></i>
+                        <?php echo dol_escape_htmltag($obj->state); ?>
+                    </span>
+                    <?php } else { echo '<span style="color:#c4c9d8;font-size:13px;">—</span>'; } ?>
                 </td>
 
                 <!-- Actions -->
