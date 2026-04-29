@@ -414,6 +414,52 @@ if ($action == 'update' && $id > 0 && !$cancel && $_SERVER["REQUEST_METHOD"] == 
         
         $resql = $db->query($sql);
         if ($resql) {
+            // ── Sync back to linked Contact/Address (socpeople) ──────────────
+            $fk_socpeople_sync = !empty($driver_data['fk_socpeople']) ? (int)$driver_data['fk_socpeople'] : 0;
+            if ($fk_socpeople_sync > 0) {
+                // Split address into street / zip / town
+                // Convention: first line = street, last token of second line = town,
+                // first token of second line = zip (matches how fetch_contact builds it).
+                $addr_lines = array_map('trim', explode("\n", $address));
+                $sp_address = !empty($addr_lines[0]) ? $addr_lines[0] : '';
+                $sp_zip     = '';
+                $sp_town    = '';
+                if (!empty($addr_lines[1])) {
+                    $city_parts = explode(' ', $addr_lines[1], 2);
+                    $sp_zip  = isset($city_parts[0]) ? trim($city_parts[0]) : '';
+                    $sp_town = isset($city_parts[1]) ? trim($city_parts[1]) : '';
+                }
+
+                // Determine which phone column to update
+                // Re-read current socpeople to know which phone field was populated
+                $sql_sp_cur = "SELECT phone_mobile, phone, phone_perso FROM ".MAIN_DB_PREFIX."socpeople WHERE rowid = ".$fk_socpeople_sync;
+                $res_sp_cur = $db->query($sql_sp_cur);
+                $sp_cur     = $res_sp_cur ? $db->fetch_object($res_sp_cur) : null;
+                $phone_set  = '';
+                if ($sp_cur) {
+                    if (!empty($sp_cur->phone_mobile))       $phone_set = 'phone_mobile';
+                    elseif (!empty($sp_cur->phone))          $phone_set = 'phone';
+                    elseif (!empty($sp_cur->phone_perso))    $phone_set = 'phone_perso';
+                    else                                     $phone_set = 'phone_mobile'; // default column
+                }
+
+                $sql_sp  = "UPDATE ".MAIN_DB_PREFIX."socpeople SET ";
+                $sql_sp .= "firstname = '".$db->escape($firstname)."', ";
+                $sql_sp .= "lastname  = '".$db->escape($lastname)."', ";
+                $sql_sp .= "email     = '".$db->escape($email)."', ";
+                $sql_sp .= "address   = '".$db->escape($sp_address)."', ";
+                $sql_sp .= "zip       = '".$db->escape($sp_zip)."', ";
+                $sql_sp .= "town      = '".$db->escape($sp_town)."', ";
+                if ($phone_set) {
+                    $sql_sp .= $phone_set." = '".$db->escape($phone)."', ";
+                }
+                $sql_sp .= "tms = '".$db->idate(dol_now())."' ";
+                $sql_sp .= "WHERE rowid = ".$fk_socpeople_sync;
+
+                $db->query($sql_sp); // best-effort — driver save already succeeded
+            }
+            // ─────────────────────────────────────────────────────────────────
+
             $db->commit();
             setEventMessages(transLabel($langs, "DriverUpdatedSuccessfully"), null, 'mesgs');
             $action = 'view';
