@@ -410,14 +410,6 @@ if ($action == 'add') {
         $error++;
         $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("Vehicle"));
     }
-    if (empty($fk_customer)) {
-        $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("Customer"));
-    }
-    if (empty($booking_date)) {
-        $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("BookingDate"));
-    }
     if (empty($status)) {
         $status = 'pending';
     }
@@ -438,8 +430,8 @@ if ($action == 'add') {
         $sql .= "".((int) $fk_vehicle).", ";
         $sql .= ($fk_driver > 0 ? ((int) $fk_driver) : "NULL").", ";
         $sql .= ($fk_vendor > 0 ? ((int) $fk_vendor) : "NULL").", ";
-        $sql .= "".((int) $fk_customer).", ";
-        $sql .= "'".$db->escape($booking_date)."', ";
+        $sql .= ($fk_customer > 0 ? ((int) $fk_customer) : "NULL").", ";
+        $sql .= (!empty($booking_date) ? "'".$db->escape($booking_date)."'" : "NULL").", ";
         $sql .= "'".$db->escape($status)."', ";
         $sql .= ($distance > 0 ? ((int) $distance) : "NULL").", ";
         $sql .= "'".$db->escape($arriving_address)."', ";
@@ -586,14 +578,6 @@ if ($action == 'update' && $id > 0) {
         $error++;
         $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("Vehicle"));
     }
-    if (empty($fk_customer)) {
-        $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("Customer"));
-    }
-    if (empty($booking_date)) {
-        $error++;
-        $errors[] = $langs->trans("ErrorFieldRequired", $langs->trans("BookingDate"));
-    }
     if (empty($status)) {
         $status = 'pending';
     }
@@ -606,8 +590,8 @@ if ($action == 'update' && $id > 0) {
         $sql .= "fk_vehicle = ".((int) $fk_vehicle).", ";
         $sql .= "fk_driver = ".($fk_driver > 0 ? ((int) $fk_driver) : "NULL").", ";
         $sql .= "fk_vendor = ".($fk_vendor > 0 ? ((int) $fk_vendor) : "NULL").", ";
-        $sql .= "fk_customer = ".((int) $fk_customer).", ";
-        $sql .= "booking_date = '".$db->escape($booking_date)."', ";
+        $sql .= "fk_customer = ".($fk_customer > 0 ? ((int) $fk_customer) : "NULL").", ";
+        $sql .= "booking_date = ".(!empty($booking_date) ? "'".$db->escape($booking_date)."'" : "NULL").", ";
         $sql .= "status = '".$db->escape($status)."', ";
         $sql .= "distance = ".($distance > 0 ? ((int) $distance) : "NULL").", ";
         $sql .= "arriving_address = '".$db->escape($arriving_address)."', ";
@@ -1396,7 +1380,7 @@ print '    </div></div>';
 
 // Customer + Selling Tax (inline)
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label required">'.$langs->trans('Customer').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('Customer').'</div>';
 print '    <div class="dc-field-value dc-field-value-inline">';
 if ($isCreate || $isEdit) {
     $customers = array();
@@ -1537,7 +1521,7 @@ print '    </div></div>';
 
 // Booking Date
 print '  <div class="dc-field">';
-print '    <div class="dc-field-label required">'.$langs->trans('BookingDate').'</div>';
+print '    <div class="dc-field-label">'.$langs->trans('BookingDate').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $selected_date = (!empty($object->booking_date)) ? $object->booking_date : '';
