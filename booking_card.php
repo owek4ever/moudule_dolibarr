@@ -385,7 +385,11 @@ if ($action == 'add') {
     $expense_fuel_price      = GETPOST('expense_fuel_price', 'alpha');
     $expense_fuel_type       = GETPOST('expense_fuel_type', 'alphanohtml');
     $expense_fuel_vendor     = GETPOST('expense_fuel_vendor', 'int');
-    $expense_fuel            = ($expense_fuel_qty && $expense_fuel_price) ? round((float)$expense_fuel_qty * (float)$expense_fuel_price, 2) : GETPOST('expense_fuel', 'alpha');
+    $_ef_raw_add = GETPOST('expense_fuel', 'alpha'); $_ef_qty_add=(float)$expense_fuel_qty; $_ef_price_add=(float)$expense_fuel_price; $_ef_total_add=(float)$_ef_raw_add;
+    if ($_ef_qty_add>0 && $_ef_price_add>0) { $expense_fuel=round($_ef_qty_add*$_ef_price_add,2); }
+    elseif ($_ef_total_add>0 && $_ef_price_add>0 && $_ef_qty_add==0) { $expense_fuel_qty=round($_ef_total_add/$_ef_price_add,3); $expense_fuel=$_ef_total_add; }
+    elseif ($_ef_total_add>0 && $_ef_qty_add>0 && $_ef_price_add==0) { $expense_fuel_price=round($_ef_total_add/$_ef_qty_add,4); $expense_fuel=$_ef_total_add; }
+    else { $expense_fuel=$_ef_raw_add; }
     $expense_road_toll       = GETPOST('expense_road_toll', 'alpha');
     $expense_road_parking    = GETPOST('expense_road_parking', 'alpha');
     $expense_road_other      = GETPOST('expense_road_other', 'alpha');
@@ -558,7 +562,11 @@ if ($action == 'update' && $id > 0) {
     $expense_fuel_price      = GETPOST('expense_fuel_price', 'alpha');
     $expense_fuel_type       = GETPOST('expense_fuel_type', 'alphanohtml');
     $expense_fuel_vendor     = GETPOST('expense_fuel_vendor', 'int');
-    $expense_fuel            = ($expense_fuel_qty && $expense_fuel_price) ? round((float)$expense_fuel_qty * (float)$expense_fuel_price, 2) : GETPOST('expense_fuel', 'alpha');
+    $_ef_raw_upd = GETPOST('expense_fuel', 'alpha'); $_ef_qty_upd=(float)$expense_fuel_qty; $_ef_price_upd=(float)$expense_fuel_price; $_ef_total_upd=(float)$_ef_raw_upd;
+    if ($_ef_qty_upd>0 && $_ef_price_upd>0) { $expense_fuel=round($_ef_qty_upd*$_ef_price_upd,2); }
+    elseif ($_ef_total_upd>0 && $_ef_price_upd>0 && $_ef_qty_upd==0) { $expense_fuel_qty=round($_ef_total_upd/$_ef_price_upd,3); $expense_fuel=$_ef_total_upd; }
+    elseif ($_ef_total_upd>0 && $_ef_qty_upd>0 && $_ef_price_upd==0) { $expense_fuel_price=round($_ef_total_upd/$_ef_qty_upd,4); $expense_fuel=$_ef_total_upd; }
+    else { $expense_fuel=$_ef_raw_upd; }
     $expense_road_toll       = GETPOST('expense_road_toll', 'alpha');
     $expense_road_parking    = GETPOST('expense_road_parking', 'alpha');
     $expense_road_other      = GETPOST('expense_road_other', 'alpha');
@@ -1154,8 +1162,21 @@ div.ui-datepicker { z-index: 99999 !important; }
 .dc-expense-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: 1fr;
     gap: 12px;
     padding: 12px;
+}
+.dc-expense-grid > .dc-card {
+    display: flex;
+    flex-direction: column;
+}
+.dc-expense-grid > .dc-card > .dc-card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.dc-expense-grid > .dc-card > .dc-card-body > .dc-field:last-child {
+    margin-top: auto;
 }
 @media(max-width:780px){ .dc-expense-grid { grid-template-columns: 1fr; } }
 .dc-expense-subtotal {
@@ -1761,7 +1782,7 @@ print '</div></div>';
 
 print '  <div class="dc-field"><div class="dc-field-label">'.$langs->trans('Liters').'</div><div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="number" id="expense_fuel_qty" name="expense_fuel_qty" value="'.dol_escape_htmltag(isset($object->expense_fuel_qty)?$object->expense_fuel_qty:'').'" min="0" step="any" placeholder="0.00" oninput="calcFuelTotal()">';
+    print '<input type="number" id="expense_fuel_qty" name="expense_fuel_qty" value="'.dol_escape_htmltag(isset($object->expense_fuel_qty)?$object->expense_fuel_qty:'').'" min="0" step="any" placeholder="0.00" oninput="calcFuelAuto(\'qty\')">';
 } else {
     print (!empty($object->expense_fuel_qty) ? '<span class="dc-amount">'.dol_escape_htmltag($object->expense_fuel_qty).' L</span>' : '&#8212;');
 }
@@ -1769,7 +1790,7 @@ print '</div></div>';
 
 print '  <div class="dc-field"><div class="dc-field-label">'.$langs->trans('PricePerLiter').'</div><div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="number" id="expense_fuel_price" name="expense_fuel_price" value="'.dol_escape_htmltag(isset($object->expense_fuel_price)?$object->expense_fuel_price:'').'" min="0" step="any" placeholder="0.00" oninput="calcFuelTotal()">';
+    print '<input type="number" id="expense_fuel_price" name="expense_fuel_price" value="'.dol_escape_htmltag(isset($object->expense_fuel_price)?$object->expense_fuel_price:'').'" min="0" step="any" placeholder="0.00" oninput="calcFuelAuto(\'price\')">';
 } else {
     print (!empty($object->expense_fuel_price) ? '<span class="dc-amount">'.price($object->expense_fuel_price).'</span>' : '&#8212;');
 }
@@ -1777,7 +1798,8 @@ print '</div></div>';
 
 print '  <div class="dc-field" style="background:#f7f8fc;"><div class="dc-field-label" style="color:#3c4758;font-weight:700;">'.$langs->trans('Total').'</div><div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="number" id="expense_fuel" name="expense_fuel" value="'.dol_escape_htmltag(isset($object->expense_fuel)?$object->expense_fuel:'').'" min="0" step="any" placeholder="0.00" oninput="calcExpenseTotal()" style="font-weight:600!important;background:#f7f8fc!important;">';
+    print '<input type="number" id="expense_fuel" name="expense_fuel" value="'.dol_escape_htmltag(isset($object->expense_fuel)?$object->expense_fuel:'').'" min="0" step="any" placeholder="0.00" oninput="calcFuelAuto(\'total\')" style="font-weight:600!important;background:#f7f8fc!important;" title="'.$langs->trans('FuelTotalHint').'">';
+    print '<span style="font-size:10px;color:#9aa0b4;margin-top:3px;display:block;"><i class="fa fa-magic" style="font-size:9px;"></i> '.$langs->trans('AutoCalculated').'</span>';
 } else {
     print (!empty($object->expense_fuel) ? '<span class="dc-amount" style="font-weight:700;">'.price($object->expense_fuel).'</span>' : '&#8212;');
 }
@@ -1790,15 +1812,15 @@ $driver_sub = $exp_subtotals['driver'];
 print '<div class="dc-card">';
 print '  <div class="dc-card-header">';
 print '    <div class="dc-card-header-icon purple"><i class="fa fa-user-tie"></i></div>';
-print '    <span class="dc-card-title">'.$langs->trans('DriverExpenses').'</span>';
+print '    <span class="dc-card-title">Driver Expenses</span>';
 print '    <span class="dc-expense-subtotal" id="driver_subtotal">'.($driver_sub > 0 ? price($driver_sub) : '&#8212;').'</span>';
 print '  </div>';
 print '  <div class="dc-card-body">';
 
 foreach (array(
-    'expense_driver_salary'    => $langs->trans('SalaryDayRate'),
-    'expense_driver_overnight' => $langs->trans('OvernightFee'),
-    'expense_driver_bonus'     => $langs->trans('Bonus'),
+    'expense_driver_salary'    => 'Salary / Day Rate',
+    'expense_driver_overnight' => 'Overnight Fee',
+    'expense_driver_bonus'     => 'Bonus',
 ) as $dkey => $dlabel) {
     $dval = isset($object->$dkey) ? $object->$dkey : '';
     print '  <div class="dc-field"><div class="dc-field-label">'.dol_escape_htmltag($dlabel).'</div><div class="dc-field-value">';
@@ -2292,22 +2314,53 @@ function escH(str){var d=document.createElement("div");d.appendChild(document.cr
 
 // Expense calculators — must be global scope so oninput attributes can reach them
 print '<script>
-function calcFuelTotal() {
-    var qty   = parseFloat(document.getElementById("expense_fuel_qty")   ? document.getElementById("expense_fuel_qty").value   : 0) || 0;
-    var price = parseFloat(document.getElementById("expense_fuel_price") ? document.getElementById("expense_fuel_price").value : 0) || 0;
-    var el    = document.getElementById("expense_fuel");
-    if (qty > 0 && price > 0) {
-        var total = Math.round(qty * price * 100) / 100;
-        if (el) el.value = total.toFixed(2);
-        var sub = document.getElementById("fuel_subtotal");
-        if (sub) sub.textContent = total.toFixed(2);
-    } else {
-        var manual = parseFloat(el ? el.value : 0) || 0;
-        var sub = document.getElementById("fuel_subtotal");
-        if (sub) sub.textContent = manual > 0 ? manual.toFixed(2) : "—";
+/* ── Fuel auto-calculator ──────────────────────────────────────────────────
+   Any two of the three fields (qty, price, total) filled => third is derived.
+   changed = "qty" | "price" => total  = qty x price
+   changed = "total" + price => qty    = total / price
+   changed = "total" + qty   => price  = total / qty
+──────────────────────────────────────────────────────────────────────────── */
+function calcFuelAuto(changed) {
+    var qtyEl   = document.getElementById("expense_fuel_qty");
+    var priceEl = document.getElementById("expense_fuel_price");
+    var totalEl = document.getElementById("expense_fuel");
+
+    var qty   = parseFloat(qtyEl   ? qtyEl.value   : "") || 0;
+    var price = parseFloat(priceEl ? priceEl.value : "") || 0;
+    var total = parseFloat(totalEl ? totalEl.value : "") || 0;
+
+    if (changed === "qty" || changed === "price") {
+        // User typed qty or price → recalculate total
+        if (qty > 0 && price > 0) {
+            total = Math.round(qty * price * 100) / 100;
+            if (totalEl) totalEl.value = total.toFixed(2);
+        }
+    } else if (changed === "total") {
+        // User typed total → derive the missing field
+        if (total > 0 && price > 0 && qty === 0) {
+            // qty is blank → compute it
+            var computedQty = Math.round(total / price * 1000) / 1000;
+            if (qtyEl) qtyEl.value = computedQty.toFixed(3);
+        } else if (total > 0 && qty > 0 && price === 0) {
+            // price is blank → compute it
+            var computedPrice = Math.round(total / qty * 10000) / 10000;
+            if (priceEl) priceEl.value = computedPrice.toFixed(4);
+        } else if (total > 0 && price > 0 && qty > 0) {
+            // All three filled; user changed total → recompute qty
+            var computedQty2 = Math.round(total / price * 1000) / 1000;
+            if (qtyEl) qtyEl.value = computedQty2.toFixed(3);
+        }
     }
+
+    // Refresh subtotal badge
+    var finalTotal = parseFloat(totalEl ? totalEl.value : "") || 0;
+    var sub = document.getElementById("fuel_subtotal");
+    if (sub) sub.textContent = finalTotal > 0 ? finalTotal.toFixed(2) : "—";
+
     calcExpenseTotal();
 }
+// Keep legacy name so any other callers still work
+function calcFuelTotal() { calcFuelAuto("qty"); }
 function calcDriverTotal() {
     var keys = ["expense_driver_salary","expense_driver_overnight","expense_driver_bonus"];
     var total = 0;
