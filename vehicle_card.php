@@ -676,11 +676,12 @@ print '    <div class="dc-field-label">'.$langs->trans('Type').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $type_options = array(
-        'Car' => $langs->trans('Car'),
-        'Truck' => $langs->trans('Truck'),
-        'Van' => $langs->trans('Van'),
-        'Bus' => $langs->trans('Bus'),
-        'Motorcycle' => $langs->trans('Motorcycle')
+        'TractorUnit'      => $langs->trans('TractorUnit'),
+        'Curtainsider'     => $langs->trans('Curtainsider'),
+        'RefrigeratedTruck'=> $langs->trans('RefrigeratedTruck'),
+        'TankerTruck'      => $langs->trans('TankerTruck'),
+        'Distributor'      => $langs->trans('Distributor'),
+        'BoxTruck'         => $langs->trans('BoxTruck'),
     );
     print '<div style="display:flex;align-items:center;gap:6px;">';
     print $form->selectarray('type', $type_options, (isset($object->type) ? $object->type : ''), 1);
