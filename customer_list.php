@@ -62,7 +62,7 @@ $page      = GETPOSTISSET('pageplusone') ? (GETPOST('pageplusone') - 1) : GETPOS
 
 if (empty($page) || $page == -1) { $page = 0; }
 $offset = $limit * $page;
-if (!$sortfield) { $sortfield = "t.nom"; }
+if (!$sortfield) { $sortfield = "t.code_client"; }
 if (!$sortorder) { $sortorder = "ASC"; }
 
 // Initialize technical objects
