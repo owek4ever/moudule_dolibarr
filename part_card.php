@@ -30,14 +30,9 @@ if (!$res) { die("Include of main fails"); }
 
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
-require_once DOL_DOCUMENT_ROOT.'/categories/class/categorie.class.php';
-require_once __DIR__.'/class/flottecategorytype.class.php';
 
 // Load translation files
-$langs->loadLangs(array("flotte@flotte", "other", "categories"));
-
-// ── Native Dolibarr category type for Flotte Parts ───────────────────────────
-FlotteCategoryType::defineGlobals();
+$langs->loadLangs(array("flotte@flotte", "other"));
 
 // Function to generate next part reference
 function getNextPartRef($db, $entity) {
@@ -64,53 +59,6 @@ function getNextPartRef($db, $entity) {
     
     // Format with leading zeros (e.g., PART-0001)
     return $prefix.str_pad($next_number, 4, '0', STR_PAD_LEFT);
-}
-
-/**
- * Replace part/category links with posted selection.
- *
- * @param DoliDB $db
- * @param int    $partId
- * @param array  $catsPosted
- * @return int
- */
-function flotteSyncPartCategories($db, $partId, $catsPosted)
-{
-    $partId = (int) $partId;
-    if ($partId <= 0) {
-        return -1;
-    }
-
-    $resDelete = $db->query("DELETE FROM ".MAIN_DB_PREFIX."categorie_flotte_part WHERE fk_flotte_part = ".$partId);
-    if (!$resDelete) {
-        return -1;
-    }
-
-    if (empty($catsPosted) || !is_array($catsPosted)) {
-        return 1;
-    }
-
-    $catObject = new Categorie($db);
-    foreach ($catsPosted as $catIdPosted) {
-        $catIdPosted = (int) $catIdPosted;
-        if ($catIdPosted <= 0) {
-            continue;
-        }
-
-        if ($catObject->fetch($catIdPosted) <= 0) {
-            return -1;
-        }
-        if ((int) $catObject->type !== (int) CATEGORIE_TYPE_FLOTTE_PART) {
-            continue;
-        }
-
-        $resAdd = $catObject->add_type((object) array('id' => $partId, 'element' => 'flotte_part'), CATEGORIE_TYPE_FLOTTE_PART);
-        if ($resAdd < 0) {
-            return -1;
-        }
-    }
-
-    return 1;
 }
 
 // Get parameters
@@ -149,7 +97,6 @@ $db->query("CREATE TABLE IF NOT EXISTS ".MAIN_DB_PREFIX."flotte_part (
     date_creation   DATETIME         DEFAULT NULL,
     tms             TIMESTAMP        DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-// Categories are stored in native llx_categorie table (type=CATEGORIE_TYPE_FLOTTE_PART)
 
 // Initialize variables
 $object = new stdClass();
@@ -193,11 +140,10 @@ if ($cancel) {
 if ($action == 'confirm_delete' && $confirm == 'yes' && $user->rights->flotte->delete) {
     $db->begin();
 
-    $resDelLinks = $db->query("DELETE FROM ".MAIN_DB_PREFIX."categorie_flotte_part WHERE fk_flotte_part = ".((int) $id));
     $sql = "DELETE FROM ".MAIN_DB_PREFIX."flotte_part WHERE rowid = ".((int) $id);
     $result = $db->query($sql);
     
-    if ($resDelLinks && $result) {
+    if ($result) {
         $db->commit();
         header("Location: " . dol_buildpath('/flotte/part_list.php', 1));
         exit;
@@ -262,17 +208,26 @@ if ($action == 'add') {
         $result = $db->query($sql);
         if ($result) {
             $id = $db->last_insert_id(MAIN_DB_PREFIX."flotte_part");
-            $cats_posted = GETPOST('categories', 'array');
-            if (flotteSyncPartCategories($db, $id, $cats_posted) < 0) {
-                $db->rollback();
-                $error++;
-                $errors[] = $langs->trans("ErrorCreatingPart") . ": " . $db->lasterror();
-                $id = 0;
-            } else {
-                $db->commit();
-                $action = 'view';
-                setEventMessages($langs->trans("PartCreatedSuccessfully"), null, 'mesgs');
+
+            // Handle photo upload
+            if (!empty($_FILES['part_photo']['name']) && $_FILES['part_photo']['error'] == 0) {
+                $upload_dir = DOL_DATA_ROOT.'/flotte/parts/';
+                if (!is_dir($upload_dir)) {
+                    dol_mkdir($upload_dir);
+                }
+                $ext = strtolower(pathinfo($_FILES['part_photo']['name'], PATHINFO_EXTENSION));
+                $allowed_ext = array('jpg', 'jpeg', 'png', 'gif', 'webp');
+                if (in_array($ext, $allowed_ext)) {
+                    $picture_filename = 'part_'.$id.'_'.dol_now().'.'.$ext;
+                    if (move_uploaded_file($_FILES['part_photo']['tmp_name'], $upload_dir.$picture_filename)) {
+                        $db->query("UPDATE ".MAIN_DB_PREFIX."flotte_part SET picture = '".$db->escape($picture_filename)."' WHERE rowid = ".(int)$id);
+                    }
+                }
             }
+
+            $db->commit();
+            $action = 'view';
+            setEventMessages($langs->trans("PartCreatedSuccessfully"), null, 'mesgs');
         } else {
             $db->rollback();
             $error++;
@@ -323,21 +278,35 @@ if ($action == 'update') {
         $sql .= "qty_on_hand = ".$qty_on_hand.", ";
         $sql .= "unit_cost = ".($unit_cost ? $unit_cost : "0").", ";
         $sql .= "note = '".$db->escape($note)."', ";
+
+        // Handle photo upload on update
+        $picture_update = '';
+        if (!empty($_FILES['part_photo']['name']) && $_FILES['part_photo']['error'] == 0) {
+            $upload_dir = DOL_DATA_ROOT.'/flotte/parts/';
+            if (!is_dir($upload_dir)) {
+                dol_mkdir($upload_dir);
+            }
+            $ext = strtolower(pathinfo($_FILES['part_photo']['name'], PATHINFO_EXTENSION));
+            $allowed_ext = array('jpg', 'jpeg', 'png', 'gif', 'webp');
+            if (in_array($ext, $allowed_ext)) {
+                $picture_filename = 'part_'.$id.'_'.dol_now().'.'.$ext;
+                if (move_uploaded_file($_FILES['part_photo']['tmp_name'], $upload_dir.$picture_filename)) {
+                    $picture_update = $picture_filename;
+                }
+            }
+        }
+        if (!empty($picture_update)) {
+            $sql .= "picture = '".$db->escape($picture_update)."', ";
+        }
+
         $sql .= "fk_user_modif = ".$user->id." ";
         $sql .= "WHERE rowid = ".((int) $id);
         
         $result = $db->query($sql);
         if ($result) {
-            $cats_posted = GETPOST('categories', 'array');
-            if (flotteSyncPartCategories($db, $id, $cats_posted) < 0) {
-                $db->rollback();
-                $error++;
-                $errors[] = $langs->trans("ErrorUpdatingPart") . ": " . $db->lasterror();
-            } else {
-                $db->commit();
-                $action = 'view';
-                setEventMessages($langs->trans("PartUpdatedSuccessfully"), null, 'mesgs');
-            }
+            $db->commit();
+            $action = 'view';
+            setEventMessages($langs->trans("PartUpdatedSuccessfully"), null, 'mesgs');
         } else {
             $db->rollback();
             $error++;
@@ -377,21 +346,6 @@ $resql_vendors = $db->query($sql_vendors);
 if ($resql_vendors) {
     while ($obj = $db->fetch_object($resql_vendors)) {
         $vendors[$obj->rowid] = $obj->name;
-    }
-}
-
-// ── Native Dolibarr categories ────────────────────────────────────────────
-$cat_object     = new Categorie($db);
-$categories_arbo = $cat_object->get_full_arbo(CATEGORIE_TYPE_FLOTTE_PART);
-
-// Load categories currently linked to this part (for view mode display)
-$selected_cats = array();
-if ($id > 0) {
-    $linked_cats = $cat_object->containing($id, CATEGORIE_TYPE_FLOTTE_PART);
-    if (is_array($linked_cats)) {
-        foreach ($linked_cats as $lc) {
-            $selected_cats[] = (int)$lc->id;
-        }
     }
 }
 
@@ -585,6 +539,129 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
 }
 .dc-action-bar-left { margin-right: auto; }
 
+/* ── Photo upload / display ── */
+
+/* Drop zone wrapper */
+.dc-photo-dropzone {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 200px;
+    border: 2px dashed #d1d5e0;
+    border-radius: 14px;
+    background: #f8f9fd;
+    cursor: pointer;
+    transition: border-color .2s, background .2s, box-shadow .2s;
+    overflow: hidden;
+    padding: 28px 20px;
+}
+.dc-photo-dropzone:hover,
+.dc-photo-dropzone.dc-dz-over {
+    border-color: #3c4758;
+    background: #f0f2f8;
+    box-shadow: 0 0 0 4px rgba(60,71,88,0.07);
+}
+.dc-photo-dropzone input[type="file"] {
+    position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+
+/* Drop zone idle illustration */
+.dc-dz-icon {
+    width: 56px; height: 56px; border-radius: 14px;
+    background: linear-gradient(135deg, #e8eaf6 0%, #dde1f5 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; color: #6d7aad; flex-shrink: 0;
+    transition: transform .2s;
+}
+.dc-photo-dropzone:hover .dc-dz-icon { transform: scale(1.07); }
+.dc-dz-title {
+    font-size: 13.5px; font-weight: 600; color: #3c4758; margin: 0;
+}
+.dc-dz-sub {
+    font-size: 11.5px; color: #9aa0b4; margin: 0; text-align: center;
+}
+.dc-dz-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #fff; border: 1.5px solid #e2e5f0;
+    border-radius: 20px; padding: 3px 10px;
+    font-size: 11px; font-weight: 600; color: #6d7aad; letter-spacing: 0.3px;
+}
+
+/* Preview wrapper (replaces dropzone content when image chosen/existing) */
+.dc-photo-preview-wrap {
+    position: relative;
+    display: inline-block;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.10);
+    max-width: 280px;
+    width: 100%;
+}
+.dc-photo-preview {
+    width: 100%;
+    max-width: 280px;
+    max-height: 220px;
+    border-radius: 12px;
+    object-fit: cover;
+    display: block;
+}
+/* Overlay on hover */
+.dc-photo-preview-wrap .dc-photo-overlay {
+    position: absolute; inset: 0;
+    background: rgba(28,35,56,0.45);
+    display: flex; align-items: center; justify-content: center;
+    gap: 10px;
+    opacity: 0; transition: opacity .2s;
+    border-radius: 12px;
+}
+.dc-photo-preview-wrap:hover .dc-photo-overlay { opacity: 1; }
+.dc-photo-overlay-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,0.92); border-radius: 20px;
+    padding: 6px 14px; font-size: 12px; font-weight: 600;
+    color: #3c4758; cursor: pointer; border: none;
+    transition: background .15s;
+}
+
+/* Filename pill */
+.dc-photo-fname-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #edfaf3; border: 1.5px solid #bbf0d3;
+    border-radius: 20px; padding: 4px 12px;
+    font-size: 11.5px; font-weight: 600; color: #1a7d4a;
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.dc-photo-fname-pill i { color: #22c55e; }
+
+/* View mode: nice placeholder */
+.dc-photo-placeholder {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 10px;
+    width: 100%; min-height: 160px;
+    border-radius: 14px; background: #f5f6fa;
+    border: 1.5px dashed #e2e5f0;
+    color: #c4c9d8;
+}
+.dc-photo-placeholder i { font-size: 36px; }
+.dc-photo-placeholder span { font-size: 12.5px; color: #b0b7cc; font-weight: 500; }
+
+/* Keep-hint */
+.dc-photo-keep-hint {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11.5px; color: #9aa0b4; margin-top: 2px;
+}
+.dc-photo-keep-hint i { color: #c4c9d8; }
+
+/* ── Single-column grid override ── */
+.dc-grid-1col { grid-template-columns: 1fr !important; }
+
+/* ── Teal card header ── */
+.dc-card-header-icon.teal { background: linear-gradient(135deg,#0d9488,#14b8a6); color:#fff !important; }
+
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    RESPONSIVE STYLES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
@@ -654,6 +731,37 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
     .dc-header-actions .dc-btn { font-size: 12px; padding: 6px 10px; }
 }
 </style>
+<script>
+function dcPhotoChange(input) {
+    if (!input.files || !input.files[0]) return;
+    var file = input.files[0];
+    var idle    = document.getElementById('dc-dz-idle');
+    var preview = document.getElementById('dc-dz-preview');
+    var img     = document.getElementById('dc-dz-img');
+    var fname   = document.getElementById('dc-photo-fname');
+    // Show preview
+    if (idle)    idle.style.display    = 'none';
+    if (preview) preview.style.display = 'flex';
+    if (img) {
+        var reader = new FileReader();
+        reader.onload = function(e) { img.src = e.target.result; };
+        reader.readAsDataURL(file);
+    }
+    if (fname) {
+        var sp = fname.querySelector('span');
+        if (sp) sp.textContent = file.name;
+        fname.style.display = 'inline-flex';
+    }
+}
+// Drag-over highlight
+document.addEventListener('DOMContentLoaded', function() {
+    var dz = document.getElementById('dc-dz-label');
+    if (!dz) return;
+    dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('dc-dz-over'); });
+    dz.addEventListener('dragleave', function(){ dz.classList.remove('dc-dz-over'); });
+    dz.addEventListener('drop', function(){ dz.classList.remove('dc-dz-over'); });
+});
+</script>
 <?php
 
 // Confirmation to delete
@@ -691,7 +799,7 @@ $stockIcon  = $qty <= 0 ? 'fa-exclamation-circle' : ($qty <= 5 ? 'fa-exclamation
 
 // Form start
 if ($isCreate || $isEdit) {
-    print '<form method="POST" action="'.$_SERVER['PHP_SELF'].($id > 0 ? '?id='.$id : '').'">';
+    print '<form method="POST" action="'.$_SERVER['PHP_SELF'].($id > 0 ? '?id='.$id : '').'" enctype="multipart/form-data">';
     print '<input type="hidden" name="action" value="'.($isCreate ? 'add' : 'update').'">';
     print '<input type="hidden" name="token" value="'.newToken().'">';
     if ($id > 0) print '<input type="hidden" name="id" value="'.$id.'">';
@@ -899,49 +1007,75 @@ if ($isCreate || $isEdit) {
 }
 print '    </div></div>';
 
-// Tags / Categories -- native Dolibarr llx_categorie
-print '  <div class="dc-field">';
-print '    <div class="dc-field-label">'.$langs->trans('Categories').'</div>';
-print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) {
-    // Multi-select + native "+" button -- same as Third Party card, Product card, etc.
-    $cate_arbo      = $cat_object->get_full_arbo(CATEGORIE_TYPE_FLOTTE_PART);
-    $cat_manage_url = "/categories/categorie_list.php?mode=hierarchy&type=flotte_part";
-
-    print '<div style="display:flex;align-items:flex-start;gap:6px;">';
-
-    // Native multi-select tree
-    print $form->multiselectarray(
-        'categories',
-        $cate_arbo,
-        $selected_cats,
-        0,
-        0,
-        'minwidth200',
-        0,
-        '100%'
-    );
-
-    // "+" button -- redirect to native category page (Parts type)
-    $backTo = $_SERVER['PHP_SELF'].($id > 0 ? '?id='.(int) $id.'&action=edit' : '?action=create');
-    print '<a class="nohover valignmiddle"'
-        .' href="'.$cat_manage_url.'&backtopage='.urlencode($backTo).'"'
-        .' title="'.$langs->trans('Categories').'">'
-        .'<span class="fa fa-plus-circle valignmiddle" style="font-size:18px;color:#0d8aff;"></span>'
-        .'</a>';
-
-    print '</div>';
-
-} else {
-    // View mode -- native coloured tag badges
-    print $form->showCategories($id, CATEGORIE_TYPE_FLOTTE_PART, 1);
-}
-print '    </div></div>';
-
 print '  </div>';
 print '</div>';
 
 print '</div>';// dc-grid row1
+
+/* ── ROW 1.5: Photo ── */
+print '<div class="dc-grid dc-grid-1col" style="margin-bottom:20px;">';
+
+print '<div class="dc-card">';
+print '  <div class="dc-card-header">';
+print '    <div class="dc-card-header-icon teal"><i class="fa fa-camera"></i></div>';
+print '    <span class="dc-card-title">'.$langs->trans('Photo').'</span>';
+print '  </div>';
+print '  <div class="dc-card-body">';
+print '  <div class="dc-field" style="flex-direction:column;gap:16px;padding:20px;">';
+
+if ($isCreate || $isEdit) {
+    $hasExistingPic = !empty($object->picture) && file_exists(DOL_DATA_ROOT.'/flotte/parts/'.$object->picture);
+    if ($hasExistingPic) {
+        $pic_url = DOL_URL_ROOT.'/document.php?modulepart=flotte&file='.urlencode('parts/'.$object->picture).'&entity='.$conf->entity;
+        // Show preview with change-overlay
+        print '<div style="display:flex;flex-direction:column;gap:12px;align-items:flex-start;">';
+        print '  <div class="dc-photo-preview-wrap" style="max-width:260px;">';
+        print '    <img src="'.dol_escape_htmltag($pic_url).'" alt="" class="dc-photo-preview">';
+        print '    <label style="position:absolute;inset:0;cursor:pointer;">';
+        print '      <input type="file" name="part_photo" accept="image/*" style="display:none;" onchange="dcPhotoChange(this)">';
+        print '      <div class="dc-photo-overlay"><span class="dc-photo-overlay-btn"><i class="fa fa-camera"></i> '.$langs->trans('ChangePhoto').'</span></div>';
+        print '    </label>';
+        print '  </div>';
+        print '  <div id="dc-photo-fname" style="display:none;"></div>';
+        print '  <div class="dc-photo-keep-hint"><i class="fa fa-info-circle"></i> '.$langs->trans('LeaveEmptyToKeepCurrentPhoto').'</div>';
+        print '</div>';
+    } else {
+        // Drag-and-drop zone (idle state, becomes preview on pick)
+        print '<label class="dc-photo-dropzone" id="dc-dz-label">';
+        print '  <input type="file" name="part_photo" accept="image/*" onchange="dcPhotoChange(this)">';
+        print '  <div id="dc-dz-idle" style="display:flex;flex-direction:column;align-items:center;gap:10px;pointer-events:none;">';
+        print '    <div class="dc-dz-icon"><i class="fa fa-cloud-upload-alt"></i></div>';
+        print '    <p class="dc-dz-title">'.$langs->trans('UploadPhoto').'</p>';
+        print '    <p class="dc-dz-sub">'.$langs->trans('DragDropOrClick').'</p>';
+        print '    <span class="dc-dz-badge"><i class="fa fa-image" style="font-size:10px;"></i> JPG · PNG · WEBP · GIF</span>';
+        print '  </div>';
+        print '  <div id="dc-dz-preview" style="display:none;flex-direction:column;align-items:center;gap:10px;pointer-events:none;">';
+        print '    <img id="dc-dz-img" src="" alt="" style="max-height:180px;max-width:100%;border-radius:10px;object-fit:cover;box-shadow:0 4px 16px rgba(0,0,0,.10);">';
+        print '    <div id="dc-photo-fname" class="dc-photo-fname-pill"><i class="fa fa-check-circle"></i><span></span></div>';
+        print '  </div>';
+        print '</label>';
+    }
+} else {
+    if (!empty($object->picture)) {
+        $pic_path = DOL_DATA_ROOT.'/flotte/parts/'.$object->picture;
+        if (file_exists($pic_path)) {
+            $pic_url = DOL_URL_ROOT.'/document.php?modulepart=flotte&file='.urlencode('parts/'.$object->picture).'&entity='.$conf->entity;
+            print '<div class="dc-photo-preview-wrap" style="max-width:280px;">';
+            print '  <img src="'.dol_escape_htmltag($pic_url).'" alt="" class="dc-photo-preview">';
+            print '</div>';
+        } else {
+            print '<div class="dc-photo-placeholder"><i class="fa fa-image"></i><span>'.$langs->trans('NoPhotoAvailable').'</span></div>';
+        }
+    } else {
+        print '<div class="dc-photo-placeholder"><i class="fa fa-image"></i><span>'.$langs->trans('NoPhotoAvailable').'</span></div>';
+    }
+}
+
+print '  </div>';
+print '  </div>';
+print '</div>';
+
+print '</div>';// dc-grid row1.5
 
 /* ── ROW 2: Description + Notes ── */
 print '<div class="dc-grid" style="margin-bottom:20px;">';
