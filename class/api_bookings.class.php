@@ -20,7 +20,10 @@ if (!defined('NOCSRFCHECK'))    define('NOCSRFCHECK', 1);
 require_once DOL_DOCUMENT_ROOT . '/api/class/api.class.php';
 
 /**
- * @package   DolibarrModules\Flotte
+ * @access protected
+ * @class  DolibarrApiAccess {@requires user,external}
+ *
+ * @package DolibarrModules\Flotte
  */
 class Bookings extends DolibarrApi
 {
@@ -550,4 +553,3 @@ class Bookings extends DolibarrApi
 		return $body;
 	}
 }
-
