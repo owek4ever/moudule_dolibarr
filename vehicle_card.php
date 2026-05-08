@@ -154,9 +154,9 @@ if ($action == 'add' && $_POST) {
         $insurance_document = handleFileUpload('insurance_document', $upload_dir);
         
         // Convert dates to timestamps and validate
-        $registration_expiry_ts = dol_stringtotime($registration_expiry);
-        $license_expiry_ts = dol_stringtotime($license_expiry);
-        $insurance_expiry_ts = dol_stringtotime($insurance_expiry);
+        $registration_expiry_ts = dol_mktime(0, 0, 0, GETPOST("registration_expirymonth", "int"), GETPOST("registration_expiryday", "int"), GETPOST("registration_expiryyear", "int"));
+        $license_expiry_ts      = dol_mktime(0, 0, 0, GETPOST("license_expirymonth", "int"),      GETPOST("license_expiryday", "int"),      GETPOST("license_expiryyear", "int"));
+        $insurance_expiry_ts    = dol_mktime(0, 0, 0, GETPOST("insurance_expirymonth", "int"),    GETPOST("insurance_expiryday", "int"),    GETPOST("insurance_expiryyear", "int"));
         
         // Insert into database
         $sql = "INSERT INTO ".MAIN_DB_PREFIX."flotte_vehicle (";
@@ -167,17 +167,17 @@ if ($action == 'add' && $_POST) {
         $sql .= ") VALUES (";
         $sql .= "'".$db->escape($ref)."', ".getEntity('flotte').", '".$db->escape($maker)."', '".$db->escape($model)."', ";
         $sql .= "'".$db->escape($type)."', ".($year ? $year : "NULL").", ".($initial_mileage ? $initial_mileage : "NULL").", ";
-        $sql .= (!empty($registration_expiry) && $registration_expiry_ts > 0 ? "'".$db->idate($registration_expiry_ts)."'" : "NULL").", ";
+        $sql .= ($registration_expiry_ts > 0 ? "'".$db->idate($registration_expiry_ts)."'" : "NULL").", ";
         $sql .= $in_service.", '".$db->escape($department)."', '".$db->escape($engine_type)."', ";
         $sql .= "'".$db->escape($horsepower)."', '".$db->escape($color)."', '".$db->escape($vin)."', ";
         $sql .= "'".$db->escape($license_plate)."', ";
-        $sql .= (!empty($license_expiry) && $license_expiry_ts > 0 ? "'".$db->idate($license_expiry_ts)."'" : "NULL").", ";
+        $sql .= ($license_expiry_ts > 0 ? "'".$db->idate($license_expiry_ts)."'" : "NULL").", ";
         $sql .= ($length_cm ? "'".$db->escape($length_cm)."'" : "NULL").", ";
         $sql .= ($width_cm ? "'".$db->escape($width_cm)."'" : "NULL").", ";
         $sql .= ($height_cm ? "'".$db->escape($height_cm)."'" : "NULL").", ";
         $sql .= ($max_weight_kg ? "'".$db->escape($max_weight_kg)."'" : "NULL").", ";
         $sql .= ($ground_height_cm ? "'".$db->escape($ground_height_cm)."'" : "NULL").", ";
-        $sql .= (!empty($insurance_expiry) && $insurance_expiry_ts > 0 ? "'".$db->idate($insurance_expiry_ts)."'" : "NULL").", ";
+        $sql .= ($insurance_expiry_ts > 0 ? "'".$db->idate($insurance_expiry_ts)."'" : "NULL").", ";
         $sql .= ($vehicle_photo ? "'".$db->escape($vehicle_photo)."'" : "NULL").", ";
         $sql .= ($registration_card ? "'".$db->escape($registration_card)."'" : "NULL").", ";
         $sql .= ($platform_registration_card ? "'".$db->escape($platform_registration_card)."'" : "NULL").", ";
@@ -242,9 +242,9 @@ if ($action == 'update' && $_POST && $id > 0) {
         $insurance_document = handleFileUpload('insurance_document', $upload_dir);
         
         // Convert dates to timestamps and validate
-        $registration_expiry_ts = dol_stringtotime($registration_expiry);
-        $license_expiry_ts = dol_stringtotime($license_expiry);
-        $insurance_expiry_ts = dol_stringtotime($insurance_expiry);
+        $registration_expiry_ts = dol_mktime(0, 0, 0, GETPOST("registration_expirymonth", "int"), GETPOST("registration_expiryday", "int"), GETPOST("registration_expiryyear", "int"));
+        $license_expiry_ts      = dol_mktime(0, 0, 0, GETPOST("license_expirymonth", "int"),      GETPOST("license_expiryday", "int"),      GETPOST("license_expiryyear", "int"));
+        $insurance_expiry_ts    = dol_mktime(0, 0, 0, GETPOST("insurance_expirymonth", "int"),    GETPOST("insurance_expiryday", "int"),    GETPOST("insurance_expiryyear", "int"));
         
         // Update database
         $sql = "UPDATE ".MAIN_DB_PREFIX."flotte_vehicle SET ";
@@ -254,7 +254,7 @@ if ($action == 'update' && $_POST && $id > 0) {
         $sql .= "type = '".$db->escape($type)."', ";
         $sql .= "year = ".($year ? $year : "NULL").", ";
         $sql .= "initial_mileage = ".($initial_mileage ? $initial_mileage : "NULL").", ";
-        $sql .= "registration_expiry = ".(!empty($registration_expiry) && $registration_expiry_ts > 0 ? "'".$db->idate($registration_expiry_ts)."'" : "NULL").", ";
+        $sql .= "registration_expiry = ".($registration_expiry_ts > 0 ? "'".$db->idate($registration_expiry_ts)."'" : "NULL").", ";
         $sql .= "in_service = ".$in_service.", ";
         $sql .= "department = '".$db->escape($department)."', ";
         $sql .= "engine_type = '".$db->escape($engine_type)."', ";
@@ -262,13 +262,13 @@ if ($action == 'update' && $_POST && $id > 0) {
         $sql .= "color = '".$db->escape($color)."', ";
         $sql .= "vin = '".$db->escape($vin)."', ";
         $sql .= "license_plate = '".$db->escape($license_plate)."', ";
-        $sql .= "license_expiry = ".(!empty($license_expiry) && $license_expiry_ts > 0 ? "'".$db->idate($license_expiry_ts)."'" : "NULL").", ";
+        $sql .= "license_expiry = ".($license_expiry_ts > 0 ? "'".$db->idate($license_expiry_ts)."'" : "NULL").", ";
         $sql .= "length_cm = ".($length_cm ? "'".$db->escape($length_cm)."'" : "NULL").", ";
         $sql .= "width_cm = ".($width_cm ? "'".$db->escape($width_cm)."'" : "NULL").", ";
         $sql .= "height_cm = ".($height_cm ? "'".$db->escape($height_cm)."'" : "NULL").", ";
         $sql .= "max_weight_kg = ".($max_weight_kg ? "'".$db->escape($max_weight_kg)."'" : "NULL").", ";
         $sql .= "ground_height_cm = ".($ground_height_cm ? "'".$db->escape($ground_height_cm)."'" : "NULL").", ";
-        $sql .= "insurance_expiry = ".(!empty($insurance_expiry) && $insurance_expiry_ts > 0 ? "'".$db->idate($insurance_expiry_ts)."'" : "NULL").", ";
+        $sql .= "insurance_expiry = ".($insurance_expiry_ts > 0 ? "'".$db->idate($insurance_expiry_ts)."'" : "NULL").", ";
         
         // Update file fields only if new files were uploaded
         if ($vehicle_photo) {
@@ -814,7 +814,7 @@ print '  <div class="dc-field">';
 print '    <div class="dc-field-label">'.$langs->trans('RegistrationExpiry').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print $form->selectDate((!empty($object->registration_expiry) ? $object->registration_expiry : ''), 'registration_expiry', 0, 0, 1, '', 1, 0);
-else print (!empty($object->registration_expiry) ? dol_print_date($object->registration_expiry, 'day') : '&mdash;');
+else print (!empty($object->registration_expiry) ? dol_print_date($db->jdate($object->registration_expiry), 'day') : '&mdash;');
 print '    </div></div>';
 
 // License Expiry
@@ -822,7 +822,7 @@ print '  <div class="dc-field">';
 print '    <div class="dc-field-label">'.$langs->trans('LicenseExpiry').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print $form->selectDate((!empty($object->license_expiry) ? $object->license_expiry : ''), 'license_expiry', 0, 0, 1, '', 1, 0);
-else print (!empty($object->license_expiry) ? dol_print_date($object->license_expiry, 'day') : '&mdash;');
+else print (!empty($object->license_expiry) ? dol_print_date($db->jdate($object->license_expiry), 'day') : '&mdash;');
 print '    </div></div>';
 
 // Insurance Expiry
@@ -830,7 +830,7 @@ print '  <div class="dc-field">';
 print '    <div class="dc-field-label">'.$langs->trans('InsuranceExpiry').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) print $form->selectDate((!empty($object->insurance_expiry) ? $object->insurance_expiry : ''), 'insurance_expiry', 0, 0, 1, '', 1, 0);
-else print (!empty($object->insurance_expiry) ? dol_print_date($object->insurance_expiry, 'day') : '&mdash;');
+else print (!empty($object->insurance_expiry) ? dol_print_date($db->jdate($object->insurance_expiry), 'day') : '&mdash;');
 print '    </div></div>';
 
 print '  </div>';// card-body
