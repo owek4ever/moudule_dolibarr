@@ -67,6 +67,10 @@ class FlotteBooking extends CommonObject
     public $expense_commission_other;
     // Meta
     public $fk_user_author;
+    // GPS position (Phase 5)
+    public $current_gps_lat;
+    public $current_gps_lon;
+    public $gps_updated_at;
 
     public $fields = array(
         'ref'                      => array('type' => 'string',   'label' => 'ref',                      'enabled' => 1, 'position' => 10),
@@ -118,6 +122,9 @@ class FlotteBooking extends CommonObject
         'expense_commission_tax'   => array('type' => 'double',   'label' => 'expense_commission_tax',   'enabled' => 1, 'position' => 470),
         'expense_commission_other' => array('type' => 'double',   'label' => 'expense_commission_other', 'enabled' => 1, 'position' => 480),
         'fk_user_author'           => array('type' => 'integer',  'label' => 'fk_user_author',           'enabled' => 1, 'position' => 490),
+        'current_gps_lat'   => array('type' => 'string',   'label' => 'current_gps_lat',   'enabled' => 1, 'position' => 500),
+        'current_gps_lon'   => array('type' => 'string',   'label' => 'current_gps_lon',   'enabled' => 1, 'position' => 510),
+        'gps_updated_at'    => array('type' => 'datetime', 'label' => 'gps_updated_at',  'enabled' => 1, 'position' => 520),
     );
 
     public function __construct($db)
