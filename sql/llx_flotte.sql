@@ -342,3 +342,11 @@ VALUES
   (1, 'Driver License Expiry',        'driver_license_expiry',30, 7, 1, 'firebase', 3, NOW()),
   (1, 'Work Order Due Date',          'workorder_due',         7, 2, 1, 'firebase', 2, NOW()),
   (1, 'Inspection Overdue',           'inspection_due',       90, 0, 1, 'firebase', 2, NOW());
+
+-- ============================================================
+-- GPS position fields on llx_flotte_booking (Phase 5)
+-- ============================================================
+ALTER TABLE llx_flotte_booking
+  ADD COLUMN current_gps_lat decimal(10,7) DEFAULT NULL AFTER dropoff_datetime,
+  ADD COLUMN current_gps_lon decimal(10,7) DEFAULT NULL AFTER current_gps_lat,
+  ADD COLUMN gps_updated_at datetime DEFAULT NULL AFTER current_gps_lon;
