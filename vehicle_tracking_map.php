@@ -299,6 +299,12 @@ print '<div class="fichecenter">';
     50%      { box-shadow: 0 0 0 10px rgba(37,99,235,0); }
 }
 
+.vtm-marker-stale {
+    background: #9ca3af; border: 3px solid #fff; border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    opacity: 0.6;
+}
+
 /* Sidebar toggle for mobile */
 .vtm-sidebar-toggle {
     display: none; background: #0f766e; color: #fff; border: none;
@@ -535,6 +541,10 @@ function makeIcon(cls, size) {
 var iconDep  = makeIcon('vtm-marker-dep', 18);
 var iconArr  = makeIcon('vtm-marker-arr', 18);
 var iconCurr = makeIcon('vtm-marker-curr', 20);
+var iconStale = makeIcon('vtm-marker-stale', 20);
+
+var gpsMarker = null;
+var gpsMarkerActive = false;
 
 // ── Geocode using Nominatim ──
 function geocode(address, callback) {
@@ -608,9 +618,10 @@ function buildMap() {
             }).addTo(map);
 
             // Add "current position" marker at midpoint of route once loaded
+            // Only shown when no live GPS data is available (gpsMarkerActive is false)
             routeControl.on('routesfound', function(e) {
                 var coords = e.routes[0].coordinates;
-                if (coords && coords.length > 0 && V_STATUS === 'inuse') {
+                if (coords && coords.length > 0 && V_STATUS === 'inuse' && !gpsMarkerActive) {
                     var mid = coords[Math.floor(coords.length * 0.45)];
                     L.marker([mid.lat, mid.lng], { icon: iconCurr })
                         .bindPopup('<div class="vtm-popup"><strong>🔵 ' + V_NAME + '</strong><span>Estimated current position along route</span></div>')
@@ -645,6 +656,61 @@ function buildMap() {
 }
 
 buildMap();
+
+// ── GPS position polling ──
+function fetchGpsPosition() {
+    var bookingId = <?php echo json_encode($selected_vehicle->booking_id ?? 0); ?>;
+    if (!bookingId) return;
+
+    fetch('/api/index.php/bookings/' + bookingId)
+    .then(function(r) { return r.json(); })
+    .then(function(booking) {
+        // If booking is not in_progress, remove GPS marker
+        if (booking.status !== 'in_progress') {
+            if (gpsMarker) {
+                map.removeLayer(gpsMarker);
+                gpsMarker = null;
+                gpsMarkerActive = false;
+            }
+            return;
+        }
+
+        var lat = booking.current_gps_lat;
+        var lon = booking.current_gps_lon;
+        var updatedAt = booking.gps_updated_at;
+
+        if (!lat || !lon) return;
+
+        // Check if stale (>5 min)
+        var now = new Date();
+        var gpsDate = new Date(updatedAt + 'Z'); // Treat as UTC
+        var minutesAgo = (now - gpsDate) / 60000;
+        var isStale = minutesAgo > 5;
+
+        var popupHtml = '<div class="vtm-popup"><strong>\uD83D\uDD35 ' + V_NAME + '</strong>'
+            + '<span>Last seen: ' + Math.round(Math.max(0, minutesAgo)) + 'm ago</span></div>';
+
+        if (gpsMarker) {
+            // Update existing marker
+            gpsMarker.setLatLng([lat, lon]);
+            gpsMarker.setIcon(isStale ? iconStale : iconCurr);
+            gpsMarker.bindPopup(popupHtml);
+        } else {
+            // Create new marker
+            gpsMarker = L.marker([lat, lon], { icon: isStale ? iconStale : iconCurr })
+                .bindPopup(popupHtml)
+                .addTo(map);
+        }
+        gpsMarkerActive = true;
+    })
+    .catch(function() { /* ignore poll errors — network blips are normal */ });
+}
+
+// Initial fetch and start polling
+setTimeout(function() {
+    fetchGpsPosition();
+}, 2000); // Initial delay to let map load
+setInterval(fetchGpsPosition, 15000);
 
 // ── Sidebar search ──
 function filterVehicles(q) {
