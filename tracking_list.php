@@ -44,7 +44,8 @@ function getMapVehicles($db, $conf) {
     $sql .= "       b.departure_address, b.arriving_address, b.eta, b.booking_date,";
     $sql .= "       b.selling_amount, IFNULL(b.selling_amount_ttc, b.selling_amount) AS selling_amount_ttc,";
     $sql .= "       d.firstname AS driver_firstname, d.lastname AS driver_lastname, d.phone AS driver_phone,";
-    $sql .= "       c.firstname AS customer_firstname, c.lastname AS customer_lastname, c.phone AS customer_phone";
+    $sql .= "       c.firstname AS customer_firstname, c.lastname AS customer_lastname, c.phone AS customer_phone,
+            b.current_gps_lat, b.current_gps_lon, b.gps_updated_at";
     $sql .= " FROM ".MAIN_DB_PREFIX."flotte_vehicle v";
 
     if (mapTableExists($db, 'flotte_booking')) {
@@ -515,6 +516,9 @@ var ARR_ADDR  = <?php echo json_encode($selected_vehicle->arriving_address  ?? '
 var V_NAME    = <?php echo json_encode(trim(($selected_vehicle->maker ?? '').' '.($selected_vehicle->model ?? '')) ?: $selected_vehicle->ref); ?>;
 var V_STATUS  = <?php echo json_encode($selected_vehicle->computed_status ?? 'available'); ?>;
 var V_BOOKING_STATUS = <?php echo json_encode($selected_vehicle->booking_status ?? ''); ?>;
+var V_GPS_LAT  = <?php echo json_encode($selected_vehicle->current_gps_lat ?? null); ?>;
+var V_GPS_LON  = <?php echo json_encode($selected_vehicle->current_gps_lon ?? null); ?>;
+var V_GPS_TIME = <?php echo json_encode($selected_vehicle->gps_updated_at ?? null); ?>;
 
 // ── Init map ──
 var map = L.map('vtm-map', { zoomControl: true }).setView([0, 0], 2);
