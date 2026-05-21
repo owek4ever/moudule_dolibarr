@@ -9,6 +9,7 @@
  *   GET    /bookings/{id}               → get one booking
  *   POST   /bookings/                   → create booking
  *   PUT    /bookings/{id}               → update booking
+ *   PUT    /bookings/{id}/gps         → update GPS position
  *   DELETE /bookings/{id}               → delete booking
  */
 
@@ -68,6 +69,7 @@ class Bookings extends DolibarrApi
 		'expense_commission', 'expense_commission_agent',
 		'expense_commission_tax', 'expense_commission_other',
 		'fk_user_author',
+		'current_gps_lat', 'current_gps_lon', 'gps_updated_at',
 	];
 
 	const ALLOWED_STATUSES = ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'];
@@ -368,6 +370,70 @@ class Bookings extends DolibarrApi
 
 		$row = $this->db->query('SELECT * FROM ' . MAIN_DB_PREFIX . "flotte_booking WHERE rowid = $id");
 		return $this->_bookingToArray($this->db->fetch_object($row));
+	}
+
+	// ── PUT GPS ──────────────────────────────────────────────────────────────
+
+	/**
+	 * Update GPS position for a booking
+	 *
+	 * @param  int   $id           Booking ID
+	 * @param  array $request_data { lat: float, lon: float, accuracy: float }
+	 *
+	 * @url    PUT /{id}/gps
+	 * @throws RestException 401
+	 * @throws RestException 400
+	 * @throws RestException 404
+	 * @throws RestException 500
+	 * @return array
+	 */
+	public function putGps($id, $request_data = null)
+	{
+		if (empty(DolibarrApiAccess::$user->rights->flotte->write)) {
+			throw new RestException(401, 'No write permission on flotte module');
+		}
+
+		$id = (int) $id;
+		if ($id <= 0) throw new RestException(400, 'Invalid ID');
+
+		// Verify booking exists and is in_progress
+		$chk = $this->db->query(
+			'SELECT rowid, status FROM ' . MAIN_DB_PREFIX . 'flotte_booking'
+			. " WHERE rowid = $id AND entity IN (" . getEntity('flotte') . ')'
+		);
+		if (!$chk || !$this->db->num_rows($chk)) {
+			throw new RestException(404, 'Booking not found');
+		}
+		$booking = $this->db->fetch_object($chk);
+		if ($booking->status !== 'in_progress') {
+			throw new RestException(400, 'Booking is not in progress');
+		}
+
+		$body = (array) $request_data;
+		if (empty($body['lat']) || empty($body['lon'])) {
+			throw new RestException(400, 'lat and lon are required');
+		}
+
+		$lat = (float) $body['lat'];
+		$lon = (float) $body['lon'];
+
+		// Validate lat/lon ranges
+		if ($lat < -90 || $lat > 90) throw new RestException(400, 'lat must be between -90 and 90');
+		if ($lon < -180 || $lon > 180) throw new RestException(400, 'lon must be between -180 and 180');
+
+		$this->db->begin();
+		$res = $this->db->query(
+			'UPDATE ' . MAIN_DB_PREFIX . 'flotte_booking'
+			. " SET current_gps_lat = $lat, current_gps_lon = $lon, gps_updated_at = NOW()"
+			. " WHERE rowid = $id AND entity IN (" . getEntity('flotte') . ')'
+		);
+		if (!$res) {
+			$this->db->rollback();
+			throw new RestException(500, 'DB error: ' . $this->db->lasterror());
+		}
+		$this->db->commit();
+
+		return ['success' => ['code' => 200]];
 	}
 
 	// ── DELETE ───────────────────────────────────────────────────────────────
