@@ -350,3 +350,24 @@ ALTER TABLE llx_flotte_booking
   ADD COLUMN current_gps_lat decimal(10,7) DEFAULT NULL AFTER dropoff_datetime,
   ADD COLUMN current_gps_lon decimal(10,7) DEFAULT NULL AFTER current_gps_lat,
   ADD COLUMN gps_updated_at datetime DEFAULT NULL AFTER current_gps_lon;
+
+-- ============================================================
+-- Booking photo confirmations (Phase 6)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS llx_flotte_booking_photo (
+    rowid           integer AUTO_INCREMENT PRIMARY KEY,
+    fk_booking      integer NOT NULL,
+    type            varchar(20) NOT NULL COMMENT 'fuel or completion',
+    file_path       varchar(255) NOT NULL,
+    file_name       varchar(255) NOT NULL,
+    entity          integer DEFAULT 1 NOT NULL,
+    date_creation   datetime DEFAULT NULL,
+    tms             timestamp DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    fk_user_creat   integer DEFAULT NULL,
+    import_key      varchar(14) DEFAULT NULL,
+    status          integer DEFAULT 1
+) ENGINE=innodb DEFAULT CHARSET=utf8;
+
+ALTER TABLE llx_flotte_booking_photo
+    ADD INDEX idx_flotte_booking_photo_fk_booking (fk_booking),
+    ADD INDEX idx_flotte_booking_photo_type (type);

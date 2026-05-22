@@ -152,3 +152,39 @@ class FlotteBooking extends CommonObject
         return $this->deleteCommon($user);
     }
 }
+
+/**
+ * Booking photo confirmation
+ */
+class FlotteBookingPhoto extends CommonObject
+{
+    public $table_element = 'flotte_booking_photo';
+    public $element = 'flotte_booking_photo';
+    protected $ismultientitymanaged = 1;
+
+    public $fields = array(
+        'rowid'         => array('type' => 'integer', 'label' => 'ID', 'enabled' => 1, 'position' => 10, 'notnull' => 1, 'index' => 1),
+        'fk_booking'    => array('type' => 'integer', 'label' => 'Booking', 'enabled' => 1, 'position' => 20, 'notnull' => 1, 'foreignkey' => 'llx_flotte_booking(rowid)'),
+        'type'          => array('type' => 'varchar(20)', 'label' => 'Type', 'enabled' => 1, 'position' => 30, 'notnull' => 1),
+        'file_path'     => array('type' => 'varchar(255)', 'label' => 'FilePath', 'enabled' => 1, 'position' => 40, 'notnull' => 1),
+        'file_name'     => array('type' => 'varchar(255)', 'label' => 'FileName', 'enabled' => 1, 'position' => 50, 'notnull' => 1),
+        'entity'        => array('type' => 'integer', 'label' => 'Entity', 'enabled' => 1, 'position' => 60, 'notnull' => 1, 'default' => 1),
+        'date_creation' => array('type' => 'datetime', 'label' => 'DateCreation', 'enabled' => 1, 'position' => 70),
+        'tms'           => array('type' => 'timestamp', 'label' => 'Tms', 'enabled' => 1, 'position' => 80),
+        'fk_user_creat' => array('type' => 'integer', 'label' => 'UserAuthor', 'enabled' => 1, 'position' => 90),
+        'import_key'    => array('type' => 'varchar(14)', 'label' => 'ImportKey', 'enabled' => 1, 'position' => 100),
+        'status'        => array('type' => 'integer', 'label' => 'Status', 'enabled' => 1, 'position' => 110, 'default' => 1),
+    );
+
+    public $rowid;
+    public $fk_booking;
+    public $type;
+    public $file_path;
+    public $file_name;
+    public $entity;
+    public $date_creation;
+    public $tms;
+    public $fk_user_creat;
+    public $import_key;
+    public $status;
+}

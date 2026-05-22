@@ -9,6 +9,7 @@
  *   GET    /bookings/{id}               → get one booking
  *   POST   /bookings/                   → create booking
  *   PUT    /bookings/{id}               → update booking
+ *   POST   /bookings/{id}/photos      → upload confirmation photo
  *   PUT    /bookings/{id}/gps         → update GPS position
  *   DELETE /bookings/{id}               → delete booking
  */
@@ -69,7 +70,8 @@ class Bookings extends DolibarrApi
 		'expense_commission', 'expense_commission_agent',
 		'expense_commission_tax', 'expense_commission_other',
 		'fk_user_author',
-		'current_gps_lat', 'current_gps_lon', 'gps_updated_at',
+        'current_gps_lat', 'current_gps_lon', 'gps_updated_at',
+		'photos',
 	];
 
 	const ALLOWED_STATUSES = ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'];
@@ -513,6 +515,24 @@ class Bookings extends DolibarrApi
 		foreach (['tms', 'date_creation'] as $f) {
 			if (isset($obj->$f)) $out[$f] = $obj->$f;
 		}
+
+		// Attach photos
+		$photos_sql = 'SELECT rowid, type, file_name, tms FROM ' . MAIN_DB_PREFIX . 'flotte_booking_photo'
+			. " WHERE fk_booking = " . ((int) $obj->rowid) . " AND status = 1";
+		$photos_res = $this->db->query($photos_sql);
+		$photos = [];
+		if ($photos_res) {
+			while ($p = $this->db->fetch_object($photos_res)) {
+				$photos[] = [
+					'id' => (int) $p->rowid,
+					'type' => $p->type,
+					'file_name' => $p->file_name,
+					'uploaded_at' => $p->tms,
+				];
+			}
+		}
+		$out['photos'] = $photos;
+
 		return $out;
 	}
 
@@ -617,5 +637,104 @@ class Bookings extends DolibarrApi
 		}
 
 		return $body;
+	}
+
+	// ── POST PHOTO ──────────────────────────────────────────────────────────
+
+	/**
+	 * Upload a confirmation photo for a booking
+	 *
+	 * @param  int   $id           Booking ID
+	 * @param  array $request_data Multipart: file + type (fuel|completion)
+	 *
+	 * @url    POST /{id}/photos
+	 * @throws RestException 401
+	 * @throws RestException 400
+	 * @throws RestException 404
+	 * @throws RestException 500
+	 * @return array
+	 */
+	public function postPhoto($id, $request_data = null)
+	{
+		if (empty(DolibarrApiAccess::$user->rights->flotte->write)) {
+			throw new RestException(401, 'No write permission on flotte module');
+		}
+
+		$id = (int) $id;
+		if ($id <= 0) throw new RestException(400, 'Invalid ID');
+
+		// Verify booking exists
+		$chk = $this->db->query(
+			'SELECT rowid FROM ' . MAIN_DB_PREFIX . 'flotte_booking'
+			. " WHERE rowid = $id AND entity IN (" . getEntity('flotte') . ')'
+		);
+		if (!$chk || !$this->db->num_rows($chk)) {
+			throw new RestException(404, 'Booking not found');
+		}
+
+		// Parse multipart upload
+		$type = GETPOST('type', 'alpha');
+		if (!in_array($type, ['fuel', 'completion'])) {
+			throw new RestException(400, 'type must be "fuel" or "completion"');
+		}
+
+		// Handle file upload
+		require_once DOL_DOCUMENT_ROOT . '/core/lib/files.lib.php';
+
+		$upload_dir = DOL_DATA_ROOT . '/flotte/bookings/' . $id;
+		if (!dol_mkdir($upload_dir) < 0) {
+			throw new RestException(500, 'Failed to create upload directory');
+		}
+
+		$file = $_FILES['file'] ?? null;
+		if (!$file || $file['error'] !== UPLOAD_ERR_OK) {
+			throw new RestException(400, 'file upload is required');
+		}
+
+		$ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+		$allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+		if (!in_array(strtolower($ext), $allowed)) {
+			throw new RestException(400, 'Invalid file type. Allowed: ' . implode(', ', $allowed));
+		}
+
+		$file_name = 'photo_' . $type . '_' . time() . '.' . $ext;
+		$dest_path = $upload_dir . '/' . $file_name;
+
+		if (!move_uploaded_file($file['tmp_name'], $dest_path)) {
+			throw new RestException(500, 'Failed to save uploaded file');
+		}
+
+		// Insert DB record
+		$now = dol_now();
+		$sql = "INSERT INTO " . MAIN_DB_PREFIX . "flotte_booking_photo (
+					fk_booking, type, file_path, file_name, entity,
+					date_creation, fk_user_creat, status
+				) VALUES (
+					$id, '" . $this->db->escape($type) . "',
+					'" . $this->db->escape($dest_path) . "',
+					'" . $this->db->escape($file_name) . "',
+					" . DolibarrApiAccess::$user->entity . ",
+					'" . $this->db->idate($now) . "',
+					" . DolibarrApiAccess::$user->id . ",
+					1
+				)";
+
+		$this->db->begin();
+		$res = $this->db->query($sql);
+		if (!$res) {
+			$this->db->rollback();
+			throw new RestException(500, 'DB error: ' . $this->db->lasterror());
+		}
+		$photo_id = $this->db->last_insert_value(MAIN_DB_PREFIX . 'flotte_booking_photo');
+		$this->db->commit();
+
+		return [
+			'success' => ['code' => 200],
+			'data' => [
+				'id' => (int) $photo_id,
+				'type' => $type,
+				'file_name' => $file_name,
+			],
+		];
 	}
 }
