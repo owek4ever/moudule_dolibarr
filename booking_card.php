@@ -841,6 +841,36 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
 }
 @media (max-width: 780px) { .dc-grid { grid-template-columns: 1fr; } }
 
+/* ── Photo gallery ── */
+.dc-photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    padding: 16px;
+}
+.dc-photo-item {
+    border: 1px solid #e8eaf0;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #fff;
+    transition: box-shadow 0.15s ease;
+}
+.dc-photo-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.dc-photo-img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    display: block;
+    background: #f5f6fa;
+}
+.dc-photo-info { padding: 10px 12px; }
+.dc-photo-info .dc-badge { margin-bottom: 6px; }
+.dc-photo-filename {
+    font-size: 11px;
+    color: #8b92a9;
+    word-break: break-all;
+}
+
 /* ── Section card ── */
 .dc-card {
     background: #fff;
@@ -1714,6 +1744,58 @@ print '  </div>';// card-body
 print '</div>';  // dc-card
 
 print '</div>';// dc-grid
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   PHOTOS GALLERY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+if ($id > 0) {
+    $photo_sql = "SELECT rowid, type, file_name, file_path, tms, date_creation"
+        . " FROM " . MAIN_DB_PREFIX . "flotte_booking_photo"
+        . " WHERE fk_booking = " . ((int) $id) . " AND status = 1"
+        . " ORDER BY tms DESC";
+    $photo_res = $db->query($photo_sql);
+    $photos = [];
+    if ($photo_res) {
+        while ($p = $db->fetch_object($photo_res)) {
+            $photos[] = $p;
+        }
+    }
+
+    if (count($photos) > 0) {
+        print '<div class="dc-card" style="margin-bottom:20px;">';
+        print '<div class="dc-card-header">';
+        print '<div class="dc-card-header-icon green"><i class="fa fa-camera"></i></div>';
+        print '<span class="dc-card-title">' . $langs->trans('Photos') . ' (' . count($photos) . ')</span>';
+        print '</div>';
+        print '<div class="dc-card-body">';
+        print '<div class="dc-photo-grid">';
+
+        foreach ($photos as $photo) {
+            $photo_url = dol_buildpath('/flotte/booking_photo_view.php?id=' . $photo->rowid, 1);
+            $type_label = $photo->type === 'fuel' ? 'Fuel' : 'Completion';
+            $type_class = $photo->type === 'fuel' ? 'amber' : 'green';
+
+            print '<div class="dc-photo-item">';
+            print '<a href="' . $photo_url . '" target="_blank" style="display:block;">';
+            print '<img class="dc-photo-img" src="' . $photo_url . '" alt="' . dol_escape_htmltag($photo->file_name) . '"';
+            print ' onerror="this.parentElement.style.display=\'none\'"';
+            print ' />';
+            print '</a>';
+            print '<div class="dc-photo-info">';
+            print '<span class="dc-badge ' . $type_class . '">' . $type_label . '</span>';
+            print '<div class="dc-photo-filename">';
+            print dol_escape_htmltag($photo->file_name) . '<br>';
+            print dol_print_date($photo->date_creation ? $photo->date_creation : $photo->tms, 'dayhour');
+            print '</div>';
+            print '</div>';
+            print '</div>';
+        }
+
+        print '</div>';
+        print '</div>'; // card-body
+        print '</div>'; // dc-card
+    }
+}
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    BOTTOM ACTION BAR
