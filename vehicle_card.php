@@ -685,8 +685,55 @@ if ($isCreate || $isEdit) {
     );
     print '<div style="display:flex;align-items:center;gap:6px;">';
     print $form->selectarray('type', $type_options, (isset($object->type) ? $object->type : ''), 1);
-    print '<a href="'.DOL_URL_ROOT.'/categories/index.php?type=other" target="_blank" title="'.$langs->trans('Categories').'"><i class="fa fa-plus-circle" style="font-size:18px;color:#0d8aff;flex-shrink:0;"></i></a>';
+    print '<button type="button" onclick="dcToggleAddType()" title="'.$langs->trans('AddType').'" style="background:none;border:none;cursor:pointer;padding:0;line-height:1;">';
+    print '<i id="dc-add-type-icon" class="fa fa-plus-circle" style="font-size:18px;color:#0d8aff;flex-shrink:0;"></i>';
+    print '</button>';
     print '</div>';
+    print '<div id="dc-add-type-row" style="display:none;margin-top:6px;display:none;">';
+    print '  <div style="display:flex;gap:6px;align-items:center;">';
+    print '    <input type="text" id="dc-new-type-input" placeholder="'.$langs->trans('NewTypeName').'" style="flex:1;" onkeydown="if(event.key===\'Enter\'){event.preventDefault();dcAddType();}">';
+    print '    <button type="button" onclick="dcAddType()" class="dc-btn dc-btn-primary" style="padding:6px 12px;font-size:12px;white-space:nowrap;"><i class="fa fa-check"></i> '.$langs->trans('Add').'</button>';
+    print '    <button type="button" onclick="dcToggleAddType()" class="dc-btn dc-btn-ghost" style="padding:6px 10px;font-size:12px;"><i class="fa fa-times"></i></button>';
+    print '  </div>';
+    print '  <div id="dc-add-type-error" style="color:#dc2626;font-size:11.5px;margin-top:4px;display:none;">'.$langs->trans('PleaseEnterATypeName').'</div>';
+    print '</div>';
+    print '<script>';
+    print 'function dcToggleAddType() {';
+    print '  var row = document.getElementById("dc-add-type-row");';
+    print '  var icon = document.getElementById("dc-add-type-icon");';
+    print '  var isOpen = row.style.display === "flex";';
+    print '  row.style.display = isOpen ? "none" : "flex";';
+    print '  icon.style.color = isOpen ? "#0d8aff" : "#dc2626";';
+    print '  icon.className = isOpen ? "fa fa-plus-circle" : "fa fa-times-circle";';
+    print '  if (!isOpen) { document.getElementById("dc-new-type-input").focus(); }';
+    print '  document.getElementById("dc-add-type-error").style.display = "none";';
+    print '}';
+    print 'function dcAddType() {';
+    print '  var input = document.getElementById("dc-new-type-input");';
+    print '  var errEl = document.getElementById("dc-add-type-error");';
+    print '  var val = input.value.trim();';
+    print '  if (!val) { errEl.style.display = "block"; input.focus(); return; }';
+    print '  errEl.style.display = "none";';
+    print '  var sel = document.querySelector("select[name=\'type\']");';
+    // Check for duplicate
+    print '  for (var i = 0; i < sel.options.length; i++) {';
+    print '    if (sel.options[i].value.toLowerCase() === val.toLowerCase()) {';
+    print '      sel.value = sel.options[i].value;';
+    print '      dcToggleAddType();';
+    print '      input.value = "";';
+    print '      return;';
+    print '    }';
+    print '  }';
+    // Add new option
+    print '  var opt = document.createElement("option");';
+    print '  opt.value = val;';
+    print '  opt.text = val;';
+    print '  sel.appendChild(opt);';
+    print '  sel.value = val;';
+    print '  dcToggleAddType();';
+    print '  input.value = "";';
+    print '}';
+    print '</script>';
 } else {
     print dol_escape_htmltag($object->type);
 }
@@ -757,7 +804,51 @@ if ($isCreate || $isEdit) {
         'Electric' => $langs->trans('Electric'),
         'Hybrid'   => $langs->trans('Hybrid')
     );
+    print '<div style="display:flex;align-items:center;gap:6px;">';
     print $form->selectarray('engine_type', $engine_options, (isset($object->engine_type) ? $object->engine_type : ''), 0);
+    print '<button type="button" onclick="dcToggleAddEngineType()" title="'.$langs->trans('AddType').'" style="background:none;border:none;cursor:pointer;padding:0;line-height:1;">';
+    print '<i id="dc-add-enginetype-icon" class="fa fa-plus-circle" style="font-size:18px;color:#0d8aff;flex-shrink:0;"></i>';
+    print '</button>';
+    print '</div>';
+    print '<div id="dc-add-enginetype-row" style="display:none;margin-top:6px;">';
+    print '  <div style="display:flex;gap:6px;align-items:center;">';
+    print '    <input type="text" id="dc-new-enginetype-input" placeholder="'.$langs->trans('NewTypeName').'" style="flex:1;" onkeydown="if(event.key===\'Enter\'){event.preventDefault();dcAddEngineType();}">';
+    print '    <button type="button" onclick="dcAddEngineType()" class="dc-btn dc-btn-primary" style="padding:6px 12px;font-size:12px;white-space:nowrap;"><i class="fa fa-check"></i> '.$langs->trans('Add').'</button>';
+    print '    <button type="button" onclick="dcToggleAddEngineType()" class="dc-btn dc-btn-ghost" style="padding:6px 10px;font-size:12px;"><i class="fa fa-times"></i></button>';
+    print '  </div>';
+    print '  <div id="dc-add-enginetype-error" style="color:#dc2626;font-size:11.5px;margin-top:4px;display:none;">'.$langs->trans('PleaseEnterATypeName').'</div>';
+    print '</div>';
+    print '<script>';
+    print 'function dcToggleAddEngineType() {';
+    print '  var row  = document.getElementById("dc-add-enginetype-row");';
+    print '  var icon = document.getElementById("dc-add-enginetype-icon");';
+    print '  var isOpen = row.style.display === "flex";';
+    print '  row.style.display = isOpen ? "none" : "flex";';
+    print '  icon.style.color  = isOpen ? "#0d8aff" : "#dc2626";';
+    print '  icon.className    = isOpen ? "fa fa-plus-circle" : "fa fa-times-circle";';
+    print '  if (!isOpen) { document.getElementById("dc-new-enginetype-input").focus(); }';
+    print '  document.getElementById("dc-add-enginetype-error").style.display = "none";';
+    print '}';
+    print 'function dcAddEngineType() {';
+    print '  var input = document.getElementById("dc-new-enginetype-input");';
+    print '  var errEl = document.getElementById("dc-add-enginetype-error");';
+    print '  var val   = input.value.trim();';
+    print '  if (!val) { errEl.style.display = "block"; input.focus(); return; }';
+    print '  errEl.style.display = "none";';
+    print '  var sel = document.querySelector("select[name=\'engine_type\']");';
+    print '  for (var i = 0; i < sel.options.length; i++) {';
+    print '    if (sel.options[i].value.toLowerCase() === val.toLowerCase()) {';
+    print '      sel.value = sel.options[i].value;';
+    print '      dcToggleAddEngineType(); input.value = ""; return;';
+    print '    }';
+    print '  }';
+    print '  var opt = document.createElement("option");';
+    print '  opt.value = val; opt.text = val;';
+    print '  sel.appendChild(opt);';
+    print '  sel.value = val;';
+    print '  dcToggleAddEngineType(); input.value = "";';
+    print '}';
+    print '</script>';
 } else {
     print dol_escape_htmltag($object->engine_type);
 }

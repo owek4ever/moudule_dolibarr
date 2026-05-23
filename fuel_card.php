@@ -972,7 +972,51 @@ if ($isCreate || $isEdit) {
         'Tank'    => $langs->trans('Tank'),
         'Other'   => $langs->trans('Other'),
     );
+    print '<div style="display:flex;align-items:center;gap:6px;">';
     print $form->selectarray('fuel_source', $source_options, (isset($object->fuel_source) ? $object->fuel_source : 'Station'), 0);
+    print '<button type="button" onclick="dcToggleAddFuelSource()" title="'.$langs->trans('AddType').'" style="background:none;border:none;cursor:pointer;padding:0;line-height:1;">';
+    print '<i id="dc-add-fuelsource-icon" class="fa fa-plus-circle" style="font-size:18px;color:#0d8aff;flex-shrink:0;"></i>';
+    print '</button>';
+    print '</div>';
+    print '<div id="dc-add-fuelsource-row" style="display:none;margin-top:6px;">';
+    print '  <div style="display:flex;gap:6px;align-items:center;">';
+    print '    <input type="text" id="dc-new-fuelsource-input" placeholder="'.$langs->trans('NewTypeName').'" style="flex:1;" onkeydown="if(event.key===\'Enter\'){event.preventDefault();dcAddFuelSource();}">';
+    print '    <button type="button" onclick="dcAddFuelSource()" class="dc-btn dc-btn-primary" style="padding:6px 12px;font-size:12px;white-space:nowrap;"><i class="fa fa-check"></i> '.$langs->trans('Add').'</button>';
+    print '    <button type="button" onclick="dcToggleAddFuelSource()" class="dc-btn dc-btn-ghost" style="padding:6px 10px;font-size:12px;"><i class="fa fa-times"></i></button>';
+    print '  </div>';
+    print '  <div id="dc-add-fuelsource-error" style="color:#dc2626;font-size:11.5px;margin-top:4px;display:none;">'.$langs->trans('PleaseEnterATypeName').'</div>';
+    print '</div>';
+    print '<script>';
+    print 'function dcToggleAddFuelSource() {';
+    print '  var row  = document.getElementById("dc-add-fuelsource-row");';
+    print '  var icon = document.getElementById("dc-add-fuelsource-icon");';
+    print '  var isOpen = row.style.display === "flex";';
+    print '  row.style.display = isOpen ? "none" : "flex";';
+    print '  icon.style.color  = isOpen ? "#0d8aff" : "#dc2626";';
+    print '  icon.className    = isOpen ? "fa fa-plus-circle" : "fa fa-times-circle";';
+    print '  if (!isOpen) { document.getElementById("dc-new-fuelsource-input").focus(); }';
+    print '  document.getElementById("dc-add-fuelsource-error").style.display = "none";';
+    print '}';
+    print 'function dcAddFuelSource() {';
+    print '  var input = document.getElementById("dc-new-fuelsource-input");';
+    print '  var errEl = document.getElementById("dc-add-fuelsource-error");';
+    print '  var val   = input.value.trim();';
+    print '  if (!val) { errEl.style.display = "block"; input.focus(); return; }';
+    print '  errEl.style.display = "none";';
+    print '  var sel = document.querySelector("select[name=\'fuel_source\']");';
+    print '  for (var i = 0; i < sel.options.length; i++) {';
+    print '    if (sel.options[i].value.toLowerCase() === val.toLowerCase()) {';
+    print '      sel.value = sel.options[i].value;';
+    print '      dcToggleAddFuelSource(); input.value = ""; return;';
+    print '    }';
+    print '  }';
+    print '  var opt = document.createElement("option");';
+    print '  opt.value = val; opt.text = val;';
+    print '  sel.appendChild(opt);';
+    print '  sel.value = val;';
+    print '  dcToggleAddFuelSource(); input.value = "";';
+    print '}';
+    print '</script>';
 } else {
     if (!empty($object->fuel_source)) {
         $srcColors = array('Station' => 'green', 'Tank' => 'amber', 'Other' => 'purple');
