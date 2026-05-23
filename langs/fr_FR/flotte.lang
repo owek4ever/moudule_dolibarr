@@ -1041,3 +1041,41 @@ Tracking = Suivi
 Dashboard = Tableau de bord
 Settings = Paramètres
 Reports = Rapports
+#
+# Rapports de flotte
+#
+FleetReports = Rapports de flotte
+ReportPeriod = Période du rapport
+BookingsTrend = Tendance des réservations
+BookingsByStatus = Réservations par statut
+FuelByVehicle = Consommation de carburant par véhicule
+WorkOrdersByPriority = Ordres de travail par priorité
+TopVehicles = Véhicules les plus réservés
+TopDrivers = Chauffeurs les plus actifs
+FleetStatus = État de la flotte
+MaintenanceSummary = Résumé de la maintenance
+TotalDistance = Distance totale
+FuelConsumed = Carburant consommé
+NoDataAvailable = Aucune donnée disponible pour cette période
+
+#
+# Catégories
+#
+Categories = Catégories
+
+#
+# Importation depuis les contacts
+#
+ImportFromContacts = Importer depuis les contacts/adresses
+ImportFromContactsSubtitle = Synchroniser les contacts actifs dans la liste des chauffeurs
+ImportFromContactsInfo = Tous les contacts/adresses actifs seront synchronisés en tant que chauffeurs.
+ImportFromContactsNote = Seuls les contacts actifs sont importés. Les chauffeurs existants sont mis à jour, non dupliqués.
+ImportFromContactsRule1 = Les nouveaux contacts sont ajoutés en tant que chauffeurs actifs avec une référence générée automatiquement (DRV-XXXX).
+ImportFromContactsRule2 = Les contacts déjà importés sont mis à jour (nom, téléphone, e-mail, adresse).
+ImportFromContactsRule3 = Les contacts sans prénom ni nom de famille sont ignorés.
+ImportFromContactsDone = Importation terminée
+ContactsImportAdded = ajouté(s)
+ContactsImportUpdated = mis à jour
+ContactsImportSkipped = ignoré(s)
+ImportFromContactsNone = Aucun contact trouvé à importer.
+ProceedImport = Procéder
