@@ -104,14 +104,33 @@ class FirebaseNotificationService
      */
     public function notifyBooking($booking, $event = 'created')
     {
-        $icons  = array('created' => '📅', 'confirmed' => '✅', 'cancelled' => '❌');
-        $icon   = $icons[$event] ?? '📅';
-        $title  = $icon . ' Booking ' . ucfirst($event);
-        $body   = 'Booking ' . $booking->ref;
-        if (!empty($booking->departure_address)) $body .= ' from ' . substr($booking->departure_address, 0, 60);
+        $icons  = array('created' => '📦', 'confirmed' => '🚛', 'completed' => '✅', 'cancelled' => '❌', 'updated' => '🔄');
+        $icon   = $icons[$event] ?? '📦';
+
+        $titles = array(
+            'created'   => $icon . ' New Task Assigned',
+            'confirmed' => $icon . ' Task Started — On the Way',
+            'completed' => $icon . ' Task Completed',
+            'cancelled' => $icon . ' Task Cancelled',
+            'updated'   => $icon . ' Task Updated',
+        );
+        $title = $titles[$event] ?? $icon . ' Booking Update';
+
+        $parts = array();
+        if (!empty($booking->departure_address)) {
+            $parts[] = 'From: ' . substr($booking->departure_address, 0, 60);
+        }
+        if (!empty($booking->arriving_address)) {
+            $parts[] = 'To: ' . substr($booking->arriving_address, 0, 60);
+        }
+        if (!empty($booking->booking_date)) {
+            $parts[] = 'Date: ' . $booking->booking_date;
+        }
+        $body = implode(' | ', $parts);
+        if (empty($body)) $body = 'Ref: ' . $booking->ref;
 
         return $this->broadcast($title, $body,
-            array('booking_id' => (string) $booking->rowid, 'event' => $event),
+            array('booking_id' => (string) $booking->rowid, 'event' => $event, 'ref' => $booking->ref ?? ''),
             'booking_' . $event, 2,
             array('fk_booking' => $booking->rowid, 'fk_vehicle' => $booking->fk_vehicle ?? null)
         );
