@@ -37,17 +37,20 @@ class InterfaceFlortteTriggers extends DolibarrTriggers
     public function runTrigger($action, $object, $user, $langs, $conf)
     {
         // ── Booking created ──────────────────────────────────
-        if ($action === 'FLOTTE_BOOKING_CREATE' && is_a($object, 'FlotteBooking')) {
+        // createCommon uses get_class($this) → 'FlotteBooking' → strtoupper → 'FLOTTEBOKING'
+        if ($action === 'FLOTTEBOKING_CREATE' && is_a($object, 'FlotteBooking')) {
             return $this->_notifyBooking($object, 'created');
         }
 
         // ── Booking modified (status change etc.) ────────────
+        // updateCommon uses $this->element → 'flotte_booking' → strtoupper → 'FLOTTE_BOOKING'
         if ($action === 'FLOTTE_BOOKING_MODIFY' && is_a($object, 'FlotteBooking')) {
             return $this->_notifyBooking($object, $this->_bookingEventFromStatus($object->status));
         }
 
         // ── Booking deleted ──────────────────────────────────
-        if ($action === 'FLOTTE_BOOKING_DELETE' && is_a($object, 'FlotteBooking')) {
+        // deleteCommon uses get_class($this) → 'FlotteBooking' → strtoupper → 'FLOTTEBOKING'
+        if ($action === 'FLOTTEBOKING_DELETE' && is_a($object, 'FlotteBooking')) {
             return $this->_notifyBooking($object, 'cancelled');
         }
 
