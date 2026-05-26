@@ -302,6 +302,15 @@ class Bookings extends DolibarrApi
 		$newId = $this->db->last_insert_id(MAIN_DB_PREFIX . 'flotte_booking', 'rowid');
 		$this->db->commit();
 
+    // Send push notification for new booking
+    try {
+        dol_include_once("/flotte/class/FirebaseNotificationService.class.php");
+        $fcm = new FirebaseNotificationService($this->db);
+        $fcm->notifyBooking($this->db->fetch_object($this->db->query("SELECT * FROM " . MAIN_DB_PREFIX . "flotte_booking WHERE rowid = " . (int) $newId)), "created");
+    } catch (Exception $e) {
+        // Notification failure should not break the request
+    }
+
 		$row = $this->db->query('SELECT * FROM ' . MAIN_DB_PREFIX . 'flotte_booking WHERE rowid = ' . (int) $newId);
 		return $this->_bookingToArray($this->db->fetch_object($row));
 	}
@@ -369,6 +378,23 @@ class Bookings extends DolibarrApi
 			throw new RestException(500, 'DB error: ' . $this->db->lasterror());
 		}
 		$this->db->commit();
+
+    // Send push notification for booking update
+    try {
+        dol_include_once("/flotte/class/FirebaseNotificationService.class.php");
+        $fcm = new FirebaseNotificationService($this->db);
+        
+        $status = $body["status"] ?? "";
+        $event = match ($status) {
+            "in_progress" => "confirmed",
+            "completed"   => "completed",
+            "cancelled"   => "cancelled",
+            default       => "updated",
+        };
+        $fcm->notifyBooking($this->db->fetch_object($this->db->query("SELECT * FROM " . MAIN_DB_PREFIX . "flotte_booking WHERE rowid = " . (int) $id)), $event);
+    } catch (Exception $e) {
+        // Notification failure should not break the request
+    }
 
 		$row = $this->db->query('SELECT * FROM ' . MAIN_DB_PREFIX . "flotte_booking WHERE rowid = $id");
 		return $this->_bookingToArray($this->db->fetch_object($row));

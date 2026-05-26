@@ -32,6 +32,7 @@ class FirebaseNotificationService
     const FCM_V1_URL     = 'https://fcm.googleapis.com/v1/projects/%s/messages:send';
     const FCM_LEGACY_URL = 'https://fcm.googleapis.com/fcm/send';
 
+    const EXPO_PUSH_URL  = 'https://exp.host/--/api/v2/push/send';
     public function __construct($db)
     {
         global $conf;
@@ -517,10 +518,45 @@ class FirebaseNotificationService
 
     protected function sendFcmMessage($token, $title, $body, $data, $priority)
     {
+        if (strpos($token, 'ExponentPushToken') === 0) {
+            return $this->sendExpoPush($token, $title, $body, $data, $priority);
+        }
+
         if (!empty($this->config['use_v1_api'])) {
             return $this->sendFcmV1($token, $title, $body, $data, $priority);
         }
         return $this->sendFcmLegacy($token, $title, $body, $data, $priority);
+    }
+
+    protected function sendExpoPush($token, $title, $body, $data, $priority)
+    {
+        $payload = array(
+            'to'       => $token,
+            'title'    => $title,
+            'body'     => $body,
+            'data'     => $data,
+            'sound'    => 'default',
+            'priority' => $priority >= 3 ? 'high' : 'normal',
+        );
+        $headers = array('Content-Type: application/json');
+        $resp    = $this->httpPost(self::EXPO_PUSH_URL, $payload, $headers);
+
+        // Expo returns 200 with per-ticket status; parse the inner result
+        if ($resp['success'] && !empty($resp['response']['data'][0])) {
+            $ticket = $resp['response']['data'][0];
+            if ($ticket['status'] === 'error') {
+                $shouldRemove = false;
+                $err          = $ticket['message'] ?? '';
+                $details      = $ticket['details']['error'] ?? '';
+                if (in_array($details, array('DeviceNotRegistered', 'InvalidCredentials'))) {
+                    $shouldRemove = true;
+                }
+                return array('success' => false, 'error' => $err ?: 'Expo push error', 'should_remove' => $shouldRemove);
+            }
+            return array('success' => true, 'response' => $ticket);
+        }
+
+        return $resp;
     }
 
     protected function sendFcmV1($token, $title, $body, $data, $priority)
