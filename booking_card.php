@@ -493,6 +493,20 @@ if ($action == 'add') {
                 'expense_commission','expense_commission_agent','expense_commission_tax','expense_commission_other'
             );
             syncBookingExpensesToTable($db, $id, $booking_date, $conf, $user, $expense_sync_data);
+
+            // Send push notification for new booking
+            dol_syslog("Send push notification for new booking id=" . $id);
+            try {
+                dol_include_once('/flotte/class/FirebaseNotificationService.class.php');
+                $bookingRow = $db->query('SELECT * FROM ' . MAIN_DB_PREFIX . "flotte_booking WHERE rowid = " . ((int) $id));
+                if ($bookingRow && $bookingObj = $db->fetch_object($bookingRow)) {
+                    $fcm = new FirebaseNotificationService($db);
+                    $fcm->notifyBooking($bookingObj, 'created');
+                }
+            } catch (Exception $e) {
+                dol_syslog("Push notification skipped for booking #$id: " . $e->getMessage(), LOG_WARNING);
+            }
+
             $action = 'view';
             setEventMessages($langs->trans("BookingCreatedSuccessfully"), null, 'mesgs');
         } else {
@@ -657,6 +671,24 @@ if ($action == 'update' && $id > 0) {
                 'expense_commission','expense_commission_agent','expense_commission_tax','expense_commission_other'
             );
             syncBookingExpensesToTable($db, $id, $booking_date, $conf, $user, $expense_sync_data);
+
+            // Send push notification for booking update
+            dol_syslog("Send push notification for booking update id=" . $id);
+            try {
+                dol_include_once('/flotte/class/FirebaseNotificationService.class.php');
+                $bookingRow = $db->query('SELECT * FROM ' . MAIN_DB_PREFIX . "flotte_booking WHERE rowid = " . ((int) $id));
+                if ($bookingRow && $bookingObj = $db->fetch_object($bookingRow)) {
+                    $event = 'updated';
+                    if ($bookingObj->status === 'in_progress') $event = 'confirmed';
+                    elseif ($bookingObj->status === 'completed') $event = 'completed';
+                    elseif ($bookingObj->status === 'cancelled') $event = 'cancelled';
+                    $fcm = new FirebaseNotificationService($db);
+                    $fcm->notifyBooking($bookingObj, $event);
+                }
+            } catch (Exception $e) {
+                dol_syslog("Push notification skipped for booking #$id: " . $e->getMessage(), LOG_WARNING);
+            }
+
             $action = 'view';
             setEventMessages($langs->trans("BookingUpdatedSuccessfully"), null, 'mesgs');
         } else {
