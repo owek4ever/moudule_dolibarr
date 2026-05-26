@@ -36,6 +36,21 @@ class InterfaceFlortteTriggers extends DolibarrTriggers
      */
     public function runTrigger($action, $object, $user, $langs, $conf)
     {
+        // ── Booking created ──────────────────────────────────
+        if ($action === 'FLOTTE_BOOKING_CREATE' && is_a($object, 'FlotteBooking')) {
+            return $this->_notifyBooking($object, 'created');
+        }
+
+        // ── Booking modified (status change etc.) ────────────
+        if ($action === 'FLOTTE_BOOKING_MODIFY' && is_a($object, 'FlotteBooking')) {
+            return $this->_notifyBooking($object, $this->_bookingEventFromStatus($object->status));
+        }
+
+        // ── Booking deleted ──────────────────────────────────
+        if ($action === 'FLOTTE_BOOKING_DELETE' && is_a($object, 'FlotteBooking')) {
+            return $this->_notifyBooking($object, 'cancelled');
+        }
+
         // ── Customer invoice validated ───────────────────────
         if ($action === 'BILL_VALIDATE') {
             $note = isset($object->note_private) ? $object->note_private : '';
@@ -55,6 +70,31 @@ class InterfaceFlortteTriggers extends DolibarrTriggers
         }
 
         return 0;
+    }
+
+    // ── Push notification helper ────────────────────────────────────────────
+
+    private function _notifyBooking($object, $event)
+    {
+        dol_include_once('/flotte/class/FirebaseNotificationService.class.php');
+        try {
+            $fcm = new FirebaseNotificationService($this->db);
+            $fcm->notifyBooking($object, $event);
+        } catch (Exception $e) {
+            $this->error = $e->getMessage();
+            return -1;
+        }
+        return 1;
+    }
+
+    private function _bookingEventFromStatus($status)
+    {
+        switch ((string) $status) {
+            case 'in_progress': return 'confirmed';
+            case 'completed':   return 'completed';
+            case 'cancelled':   return 'cancelled';
+            default:            return 'updated';
+        }
     }
 
     /**
