@@ -1,8 +1,11 @@
 # Fichier de traduction - Module Flotte
 # Langue : Français (fr_FR)
+# Encodage : UTF-8
+# Module : Flotte - Gestion de flotte de véhicules
+# Auteur : Optimalogistic
 
 #
-# Générique - Module
+# Module - Générique
 #
 ModuleFlotteName = Flotte
 ModuleFlotteDesc = Module de gestion de flotte de véhicules
@@ -18,10 +21,10 @@ FLOTTE_MYPARAM1Tooltip = Info-bulle paramètre 1
 FLOTTE_MYPARAM2 = Paramètre 2
 FLOTTE_MYPARAM2Tooltip = Info-bulle paramètre 2
 FLOTTE_MYPARAM10 = Paramètre 10
-MYMMODULE_MYPARAM1 = Paramètre 1
-MYMMODULE_MYPARAM1Tooltip = Info-bulle paramètre 1
-MYMMODULE_MYPARAM2 = Paramètre 2
-MYMMODULE_MYPARAM2Tooltip = Info-bulle paramètre 2
+MYMMMODULE_MYPARAM1 = Paramètre 1
+MYMMMODULE_MYPARAM1Tooltip = Info-bulle paramètre 1
+MYMMMODULE_MYPARAM2 = Paramètre 2
+MYMMMODULE_MYPARAM2Tooltip = Info-bulle paramètre 2
 HelpMessage = Message d'aide
 NewSection = Nouvelle section
 MyPageName = Nom de la page
@@ -35,41 +38,7 @@ MyModuleAboutPage = Page À propos
 MyModuleArea = Accueil module
 
 #
-# Tableau de bord
-#
-FlotteDashboard = Tableau de bord Flotte
-FlotteTablesNotInstalled = Les tables de la base de données Flotte ne sont pas installées. Veuillez activer et configurer le module.
-Dashboard = Tableau de bord
-TotalVehicles = Véhicules totaux
-TotalDrivers = Chauffeurs totaux
-ActiveBookings = Réservations actives
-MonthlyRevenue = Revenu mensuel
-ThisMonth = Ce mois-ci
-QuickActions = Actions rapides
-FleetSummary = Résumé de la flotte
-RecentBookings = Réservations récentes
-FuelEntries = Entrées de carburant
-Departments = Départements
-
-#
-# Navigation
-#
-Vehicles = Véhicules
-Drivers = Chauffeurs
-Customers = Clients
-Bookings = Réservations
-Fuel = Carburant
-Vendors = Fournisseurs
-Parts = Pièces
-CategoryTypeFlottePart = Pièces
-CategoryTypeflotte_part = Pièces
-flotte_part = Pièces
-WorkOrders = Ordres de travail
-Inspections = Inspections
-Tracking = Suivi
-
-#
-# Général
+# Admin - Configuration
 #
 Settings = Paramètres
 SetupSaved = Configuration enregistrée
@@ -92,6 +61,143 @@ Activated = Activé
 BackToModuleList = Retour à la liste des modules
 ErrorModuleNotFound = Module non trouvé
 ErrorBadToken = Jeton invalide
+DocumentModules = Modules de documents
+NumberingModules = Modules de numérotation
+Parameter = Paramètre
+Value = Valeur
+Name = Nom
+Description = Description
+Width = Largeur
+Height = Hauteur
+Length = Longueur
+Status = Statut
+Type = Type
+Unknown = Inconnu
+NotAvailable = Non disponible
+
+#
+# Images de configuration
+#
+FlotteImagesSetup = Images du module Flotte
+CachetImage = Image du cachet
+CachetImageDesc = Téléchargez l'image du cachet de l'entreprise (JPG, PNG)
+SignatureImage = Image de la signature
+SignatureImageDesc = Téléchargez l'image de la signature autorisée (JPG, PNG)
+ErrorUploadCachet = Erreur lors du téléchargement du cachet
+ErrorUploadSignature = Erreur lors du téléchargement de la signature
+ErrorBadImageFormat = Format d'image invalide. Seuls JPG et PNG sont acceptés.
+ChangePhoto = Changer la photo
+LeaveEmptyToKeepCurrentPhoto = Laisser vide pour conserver la photo actuelle
+NoPhotoAvailable = Aucune photo disponible
+
+#
+# Paramètres de configuration avancés
+#
+FlotteFleetManagerNamePlaceholder = ex. Jean Dupont
+FlotteMileageKm = Kilomètres (km)
+FlotteMileageMiles = Miles (mi)
+FlotteFuelPetrol = Essence
+FlotteFuelDiesel = Diesel
+FlotteFuelElectric = Électrique
+FlotteFuelHybrid = Hybride
+FlotteFuelLPG = GPL
+FlotteStatusPending = En attente
+FlotteStatusConfirmed = Confirmé
+FlotteCategoriesDesc = Gérer les catégories de pièces et d'équipements de la flotte
+FlotteTagsCategories = Étiquettes et catégories Flotte
+
+#
+# Tableau de bord
+#
+FlotteDashboard = Tableau de bord Flotte
+FlotteTablesNotInstalled = Les tables de la base de données Flotte ne sont pas installées. Veuillez activer et configurer le module.
+Dashboard = Tableau de bord
+TotalVehicles = Véhicules totaux
+TotalDrivers = Chauffeurs totaux
+ActiveBookings = Réservations actives
+MonthlyRevenue = Revenu mensuel
+ThisMonth = Ce mois-ci
+QuickActions = Actions rapides
+FleetSummary = Résumé de la flotte
+RecentBookings = Réservations récentes
+FuelEntries = Entrées de carburant
+Departments = Départements
+FleetOverview = Vue d'ensemble de la flotte
+PerformanceAnalytics = Analyses de performance
+RecentActivity = Activité récente
+AlertsNotifications = Alertes et notifications
+FleetUtilization = Utilisation de la flotte
+ActivePersonnel = Personnel actif
+CurrentMonth = Mois en cours
+InUseToday = En service aujourd'hui
+Utilization = Utilisation
+NoRecentBookingsFound = Aucune réservation récente trouvée
+FleetManagement = Gestion de flotte
+
+#
+# Alertes du tableau de bord
+#
+FleetCriticallyOverloaded = Flotte en surcharge critique
+AlertDescOverloaded = Le taux d'utilisation est de %s%%. Seulement %s véhicule(s) disponible(s).
+Critical = Critique
+HighFleetUtilization = Utilisation élevée de la flotte
+AlertDescHighUtil = Le taux d'utilisation est de %s%%. Pensez à planifier la maintenance avec soin.
+NoVehiclesAvailable = Aucun véhicule disponible
+AlertDescNoVehicles = Les %s véhicules sont actuellement en service. Aucune capacité restante.
+Urgent = Urgent
+PendingWorkOrders = Ordres de travail en attente
+AlertDescPendingWO = %s ordre(s) de travail en attente d'action. Veuillez affecter des techniciens.
+ActiveBookingsToday = Réservations actives aujourd'hui
+AlertDescActiveBookings = %s réservation(s) active(s) en ce moment. Assurez-vous que les véhicules et chauffeurs sont prêts.
+Today = Aujourd'hui
+WorkOrderCompletionRate = Taux de complétion des ordres de travail
+AlertDescCompletionRate = %s%% des ordres de travail sont complétés. L'équipe de maintenance performe bien.
+Good = Bon
+NoInspectionsRecorded = Aucune inspection enregistrée
+AlertDescNoInspections = Aucune inspection de véhicule n'a encore été enregistrée. Planifiez des contrôles réguliers.
+MonthlyRevenueOnTrack = Revenu mensuel en bonne voie
+AlertDescRevenue = Le revenu de ce mois s'élève à %s pour %s réservation(s).
+Info = Info
+NoAlertsMessage = Tous les systèmes fonctionnent normalement. Aucune alerte pour le moment.
+
+#
+# Navigation - Menus
+#
+Vehicles = Véhicules
+Drivers = Chauffeurs
+Customers = Clients
+Bookings = Réservations
+Fuel = Carburant
+Vendors = Fournisseurs
+Parts = Pièces
+WorkOrders = Ordres de travail
+Inspections = Inspections
+Tracking = Suivi
+Reports = Rapports
+Notifications = Notifications
+Fleet = Flotte
+Operations = Opérations
+Expenses = Dépenses
+Maintenance = Maintenance
+Monitoring = Surveillance
+Admin = Administration
+Setup = Configuration
+NotificationSettings = Paramètres de notification
+Notification Settings = Paramètres de notification
+
+#
+# Catégories
+#
+Categories = Catégories
+CategoryTypeFlottePart = Pièces
+CategoryTypeflotte_part = Pièces
+flotte_part = Pièces
+AllCategories = Toutes les catégories
+NbOfCategories = Nombre de catégories
+EditTagsCategories = Modifier les étiquettes et catégories
+AddType = Ajouter un type
+NewTypeName = Nom du nouveau type
+PleaseEnterATypeName = Veuillez saisir un nom de type
 
 #
 # Actions communes
@@ -104,40 +210,71 @@ Edit = Modifier
 Delete = Supprimer
 View = Voir
 Export = Exporter
+Import = Importer
+Print = Imprimer
 Card = Fiche
 BackToList = Retour à la liste
 AutoGenerated = Généré automatiquement
 NoRecordFound = Aucun enregistrement trouvé
 RecordDeleted = Enregistrement supprimé
 Action = Action
+Actions = Actions
 Count = Nombre
 Stock = Stock
-Status = Statut
 Reference = Référence
-Ref = Référence
+Ref = Réf.
 Date = Date
 Note = Note
 Notes = Notes
-Description = Description
-Name = Nom
-Type = Type
 Priority = Priorité
 Schedule = Planning
 Unit = Unité
 Units = Unités
 Qty = Qté
 Tax = Taxe
+TaxRate = Taux de taxe
 UnitPrice = Prix unitaire
-InclTax = TTC
-ExclTax = HT
+Unit Price = Prix unitaire
+Unit Cost = Coût unitaire
+UnitCost = Coût unitaire
+Incl Tax = TTC
+Excl Tax = HT
 Yes = Oui
 No = Non
-Unknown = Inconnu
 Error = Erreur
 Warning = Avertissement
+Add = Ajouter
+Close = Fermer
+Filter = Filtrer
+Details = Détails
+Label = Étiquette
+Log = Journal
+Source = Source
+Progress = Avancement
+Row = Ligne
+Page = Page
+PageTotal = Total de la page
+Required = Requis
+Column = Colonne
+ColumnName = Nom de la colonne
+Photo = Photo
+Photos = Photos
+Upload = Télécharger
+UploadPhoto = Télécharger une photo
+DragDropOrClick = Glisser-déposer ou cliquer pour sélectionner
+DropCSVHere = Déposer le fichier CSV ici
+ShowCSVColumns = Afficher les colonnes CSV
+DownloadCSVTemplate = Télécharger le modèle CSV
+ImportNow = Importer maintenant
+ImportSuccess = Importation réussie
+ImportNoticeText = Vérifiez les données avant d'importer. Les entrées dupliquées seront ignorées.
+ErrorNoFileUploaded = Aucun fichier téléchargé
+ErrorOnlyCSVAccepted = Seuls les fichiers CSV sont acceptés
+ErrorOnlyCSVAllowed = Seuls les fichiers CSV sont autorisés
+OnlyCSVAccepted = Seuls les fichiers CSV sont acceptés
 
 #
-# Formulaires & champs communs
+# Formulaires et champs communs
 #
 SelectType = Sélectionner un type
 SelectStatus = Sélectionner un statut
@@ -154,20 +291,39 @@ Department = Département
 Price = Prix
 Reading = Lecture
 Days = jours
+days = jours
 Km = Km
 L = L
-Width = Largeur
-Height = Hauteur
-Length = Longueur
+cm = cm
+kg = kg
+records = enregistrements
+Amount = Montant
+Total = Total
+DateCreation = Date de création
+DateFrom = Date du
+DateTo = Date au
+From = Depuis
+To = Vers
+Search = Rechercher
+Reset = Réinitialiser
+AcceptedFormats = Formats acceptés : JPG, PNG, PDF
+Click to select — JPG, PNG, PDF = Cliquer pour sélectionner — JPG, PNG, PDF
 
 #
 # Tiers / Société
 #
 ThirdParty = Tiers
+Third Party = Tiers
 CreateThirdParty = Créer un tiers
 SelectThirdParty = Sélectionner un tiers
 Select Third Party To Autofill = Sélectionner un tiers pour remplir automatiquement
+SelectThirdPartyHint = Sélectionner un tiers pour remplir automatiquement les champs ci-dessous.
 Seleting a third party will auto-fill the fields below. = La sélection d'un tiers remplira automatiquement les champs ci-dessous.
+Selecting a third party will auto-fill the fields below. = La sélection d'un tiers remplira automatiquement les champs ci-dessous.
+SIREN = SIREN
+SearchSIREN = Rechercher SIREN...
+SearchTown = Ville...
+SearchState = Région...
 
 #
 # Véhicule
@@ -196,6 +352,7 @@ Service Information = Informations de service
 DimensionsAndSpecs = Dimensions et caractéristiques
 Dimensions And Specs = Dimensions et caractéristiques
 Maker = Marque
+VehicleMaker = Marque du véhicule
 Model = Modèle
 Year = Année
 Color = Couleur
@@ -207,6 +364,7 @@ Engine Type = Type de moteur
 SelectEngineType = Sélectionner le type de moteur
 Horsepower = Puissance (ch)
 Horse Power = Puissance (ch)
+HP = CV
 Mileage = Kilométrage
 InitialMileage = Kilométrage initial
 Initial Mileage = Kilométrage initial
@@ -223,6 +381,7 @@ Max Weight = Poids maximum
 InService = En service
 In Service = En service
 OutOfService = Hors service
+Off = Hors service
 VehicleSearch = Recherche de véhicule
 VehiclePhoto = Photo du véhicule
 Vehicle Photo = Photo du véhicule
@@ -234,17 +393,43 @@ InsuranceDocument = Document d'assurance
 Insurance Document = Document d'assurance
 RelatedRecords = Enregistrements liés
 FuelRecords = Enregistrements de carburant
+VehicleType = Type de véhicule
+VehicleRef = Référence du véhicule
 Car = Voiture
 Truck = Camion
 Van = Fourgon
 Bus = Bus
 Motorcycle = Moto
+BoxTruck = Fourgon fermé
+TankerTruck = Camion-citerne
+RefrigeratedTruck = Camion frigorifique
+TractorUnit = Tracteur routier
+Curtainsider = Camion à rideaux
+Distributor = Distributeur
 Petrol = Essence
 Diesel = Diesel
 Electric = Électrique
 Hybrid = Hybride
+Gasoline = Essence
 Fill In Vehicle Details = Remplir les informations du véhicule
+FillInVehicleDetails = Remplir les informations du véhicule
 Documents And Photos = Documents et photos
+DocumentsAndPhotos = Documents et photos
+VehiclesFound = véhicule(s) trouvé(s)
+AllStatuses = Tous les statuts
+SearchRef = Rechercher la référence...
+SearchMaker = ex. Toyota...
+SearchModel = ex. Corolla...
+SearchPlate = Rechercher la plaque...
+NoVehiclesFound = Aucun véhicule trouvé
+AddFirstVehicle = Ajouter le premier véhicule
+ShowingVehicles = Affichage de %s à %s sur %s véhicule(s)
+ImportVehicles = Importer des véhicules
+ImportVehiclesSubtitle = Importer des véhicules depuis un fichier CSV
+ImportedVehiclesCount = %s véhicule(s) importé(s)
+SelectAVehicle = Sélectionner un véhicule
+SelectVehicleToBegin = Sélectionner un véhicule pour commencer
+ChooseVehicleFromDropdown = Choisir un véhicule dans la liste déroulante
 
 #
 # Chauffeur
@@ -258,6 +443,8 @@ EditDriver = Modifier le chauffeur
 DeleteDriver = Supprimer le chauffeur
 ConfirmDeleteDriver = Êtes-vous sûr de vouloir supprimer ce chauffeur ?
 DriverDeletedSuccessfully = Chauffeur supprimé avec succès
+DriverCreatedSuccessfully = Chauffeur créé avec succès
+DriverUpdatedSuccessfully = Chauffeur mis à jour avec succès
 DriverNotFound = Chauffeur non trouvé
 DriverInformation = Informations du chauffeur
 Driver Image = Photo du chauffeur
@@ -298,12 +485,14 @@ Leave Date = Date de départ
 Active = Actif
 Inactive = Inactif
 Suspended = Suspendu
+OnLeave = En congé
 EmergencyContact = Contact d'urgence
 Emergency Contact = Contact d'urgence
 AssignedVehicle = Véhicule assigné
 Assigned Vehicle = Véhicule assigné
 NoVehicleAssigned = Aucun véhicule assigné
 NotAssigned = Non assigné
+Not Assigned = Non assigné
 LicenseImage = Photo du permis
 License Image = Photo du permis
 Documents = Documents
@@ -312,6 +501,30 @@ NoImageUploaded = Aucune image téléchargée
 ViewDocument = Voir le document
 NoDocumentUploaded = Aucun document téléchargé
 Assignment And Status = Affectation et statut
+AssignmentAndStatus = Affectation et statut
+FillInDriverDetails = Remplir les informations du chauffeur
+LicenseInformation = Informations sur le permis
+EmploymentInformation = Informations d'emploi
+Employee = Employé
+Select Employee = Sélectionner un employé
+Create Employee = Créer un employé
+PleaseSelectEmployee = Veuillez sélectionner un employé depuis les ressources humaines
+EmployeeAlreadyDriver = Cet employé est déjà enregistré comme chauffeur
+DriverRef = Référence du chauffeur
+DriverDetails = Détails du chauffeur
+DriversFound = chauffeur(s) trouvé(s)
+NoDriversFound = Aucun chauffeur trouvé
+AddFirstDriver = Ajouter le premier chauffeur
+ShowingDrivers = Affichage de %s à %s sur %s chauffeur(s)
+SearchEmployeeId = ID employé...
+SearchLicenseNo = Permis...
+SearchFirstName = Prénom...
+SearchLastName = Nom...
+SearchPhone = Téléphone...
+ImportDrivers = Importer des chauffeurs
+ImportDriversSubtitle = Importer des chauffeurs depuis un fichier CSV
+ImportDriversNote = Seuls les chauffeurs actifs avec prénom et nom seront importés.
+ImportedDriversCount = %s chauffeur(s) importé(s)
 
 #
 # Client
@@ -338,12 +551,22 @@ Customer Information = Informations du client
 ShowCustomer = Afficher le client
 CompanyName = Nom de l'entreprise
 Company Name = Nom de l'entreprise
-TaxNumber = Numéro de taxe
-Tax Number = Numéro de taxe
+TaxNumber = Numéro fiscal
+Tax Number = Numéro fiscal
+TaxNo = N° fiscal
 PaymentDelay = Délai de paiement
 Payment Delay = Délai de paiement
 ErrorFieldRequired = Le champ %s est requis
 Fill In Customer Details = Remplir les informations du client
+FillInCustomerDetails = Remplir les informations du client
+CustomersFound = client(s) trouvé(s)
+NoCustomersFound = Aucun client trouvé
+AddFirstCustomer = Ajouter le premier client
+ShowingCustomers = Affichage de %s à %s sur %s client(s)
+SearchEmail = Email...
+SearchCompany = Société...
+WithCompany = Avec société
+CustomerRef = Référence client
 
 #
 # Réservation
@@ -368,34 +591,127 @@ BookingInformation = Informations de réservation
 FillInBookingDetails = Remplir les informations de réservation
 BookingDate = Date de réservation
 DepartureAddress = Adresse de départ
+Departure Address = Adresse de départ
 ArrivingAddress = Adresse d'arrivée
+Arriving Address = Adresse d'arrivée
 Distance = Distance
-BuyingAmount = Montant d'achat
-SellingAmount = Montant de vente
-Amount = Montant
+BuyingAmount = Montant achat
+SellingAmount = Montant vente
+Selling = Vente
+Buying = Achat
 ETA = Heure d'arrivée estimée
 Stops = Arrêts
-AddStop = Ajouter un arrêt
+Add Stop = Ajouter un arrêt
 TripDetails = Détails du trajet
 RoutePreview = Aperçu de l'itinéraire
+Route Preview = Aperçu de l'itinéraire
 EnterAddressesToSeeRoute = Entrez les adresses pour afficher l'itinéraire
+Enter Addresses To See Route = Entrez les adresses pour afficher l'itinéraire
 Pending = En attente
 Confirmed = Confirmé
 InProgress = En cours
+In Progress = En cours
 Completed = Terminé
 Cancelled = Annulé
 ViewAllBookings = Voir toutes les réservations
+BookingsFound = réservation(s) trouvée(s)
+NoBookingsFound = Aucune réservation trouvée
+AddFirstBooking = Ajouter la première réservation
+ShowingBookings = Affichage de %s à %s sur %s réservation(s)
+BookingsSelected = réservation(s) sélectionnée(s)
+Invoice = Facture
+SearchVehicle = Réf, marque, modèle...
+SearchDriver = Prénom ou nom...
+SearchCustomer = Nom ou société...
+SearchVendor = Nom du fournisseur...
+All = Tous
+Invoiced = Facturé
+NotInvoiced = Non facturé
+CustomerInvoiced = Fact. client
+VendorInvoiced = Fact. fournisseur
+CustomerInvoice = Facture client
+VendorInvoice = Facture fournisseur
+PickupDateTime = Date et heure de prise en charge
+DropoffDateTime = Date et heure de dépose
+DropoffAutoCalculated = Calculé automatiquement à partir de la prise en charge + ETA, ou saisir manuellement
+BookingRef = Référence de réservation
+BLNumber = Numéro de BL
+EnterBLNumber = Saisir le numéro de BL
+EditInBooking = Modifier dans la réservation
+ImportBookings = Importer des réservations
+ImportBookingsSubtitle = Importer des réservations depuis un fichier CSV
+NoBookingsSelected = Aucune réservation sélectionnée
+InvalidInvoiceType = Type de facture invalide
+DbError = Erreur base de données
+BookingNoPartyAssigned = La réservation %s n'a pas de %s assigné
+ErrorCreatingInvoice = Erreur lors de la création de la facture
+ErrorCreatingSupplierInvoice = Erreur lors de la création de la facture fournisseur
+ErrorAddingInvoiceLine = Erreur lors de l'ajout de la ligne pour %s
+
+#
+# Dépenses
+#
+Expense = Dépense
+ExpensesList = Liste des dépenses
+NewExpense = Nouvelle dépense
+EditExpense = Modifier la dépense
+DeleteExpense = Supprimer la dépense
+ConfirmDeleteExpense = Êtes-vous sûr de vouloir supprimer cette dépense ?
+ExpenseCreatedSuccessfully = Dépense créée avec succès
+ExpenseUpdatedSuccessfully = Dépense mise à jour avec succès
+ExpenseDeletedSuccessfully = Dépense supprimée avec succès
+ExpenseDetails = Détails de la dépense
+FillInExpenseDetails = Remplir les informations de la dépense
+ExpenseLabel = Libellé de la dépense
+ExpenseFromBookingNotice = Cette dépense est liée à une réservation. Certains champs sont pré-remplis.
+NoExpensesFound = Aucune dépense trouvée
+TotalExpenses = Total des dépenses
+ViewAllExpenses = Voir toutes les dépenses
+FuelExpenses = Dépenses carburant
+FuelType = Type de carburant
+FuelQty = Qté carburant
+FuelPrice = Prix carburant
+PricePerLiter = Prix par litre
+FuelTotalHint = Le total est calculé automatiquement (Qté × Prix)
+Liters = Litres
+RoadExpenses = Dépenses de route
+RoadDetails = Détails route
+TollFees = Frais de péage
+ParkingFees = Frais de stationnement
+OtherRoadExpenses = Autres frais de route
+OtherFees = Autres frais
+DriverExpenses = Dépenses chauffeur
+DriverSalary = Salaire chauffeur
+Salary = Salaire
+SalaryDayRate = Taux journalier
+OvernightFee = Frais de nuitée
+OvernightFees = Frais de nuitée
+Bonus = Prime
+CommissionExpenses = Dépenses de commission
+CommissionDetails = Détails de la commission
+AgentCommission = Commission agent
+CommissionTax = Taxe sur commission
+OtherCommission = Autres commissions
+Agent = Agent
+OtherExpenses = Autres dépenses
+OtherExpenseDetails = Détails des autres dépenses
+OptionalNotes = Notes optionnelles
+Manual = Manuel
+ImportExpenses = Importer des dépenses
+ImportExpensesSubtitle = Importer des dépenses depuis un fichier CSV
+SearchByRef = Rechercher par réf...
+SearchName = Rechercher par nom...
 
 #
 # Carburant
 #
-FuelRecord = Enregistrement de carburant
+FuelRecord = Enregistrement carburant
 FuelRecordsList = Liste des enregistrements de carburant
 Fuel Records List = Liste des enregistrements de carburant
-NewFuelRecord = Nouvel enregistrement de carburant
-New Fuel Record = Nouvel enregistrement de carburant
-EditFuelRecord = Modifier l'enregistrement de carburant
-DeleteFuelRecord = Supprimer l'enregistrement de carburant
+NewFuelRecord = Nouvel enregistrement carburant
+New Fuel Record = Nouvel enregistrement carburant
+EditFuelRecord = Modifier l'enregistrement carburant
+DeleteFuelRecord = Supprimer l'enregistrement carburant
 ConfirmDeleteFuelRecord = Êtes-vous sûr de vouloir supprimer cet enregistrement de carburant ?
 FuelRecordCreatedSuccessfully = Enregistrement de carburant créé avec succès
 FuelRecordUpdatedSuccessfully = Enregistrement de carburant mis à jour avec succès
@@ -405,23 +721,24 @@ ErrorLoadingFuelRecord = Erreur lors du chargement de l'enregistrement de carbur
 ErrorCreatingFuelRecord = Erreur lors de la création de l'enregistrement de carburant
 ErrorUpdatingFuelRecord = Erreur lors de la mise à jour de l'enregistrement de carburant
 ErrorDeletingFuelRecord = Erreur lors de la suppression de l'enregistrement de carburant
-FuelRecordInformation = Informations sur l'enregistrement de carburant
-Fuel Record Information = Informations sur l'enregistrement de carburant
+FuelRecordInformation = Informations carburant
+Fuel Record Information = Informations carburant
 FillInFuelDetails = Remplir les informations de carburant
-FuelDetails = Détails du carburant
-Fuel Details = Détails du carburant
-FuelSource = Source de carburant
-Fuel Source = Source de carburant
+FuelDetails = Détails carburant
+Fuel Details = Détails carburant
+FuelSource = Source carburant
+Fuel Source = Source carburant
 FuelIn = Carburant entrée
 Fuel In = Carburant entrée
 FuelOut = Carburant sortie
 Fuel Out = Carburant sortie
-FuelPhoto = Photo du plein
+FuelPhoto = Photo du reçu
 Fuel Photo = Photo du plein
-MeterReading = Lecture du compteur
+MeterReading = Relevé kilométrique
 Meter Reading = Lecture du compteur
 ReferenceNumber = Numéro de référence
 Reference Number = Numéro de référence
+ReceiptRef = Réf. reçu
 State = État
 Station = Station
 Tank = Réservoir
@@ -435,6 +752,13 @@ Total Cost = Coût total
 Approved = Approuvé
 Rejected = Rejeté
 Notes And Approval = Notes et approbation
+NotesAndApproval = Notes et approbation
+RecordsFound = enregistrement(s) trouvé(s)
+NoFuelRecordsFound = Aucun enregistrement de carburant trouvé
+AddFirstRecord = Ajouter le premier enregistrement
+ShowingRecords = Affichage de %s à %s sur %s enregistrement(s)
+SearchVehiclePlate = Marque, modèle, immat...
+SearchReceiptRef = Réf. reçu...
 
 #
 # Pièces
@@ -465,12 +789,12 @@ Manufacturer = Fabricant
 Manu facturer = Fabricant
 QuantityOnHand = Quantité en stock
 Qty On Hand = Quantité en stock
-UnitCost = Coût unitaire
-Unit Cost = Coût unitaire
 Discontinued = Arrêté
-NotAvailable = Non disponible
+OutOfStock = Rupture de stock
 InventoryAndSourcing = Inventaire et approvisionnement
 Inventory And Sourcing = Inventaire et approvisionnement
+ImportParts = Importer des pièces
+ImportPartsSubtitle = Importer des pièces depuis un fichier CSV
 
 #
 # Ordre de travail
@@ -484,6 +808,7 @@ DeleteWorkOrder = Supprimer l'ordre de travail
 ConfirmDeleteWorkOrder = Êtes-vous sûr de vouloir supprimer cet ordre de travail ?
 WorkOrderCreatedSuccessfully = Ordre de travail créé avec succès
 WorkOrderUpdatedSuccessfully = Ordre de travail mis à jour avec succès
+WorkOrderDeletedSuccessfully = Ordre de travail supprimé avec succès
 WorkOrderNotFound = Ordre de travail non trouvé
 ErrorCreatingWorkOrder = Erreur lors de la création de l'ordre de travail
 ErrorUpdatingWorkOrder = Erreur lors de la mise à jour de l'ordre de travail
@@ -506,19 +831,61 @@ ResponsiblePerson = Personne responsable
 Responsible Person = Personne responsable
 SupervisorOrApprover = Superviseur ou approbateur
 Supervisor Or Approver = Superviseur ou approbateur
-NameOrDepartment = Nom ou département
 ProblemDescription = Description du problème
 Problem Description = Description du problème
 DescribeProblemOrSymptoms = Décrire le problème ou les symptômes
 Describe Problem Or Symptoms = Décrire le problème ou les symptômes
 TaskToPerform = Tâche à effectuer
 Task To Perform = Tâche à effectuer
-DescribeTasksToBePerfomed = Décrire les tâches à effectuer
-Describec Tasks cTo Be Performed = Décrire les tâches à effectuer
+DescribeTasksToBePerformed = Décrire les tâches à effectuer
+DescribecTaskscToBe Performed = Décrire les tâches à effectuer
 TechnicianNotes = Notes du technicien
 Technician Notes = Notes du technicien
 FindingsObservationsRecommendations = Constats, observations et recommandations
 Findings Observations Recommendations = Constats, observations et recommandations
+PartsReplacedObservations = Pièces remplacées et observations
+Low = Faible
+Medium = Moyen
+High = Élevé
+
+#
+# Maintenance véhicule
+#
+Service = Service
+ServiceDate = Date de service
+LastService = Dernier service
+NextDue = Prochaine échéance
+Odometer = Odomètre
+OdometerAtService = Odomètre au service
+Interval = Intervalle
+IntervalUsed = Intervalle utilisé
+Every = Tous les
+KmLeft = km restants
+KmOverdue = km en retard
+DaysLeft = jours restants
+DaysLate = jours de retard
+Overdue = En retard
+DueSoon = Bientôt dû
+UpToDate = À jour
+ServiceOverdue = Service en retard
+ServiceDueSoon = Service bientôt dû
+ScheduleServiceSoon = Planifier le service prochainement
+AllClear = Tout est en ordre
+AllServicesUpToDate = Tous les services sont à jour
+MaintenanceAlerts = Alertes de maintenance
+MaintenanceSaved = Maintenance enregistrée
+LogService = Enregistrer un service
+SaveRecord = Enregistrer l'enregistrement
+SelectVehicle = Sélectionner un véhicule
+SelectVehicleFromSidebar = Sélectionnez un véhicule dans le panneau latéral pour afficher ses informations de suivi.
+NoRecord = Aucun enregistrement
+SearchService = Rechercher un service
+Safety = Sécurité
+ExAutoProGarage = Exécuté par Pro Garage
+TechnicianGarage = Technicien / Garage
+ImmediateAttentionRequired = Intervention immédiate requise
+JavaScriptRequired = JavaScript est requis pour cette fonctionnalité
+InvalidToken = Jeton invalide
 
 #
 # Inspection
@@ -593,6 +960,7 @@ Oil Check = Vérification de l'huile
 Suspension = Suspension
 ToolboxesCondition = État des boîtes à outils
 Toolboxes Condition = État des boîtes à outils
+InspectionDue = Inspection à effectuer
 
 #
 # Fournisseur
@@ -607,18 +975,26 @@ DeleteVendor = Supprimer le fournisseur
 Delete Vendor = Supprimer le fournisseur
 ConfirmDeleteVendor = Êtes-vous sûr de vouloir supprimer ce fournisseur ?
 VendorNotFound = Fournisseur non trouvé
+Vendor Not Found = Fournisseur non trouvé
 VendorInformation = Informations fournisseur
 Vendor Information = Informations fournisseur
 ShowVendor = Afficher le fournisseur
+VendorCreatedSuccessfully = Fournisseur créé avec succès
+VendorUpdatedSuccessfully = Fournisseur mis à jour avec succès
+VendorAlreadyExists = Ce fournisseur existe déjà
+ErrorCreatingVendor = Erreur lors de la création du fournisseur
+ErrorUpdatingVendor = Erreur lors de la mise à jour du fournisseur
+ErrorDeletingVendor = Erreur lors de la suppression du fournisseur
+VendorRef = Référence fournisseur
 AddressInformation = Informations d'adresse
 Address Information = Informations d'adresse
 AddressLine1 = Adresse ligne 1
 AddressLine2 = Adresse ligne 2
 City = Ville
+Town = Ville
+StateProvince = Région / Province
 Website = Site web
-Maintenance = Maintenance
 Insurance = Assurance
-Service = Service
 Other = Autre
 
 #
@@ -631,304 +1007,20 @@ NoAddressRecorded = Aucune adresse enregistrée pour ce véhicule
 EstimatedPosition = Position estimée le long de l'itinéraire
 CardView = Vue en cartes
 Available = Disponible
-InUse = En cours d'utilisation
-
-#
-# Clés manquantes identifiées
-#
-AddressAndContact = Adresse et contact
-Click to select — JPG, PNG, PDF = Cliquer pour sélectionner — JPG, PNG, PDF
-Create Employee = Créer un employé
-DateCreation = Date de création
-DescribecTaskscTo Be Performed = Décrire les tâches à effectuer
-Disable = Désactiver
-DriverCreatedSuccessfully = Chauffeur créé avec succès
-DriverUpdatedSuccessfully = Chauffeur mis à jour avec succès
-Employee = Employé
-EmploymentInformation = Informations d'emploi
-FillInDriverDetails = Remplir les informations du chauffeur
-LicenseInformation = Informations sur le permis
-OnLeave = En congé
-Select Employee = Sélectionner un employé
-SelectVehicle = Sélectionner un véhicule
-Seleting a third party will auto-fill the fields below. = La sélection d'un tiers remplira automatiquement les champs ci-dessous.
-Selecting a third party will auto-fill the fields below. = La sélection d'un tiers remplira automatiquement les champs ci-dessous.
-Third Party = Tiers
-WorkOrder Information = Informations sur l'ordre de travail
-
-# Clés de test (à supprimer si inutilisées)
-test01 = Test 01
-test02 = Test 02
-test03 = Test 03
-test04 = Test 04
-test05 = Test 05
-test06 = Test 06
-
-#
-# Tableau de bord - chaînes hardcodées traduites
-#
-FleetOverview = Vue d'ensemble de la flotte
-PerformanceAnalytics = Analyses de performance
-RecentActivity = Activité récente
-AlertsNotifications = Alertes et notifications
-FleetUtilization = Utilisation de la flotte
-ActivePersonnel = Personnel actif
-CurrentMonth = Mois en cours
-InUseToday = En service aujourd'hui
-Utilization = Utilisation
-Reports = Rapports
-NoRecentBookingsFound = Aucune réservation récente trouvée
-Active = Actif
-Completed = Terminé
-Pending = En attente
-
-# Alertes
-FleetCriticallyOverloaded = Flotte en surcharge critique
-AlertDescOverloaded = Le taux d'utilisation est de %s%%. Seulement %s véhicule(s) disponible(s).
-Critical = Critique
-HighFleetUtilization = Utilisation élevée de la flotte
-AlertDescHighUtil = Le taux d'utilisation est de %s%%. Pensez à planifier la maintenance avec soin.
-NoVehiclesAvailable = Aucun véhicule disponible
-AlertDescNoVehicles = Les %s véhicules sont actuellement en service. Aucune capacité restante.
-Urgent = Urgent
-PendingWorkOrders = Ordres de travail en attente
-AlertDescPendingWO = %s ordre(s) de travail en attente d'action. Veuillez affecter des techniciens.
-ActiveBookingsToday = Réservations actives aujourd'hui
-AlertDescActiveBookings = %s réservation(s) active(s) en ce moment. Assurez-vous que les véhicules et chauffeurs sont prêts.
-Today = Aujourd'hui
-WorkOrderCompletionRate = Taux de complétion des ordres de travail
-AlertDescCompletionRate = %s%% des ordres de travail sont complétés. L'équipe de maintenance performe bien.
-Good = Bon
-NoInspectionsRecorded = Aucune inspection enregistrée
-AlertDescNoInspections = Aucune inspection de véhicule n'a encore été enregistrée. Planifiez des contrôles réguliers.
-Action = Action
-MonthlyRevenueOnTrack = Revenu mensuel en bonne voie
-AlertDescRevenue = Le revenu de ce mois s'élève à %s pour %s réservation(s).
-Info = Info
-NoAlertsMessage = Tous les systèmes fonctionnent normalement. Aucune alerte pour le moment.
-
-#
-# Priorité et statut des ordres de travail
-#
-Low = Faible
-Medium = Moyen
-High = Élevé
-In Progress = En cours
-
-#
-# Source de carburant (fuel_list)
-#
-Station = Station
-Tank = Réservoir
-
-#
-# Liste des véhicules - nouvelles clés
-#
-VehiclesFound = véhicule(s) trouvé(s)
-AllStatuses = Tous les statuts
-SearchRef = Rechercher la référence...
-SearchMaker = ex. Toyota...
-SearchModel = ex. Corolla...
-SearchPlate = Rechercher la plaque...
-Search = Rechercher
-Reset = Réinitialiser
-Total = Total
-NoVehiclesFound = Aucun véhicule trouvé
-AddFirstVehicle = Ajouter le premier véhicule
-ShowingVehicles = Affichage de %s à %s sur %s véhicule(s)
-RecordNotFound = Enregistrement introuvable
-
-#
-# Vehicle card - unités et divers
-#
-HP = CV
-cm = cm
-kg = kg
-AcceptedFormats = Formats acceptés : JPG, PNG, PDF
-FillInVehicleDetails = Remplir les informations du véhicule
-DocumentsAndPhotos = Documents et photos
-
-#
-# Clients - liste et fiche
-#
-CustomersFound = client(s) trouvé(s)
-NewCustomer = Nouveau client
-EditCustomer = Modifier le client
-CustomerInformation = Informations client
-FillInCustomerDetails = Remplir les informations du client
-AdditionalInformation = Informations complémentaires
-CompanyName = Nom de la société
-TaxNumber = Numéro fiscal
-TaxNo = N° fiscal
-PaymentDelay = Délai de paiement
-SelectThirdPartyHint = Sélectionner un tiers pour remplir automatiquement les champs ci-dessous.
-FirstName = Prénom
-LastName = Nom
-WithCompany = Avec société
-NoCustomersFound = Aucun client trouvé
-AddFirstCustomer = Ajouter le premier client
-ShowingCustomers = Affichage de %s à %s sur %s client(s)
-SearchFirstName = Prénom...
-SearchLastName = Nom...
-SearchPhone = Téléphone...
-SearchEmail = Email...
-SearchCompany = Société...
-SearchTaxNo = N° fiscal...
-
-#
-# Chauffeur - liste (clés manquantes)
-#
-DriversFound = chauffeur(s) trouvé(s)
-NoDriversFound = Aucun chauffeur trouvé
-AddFirstDriver = Ajouter le premier chauffeur
-ShowingDrivers = Affichage de %s à %s sur %s chauffeur(s)
-SearchEmployeeId = ID employé...
-SearchLicenseNo = Permis...
-PleaseSelectEmployee = Veuillez sélectionner un employé depuis les RH
-EmployeeAlreadyDriver = Cet employé est déjà enregistré comme chauffeur
-
-#
-# Réservations - liste
-#
-BookingsFound = réservation(s) trouvée(s)
-NoBookingsFound = Aucune réservation trouvée
-AddFirstBooking = Ajouter la première réservation
-ShowingBookings = Affichage de %s à %s sur %s réservation(s)
-BookingsSelected = réservation(s) sélectionnée(s)
-Invoice = Facture
-NewBooking = Nouvelle réservation
-SearchRef = Rech. réf...
-SearchVehicle = Réf, marque, modèle...
-SearchDriver = Prénom ou nom...
-SearchCustomer = Nom ou société...
-SearchVendor = Nom du fournisseur...
-DateFrom = Date du
-DateTo = Date au
-AllStatuses = Tous les statuts
-CustomerInvoiced = Fact. client
-VendorInvoiced = Fact. fournisseur
-All = Tous
-Invoiced = Facturé
-NotInvoiced = Non facturé
-Pending = En attente
-Confirmed = Confirmé
-InProgress = En cours
-Completed = Terminé
-Cancelled = Annulé
-Total = Total
-Ref = Réf.
-Vehicle = Véhicule
-Driver = Chauffeur
-Customer = Client
-Vendor = Fournisseur
-Date = Date
-Distance = Distance
-Selling = Vente
-Buying = Achat
-Status = Statut
-Actions = Actions
-View = Voir
-Edit = Modifier
-Delete = Supprimer
-CustomerInvoice = Facture client
-VendorInvoice = Facture fournisseur
-
-#
-# Réservations - fiche
-#
-BookingInformation = Informations réservation
-TripDetails = Détails du trajet
-BookingDate = Date de réservation
-PickupDateTime = Date et heure de prise en charge
-DropoffDateTime = Date et heure de dépose
-DropoffAutoCalculated = Calculé automatiquement à partir de la prise en charge + ETA, ou saisir manuellement
-BuyingAmount = Montant achat
-SellingAmount = Montant vente
-VehicleNotFound = Véhicule introuvable
-DriverNotFound = Chauffeur introuvable
-CustomerNotFound = Client introuvable
-FillInBookingDetails = Remplir les détails de la réservation
-NewBooking = Nouvelle réservation
-EditBooking = Modifier la réservation
-
-#
-# Carburant - liste
-#
-RecordsFound = enregistrement(s) trouvé(s)
-NoFuelRecordsFound = Aucun enregistrement trouvé
-AddFirstRecord = Ajouter le premier enregistrement
-ShowingRecords = Affichage de %s à %s sur %s enregistrement(s)
-NewFuelRecord = Nouvel enregistrement carburant
-MeterReading = Relevé kilométrique
-ReceiptRef = Réf. reçu
-SearchVehiclePlate = Marque, modèle, immat...
-SearchReceiptRef = Réf. reçu...
-FuelSource = Source carburant
-State = État
-Station = Station
-Tank = Réservoir
-Other = Autre
-Approved = Approuvé
-Rejected = Rejeté
-CostUnit = Coût/unité
-TotalCost = Coût total
-Quantity = Quantité
-
-#
-# Carburant - fiche
-#
-FuelRecord = Enregistrement carburant
-NewFuelRecord = Nouvel enregistrement carburant
-EditFuelRecord = Modifier l'enregistrement carburant
-FillInFuelDetails = Remplir les détails carburant
-FuelRecordInformation = Informations carburant
-FuelDetails = Détails carburant
-ReferenceNumber = Numéro de référence
-FuelSource = Source carburant
-CostUnit = Coût unitaire
-CompleteFillup = Plein complet
-TotalCost = Coût total
-FuelPhoto = Photo du reçu
-
-#
-# Facture réservation (booking_invoice.php)
-#
-NoBookingsSelected = Aucune réservation sélectionnée
-InvalidInvoiceType = Type de facture invalide
-DbError = Erreur base de données
-BookingNoPartyAssigned = La réservation %s n'a pas de %s assigné
-ErrorCreatingInvoice = Erreur lors de la création de la facture
-ErrorCreatingSupplierInvoice = Erreur lors de la création de la facture fournisseur
-ErrorAddingInvoiceLine = Erreur lors de l'ajout de la ligne pour %s
-
-#
-# tracking_list.php / vehicle_tracking_map.php
-#
-VehicleTrackingMap = Carte de suivi des véhicules
-Vehicles = Véhicules
+InUse = En service
 FullScreen = Plein écran
 ExitFullScreen = Quitter le plein écran
-CardView = Vue carte
-Dashboard = Tableau de bord
-SearchVehicle = Rechercher un véhicule
-Available = Disponible
-InUse = En service
-Off = Hors service
-OutOfService = Hors service
-From = Depuis
-To = Vers
 NoDepartureSet = Aucun départ défini
 NoDestinationSet = Aucune destination définie
 NoAddressesRecorded = Aucune adresse enregistrée pour la réservation de ce véhicule — affichage de la carte sans itinéraire.
 AddAddresses = Ajouter des adresses
 NoVehicleSelected = Aucun véhicule sélectionné
-SelectVehicleFromSidebar = Sélectionnez un véhicule dans le panneau latéral pour afficher ses informations de suivi.
 NoAddressDataAvailable = Aucune donnée d'adresse disponible
 EstimatedCurrentPosition = Position actuelle estimée sur l'itinéraire
 NoRouteDataAvailable = Aucune donnée d'itinéraire disponible
 
 #
-# notification_center.php
+# Centre de notifications
 #
 NotificationCenter = Centre de notifications
 FirebaseNotConfigured = Firebase non configuré
@@ -940,12 +1032,6 @@ Connected = Connecté
 NotSet = Non défini
 NotificationHistory = Historique des notifications
 AllTypes = Tous les types
-AllStatuses = Tous les statuts
-RegistrationExpiry = Expiration de l'immatriculation
-LicenseExpiry = Expiration du permis
-InsuranceExpiry = Expiration de l'assurance
-InspectionDue = Inspection à effectuer
-Booking = Réservation
 CustomTest = Personnalisé / Test
 SentAt = Envoyé le
 NoNotificationsFound = Aucune notification trouvée.
@@ -975,12 +1061,10 @@ Clear = Effacer
 Sent = Envoyé
 Failed = Échoué
 Title = Titre
-Type = Type
 
 #
-# notification_settings.php
+# Paramètres de notification
 #
-NotificationSettings = Paramètres de notification
 NotificationSettingsDesc = Configurer Firebase Cloud Messaging et les règles d'alerte
 FirebaseCloudMessaging = Firebase Cloud Messaging (FCM)
 HowToSetupFirebase = Comment configurer Firebase :
@@ -1009,7 +1093,6 @@ FirebasePushOnly = Push Firebase uniquement
 EmailOnly = E-mail uniquement
 BothPushAndEmail = Les deux (Push + E-mail)
 Normal = Normal
-Critical = Critique
 NotifyUsers = Notifier les utilisateurs
 EnableThisRule = Activer cette règle
 UpdateRule = Mettre à jour la règle
@@ -1025,43 +1108,203 @@ FirebaseConfigSaved = Configuration Firebase enregistrée avec succès.
 FailedToSaveConfig = Échec de l'enregistrement de la configuration
 AlertRuleSaved = Règle d'alerte enregistrée.
 RuleDeleted = Règle supprimée.
-WorkOrder = Ordre de travail
-Settings = Paramètres
 
-Vehicles = Véhicules
-Drivers = Chauffeurs
-Customers = Clients
-Bookings = Réservations
-Fuel = Carburant
-Vendors = Fournisseurs
-Parts = Pièces
-WorkOrders = Ordres de travail
-Inspections = Inspections
-Tracking = Suivi
-Dashboard = Tableau de bord
-Settings = Paramètres
-Reports = Rapports
 #
 # Rapports de flotte
 #
 FleetReports = Rapports de flotte
+FleetReportsAnalytics = Rapports & analyses de flotte
+RptExecutiveDashboard = Tableau de bord exécutif et vue d'ensemble des performances
 ReportPeriod = Période du rapport
-BookingsTrend = Tendance des réservations
+RptLast7Days = 7 derniers jours
+RptLast90Days = 90 derniers jours
+RptThisYear = Cette année
+RptLastYear = Année dernière
+RptLastMonth = Mois dernier
+RptCustomRange = Période personnalisée
+RptYear = Année %s
+RptOverview = Vue d'ensemble
+RptNetProfit = Bénéfice net
+RptFuelCost = Coût carburant
+RptFiltersDateRange = Filtres & période
+RptActiveFilters = %s actif(s)
+RptCollapse = Réduire
+RptExpand = Développer
+RptTimePeriod = Période
+RptDateRange = Plage de dates
+RptBookingStatus = Statut réservation
+RptFuelSource = Source carburant
+RptWoPriority = Priorité OT
+RptAllPriorities = — Toutes priorités —
+RptVehicleType = Type de véhicule
+RptRevenueRange = Fourchette de revenu
+RptApplyFilters = Appliquer les filtres
+RptClearAll = Tout effacer
+RptAllVehicles = — Tous véhicules —
+RptAllDrivers = — Tous chauffeurs —
+RptAllCustomers = — Tous clients —
+RptAllVendors = — Tous fournisseurs —
+RptAllStatuses = — Tous statuts —
+RptAllSources = — Toutes sources —
+RptAllTypes = — Tous types —
+RptTotalRevenue = Revenu total
+RptVsPrevPeriod = %s%% vs période préc.
+RptVsPrev = %s%% vs préc.
+RptAvgPerTrip = Moy. / trajet
+RptNetMargin = Marge nette : %s%%
+RptGrossMargin = Marge brute
+RptGrossProfit = Bénéfice brut
+RptBookingCost = Coût réservation
+RptPercentOfRevenue = %s%% du revenu
+RptTotalExpenses = Dépenses totales
+RptEntries = Entrées
+RptAvg = Moy.
+RptKmDriven = km parcourus
+RptAvgPerTripKm = %s moy./trajet
+RptFuelUsed = Carburant utilisé
+RptOpenWorkOrders = OT ouverts
+RptPercentDone = %s%% terminé
+RptFleetInService = Flotte en service
+RptPercentAvailable = %s%% disponible
+RptRevenue = Revenu
+RptCost = Coût
+RptProfit = Bénéfice
+RptTrips = Trajets
+RptAmount = Montant
+RptLitres = Litres
+RptVehicles = Véhicules
+RptRoad = Route
+RptCommission = Commission
+RptInService = En service
+RptOutOfService = Hors service
+RptCostBreakdown = Répartition des coûts
+RptRevenueCostProfit6M = Revenu, coût & bénéfice — 6 derniers mois
+RptKeyMetrics = Indicateurs clés
+RptAvgDistanceTrip = Distance moy. / trajet
+RptAvgRevenueTrip = Revenu moy. / trajet
+RptFuelEfficiency = Efficacité carburant
+RptAvgCostLitre = Coût moy. / litre
+RptAvgMaintCostWo = Coût moy. maint. / OT
+RptActiveDrivers = Chauffeurs actifs
+RptActivityByDow = Activité par jour de la semaine
+RptTopCustomersRevenue = Meilleurs clients par revenu
+RptNoDataPeriod = Aucune donnée pour cette période
+RptNoData = Aucune donnée
+RptTripsCount = %s trajets
+RptTotalBookings = Total réservations
+RptAvgRevenueLabel = Moy. %s revenu
+RptMarginLabel = Marge %s%%
+RptTotalCost = Coût total
+RptProfitLabel = Bénéfice %s
+RptAvgPerTripSlash = %s moy. / trajet
+RptMonthlyTrend6M = Tendance mensuelle (6 mois)
+RptShare = Part
+RptTotalConsumed = Total consommé
+RptFuelSpend = Dépenses carburant
+RptPerLitreAvg = %s / litre moy.
+RptKmPerLitre = km / litre
+RptKmDrivenLabel = %s km parcourus
+RptFuelTrend6M = Tendance carburant (6 mois)
+RptConsumptionBySource = Consommation par source
+RptNoFuelData = Aucune donnée carburant pour cette période
+RptTotalWorkOrders = Total ordres de travail
+RptPercentCompleted = %s%% terminé
+RptTotalMaintCost = Coût maint. total
+RptAvgPerWo = Moy. %s / OT
+RptPendingOpen = En attente / ouvert
+RptOther = autre
+RptCompletionRate = %s%% taux de complétion
+RptWorkOrdersByStatus = OT par statut
+RptMaintCostByVehicle = Coût maintenance par véhicule
+RptNoMaintData = Aucune donnée maintenance disponible
+RptWorkOrders = Ordres de travail
+RptCostShare = Part du coût
+RptExpenseEntries = Entrées de dépenses
+RptAvgPerEntry = Moy. %s / entrée
+RptFuelExpenses = Dépenses carburant
+RptOfTotal = du total
+RptRoadExpenses = Dépenses route
+RptRoadExpenseDetail = Péage · Parking · Autre
+RptDriverCosts = Coûts chauffeur
+RptDriverCostDetail = Salaire · Nuitée · Prime
+RptCommissions = Commissions
+RptCommissionDetail = Agent · Taxe · Frais
+RptOtherExpenses = Autres dépenses
+RptTotalSpend = Dépenses totales
+RptPeriodRevenue = Revenu période
+RptExpensesRevenue = Dépenses / revenu
+RptAvgPerEntryLabel = Moy. par entrée
+RptVsPreviousPeriod = vs période précédente
+RptMonthlyExpenseTrend6M = Tendance dépenses mensuelles (6 mois)
+RptBreakdownByCategory = Répartition par catégorie
+RptNoExpenseData = Aucune dépense pour cette période
+RptExpensesByVehicle = Dépenses par véhicule
+RptTop10LinkedBookings = Top 10 via réservations liées
+RptRecentExpenses = Dépenses récentes
+RptNewExpense = Nouvelle dépense
+RptViewAll = Tout voir
+RptNoExpensesRecorded = Aucune dépense enregistrée pour cette période.
+RptAddOneNow = Ajouter maintenant →
+RptNotesLabel = Notes / libellé
+RptTotalVehicles = Total véhicules
+RptAvailability = %s%% disponibilité
+RptDrivers = Chauffeurs
+RptCustomersCount = %s clients
+RptFleetAvailability = Disponibilité flotte
+RptFleetAvailabilityRate = Taux de disponibilité flotte
+RptFleetByType = Flotte par type de véhicule
+RptNoTypeData = Aucune donnée par type
+RptRate = Taux
+RptFleetByManufacturer = Flotte par constructeur
+RptAlertWoPending = %s ordre(s) de travail en attente
+RptAlertVehiclesOos = %s véhicule(s) hors service
+RptAlertMarginLow = Marge brute critique à %s%%
+RptAlertExpensesHigh = Dépenses à %s%% du revenu — vérifier les dépenses
+RptAlertFuelLow = Faible efficacité carburant : %s km/L
+RptAlertFleetUtil = Excellente utilisation flotte à %s%%
+RptAlertStrongMargin = Forte marge : %s%% de marge brute cette période
+RptDaySun = Dim
+RptDayMon = Lun
+RptDayTue = Mar
+RptDayWed = Mer
+RptDayThu = Jeu
+RptDayFri = Ven
+RptDaySat = Sam
+RptFilteredRecords = Enregistrements filtrés
+RptAllRecords = Tous les enregistrements
+RptShowingResultsFor = Résultats pour :
+RptRecordsFound = %s enregistrement(s) trouvé(s)
+RptShowingFirst400 = (400 premiers affichés)
+RptExportCSV = Exporter CSV
+RptNoRecordsMatch = Aucun enregistrement ne correspond aux filtres.
+RptType = Type
+RptCustomerTask = Client / tâche
+RptStatusPriority = Statut / priorité
+RptRevenueRangeFilter = Fourchette de revenu
+RptMin = Min
+RptMax = Max
+RptCritical = Critique
+RptHigh = Élevée
+RptMedium = Moyenne
+RptTripsLabel = Trajets
+RptCostLabel = Coût
+RptCount = Nombre
+RptCompleted = Terminé
+RptActiveLabel = Actif
+RptWorkOrderLabel = Ordre de travail
+RptBookingLabel = Réservation
+RptNotesOrLabel = Notes / libellé
+RptViewAllRecords = Tout voir
 BookingsByStatus = Réservations par statut
 FuelByVehicle = Consommation de carburant par véhicule
 WorkOrdersByPriority = Ordres de travail par priorité
-TopVehicles = Véhicules les plus réservés
-TopDrivers = Chauffeurs les plus actifs
+TopVehicles = Meilleurs véhicules
+TopDrivers = Meilleurs chauffeurs
 FleetStatus = État de la flotte
 MaintenanceSummary = Résumé de la maintenance
 TotalDistance = Distance totale
 FuelConsumed = Carburant consommé
 NoDataAvailable = Aucune donnée disponible pour cette période
-
-#
-# Catégories
-#
-Categories = Catégories
 
 #
 # Importation depuis les contacts
@@ -1079,3 +1322,36 @@ ContactsImportUpdated = mis à jour
 ContactsImportSkipped = ignoré(s)
 ImportFromContactsNone = Aucun contact trouvé à importer.
 ProceedImport = Procéder
+
+#
+# Permissions
+#
+FlottePermRead = Lire les objets Flotte
+FlottePermWrite = Créer et modifier les objets Flotte
+FlottePermDelete = Supprimer les objets Flotte
+
+#
+# Champs d'adresse et contact
+#
+AddressAndContact = Adresse et contact
+
+#
+# Divers
+#
+Disable = Désactiver
+RecordNotFound = Enregistrement introuvable
+
+OilChange = Vidange d'huile
+OilFilter = Filtre à huile
+AirFilter = Filtre à air
+CabinAirFilter = Filtre d'habitacle
+TyreRotation = Permutation des pneus
+BrakeFluid = Liquide de frein
+BrakePads = Plaquettes de frein
+CoolantFlush = Rinçage du liquide de refroidissement
+TransmissionFluid = Huile de transmission
+SparkPlugs = Bougies d'allumage
+TimingBelt = Courroie de distribution
+BatteryCheck = Contrôle de la batterie
+WheelAlignment = Géométrie des roues
+AcService = Entretien climatisation

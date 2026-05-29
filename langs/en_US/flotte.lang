@@ -1,75 +1,1320 @@
-# Translation file
+# Translation file - Flotte Module
+# Language: English (en_US)
+# Encoding: UTF-8
+# Module: Flotte - Fleet Vehicle Management
+# Author: Optimalogistic
 
 #
-# Generic
+# Module - Generic
 #
-
-# Module label 'ModuleFlotteName'
 ModuleFlotteName = Flotte
-# Module description 'ModuleFlotteDesc'
-ModuleFlotteDesc = Flotte description
-
-#
-# Admin page
-#
-FlotteSetup = Flotte setup
-Settings = Settings
-FlotteSetupPage = Flotte setup page
-NewSection=New section
-FLOTTE_MYPARAM1 = My param 1
-FLOTTE_MYPARAM1Tooltip = My param 1 tooltip
-FLOTTE_MYPARAM2=My param 2
-FLOTTE_MYPARAM2Tooltip=My param 2 tooltip
-
-
-#
-# About page
-#
-About = About
+ModuleFlotteDesc = Fleet vehicle management module
+ModuleMyModuleName = Flotte
+ModuleMyModuleDesc = Fleet vehicle management module
+FlotteSetup = Flotte Setup
+FlotteSetupPage = Flotte module setup page
+FlotteArea = Flotte Home
 FlotteAbout = About Flotte
-FlotteAboutPage = Flotte about page
-
-#
-# Sample page
-#
-FlotteArea = Home Flotte
-MyPageName = My page name
-
-#
-# Reports
-#
-Reports = Reports
-FleetReports = Fleet Reports
-ReportPeriod = Report Period
-BookingsTrend = Bookings Trend
-BookingsByStatus = Bookings by Status
-FuelByVehicle = Fuel Consumption by Vehicle
-WorkOrdersByPriority = Work Orders by Priority
-TopVehicles = Top Vehicles by Bookings
-TopDrivers = Top Drivers by Bookings
-FleetStatus = Fleet Status Snapshot
-MaintenanceSummary = Maintenance Summary
-TotalDistance = Total Distance
-FuelConsumed = Fuel Consumed
-PendingWorkOrders = Pending Work Orders
-NoDataAvailable = No data available for this period
-
-#
-# Sample widget
-#
+FlotteAboutPage = Flotte module about page
+FLOTTE_MYPARAM1 = Parameter 1
+FLOTTE_MYPARAM1Tooltip = Parameter 1 tooltip
+FLOTTE_MYPARAM2 = Parameter 2
+FLOTTE_MYPARAM2Tooltip = Parameter 2 tooltip
+FLOTTE_MYPARAM10 = Parameter 10
+MYMMMMODULE_MYPARAM1 = Parameter 1
+MYMMMMODULE_MYPARAM1Tooltip = Parameter 1 tooltip
+MYMMMMODULE_MYPARAM2 = Parameter 2
+MYMMMMODULE_MYPARAM2Tooltip = Parameter 2 tooltip
+HelpMessage = Help message
+NewSection = New section
+MyPageName = Page name
 MyWidget = My widget
-MyWidgetDescription = My widget description
+MyWidgetDescription = Widget description
+MyOwnFamily = My family
+MyModuleSetup = Module setup
+MyModuleSetupPage = Setup page
+MyModuleAbout = About module
+MyModuleAboutPage = About page
+MyModuleArea = Module home
+
+#
+# Admin - Configuration
+#
+Settings = Settings
+SetupSaved = Configuration saved
+About = About
+Version = Version
+Path = Path
+Logo = Logo
+Preview = Preview
+ShortInfo = Summary
+NothingToSetup = No configuration required
+FeaturesSupported = Supported features
+MultiLanguage = Multilingual
+ExtraFields = Extra fields
+NextValue = Next value
+Example = Example
+Default = Default
+Enabled = Enabled
+Disabled = Disabled
+Activated = Activated
+BackToModuleList = Back to module list
+ErrorModuleNotFound = Module not found
+ErrorBadToken = Invalid token
+DocumentModules = Document modules
+NumberingModules = Numbering modules
+Parameter = Parameter
+Value = Value
+Name = Name
+Description = Description
+Width = Width
+Height = Height
+Length = Length
+Status = Status
+Type = Type
+Unknown = Unknown
+NotAvailable = Not available
+
+#
+# Setup images
+#
+FlotteImagesSetup = Flotte module images
+CachetImage = Stamp image
+CachetImageDesc = Upload the company stamp image (JPG, PNG)
+SignatureImage = Signature image
+SignatureImageDesc = Upload the authorized signature image (JPG, PNG)
+ErrorUploadCachet = Error uploading stamp
+ErrorUploadSignature = Error uploading signature
+ErrorBadImageFormat = Invalid image format. Only JPG and PNG are accepted.
+ChangePhoto = Change photo
+LeaveEmptyToKeepCurrentPhoto = Leave empty to keep current photo
+NoPhotoAvailable = No photo available
+
+#
+# Advanced configuration settings
+#
+FlotteFleetManagerNamePlaceholder = e.g. John Smith
+FlotteMileageKm = Kilometres (km)
+FlotteMileageMiles = Miles (mi)
+FlotteFuelPetrol = Petrol
+FlotteFuelDiesel = Diesel
+FlotteFuelElectric = Electric
+FlotteFuelHybrid = Hybrid
+FlotteFuelLPG = LPG
+FlotteStatusPending = Pending
+FlotteStatusConfirmed = Confirmed
+FlotteCategoriesDesc = Manage fleet parts and equipment categories
+FlotteTagsCategories = Flotte tags and categories
+
+#
+# Dashboard
+#
+FlotteDashboard = Flotte Dashboard
+FlotteTablesNotInstalled = Flotte database tables are not installed. Please activate and configure the module.
+Dashboard = Dashboard
+TotalVehicles = Total vehicles
+TotalDrivers = Total drivers
+ActiveBookings = Active bookings
+MonthlyRevenue = Monthly revenue
+ThisMonth = This month
+QuickActions = Quick actions
+FleetSummary = Fleet summary
+RecentBookings = Recent bookings
+FuelEntries = Fuel entries
+Departments = Departments
+FleetOverview = Fleet overview
+PerformanceAnalytics = Performance analytics
+RecentActivity = Recent activity
+AlertsNotifications = Alerts and notifications
+FleetUtilization = Fleet utilization
+ActivePersonnel = Active personnel
+CurrentMonth = Current month
+InUseToday = In use today
+Utilization = Utilization
+NoRecentBookingsFound = No recent bookings found
+FleetManagement = Fleet management
+
+#
+# Dashboard alerts
+#
+FleetCriticallyOverloaded = Fleet critically overloaded
+AlertDescOverloaded = Utilization rate is %s%%. Only %s vehicle(s) available.
+Critical = Critical
+HighFleetUtilization = High fleet utilization
+AlertDescHighUtil = Utilization rate is %s%%. Consider scheduling maintenance carefully.
+NoVehiclesAvailable = No vehicles available
+AlertDescNoVehicles = All %s vehicles are currently in service. No remaining capacity.
+Urgent = Urgent
+PendingWorkOrders = Pending work orders
+AlertDescPendingWO = %s work order(s) pending action. Please assign technicians.
+ActiveBookingsToday = Active bookings today
+AlertDescActiveBookings = %s active booking(s) right now. Make sure vehicles and drivers are ready.
+Today = Today
+WorkOrderCompletionRate = Work order completion rate
+AlertDescCompletionRate = %s%% of work orders are completed. Maintenance team is performing well.
+Good = Good
+NoInspectionsRecorded = No inspections recorded
+AlertDescNoInspections = No vehicle inspections have been recorded yet. Schedule regular checks.
+MonthlyRevenueOnTrack = Monthly revenue on track
+AlertDescRevenue = This month's revenue is %s for %s booking(s).
+Info = Info
+NoAlertsMessage = All systems running normally. No alerts at this time.
+
+#
+# Navigation - Menus
+#
+Vehicles = Vehicles
+Drivers = Drivers
+Customers = Customers
+Bookings = Bookings
+Fuel = Fuel
+Vendors = Vendors
 Parts = Parts
+WorkOrders = Work Orders
+Inspections = Inspections
+Tracking = Tracking
+Reports = Reports
+Notifications = Notifications
+Fleet = Fleet
+Operations = Operations
+Expenses = Expenses
+Maintenance = Maintenance
+Monitoring = Monitoring
+Admin = Admin
+Setup = Setup
+NotificationSettings = Notification settings
+Notification Settings = Notification settings
+
+#
+# Categories
+#
 Categories = Categories
 CategoryTypeFlottePart = Parts
 CategoryTypeflotte_part = Parts
 flotte_part = Parts
-ImportFromContacts = Import from Contacts/Addresses
+AllCategories = All categories
+NbOfCategories = Number of categories
+EditTagsCategories = Edit tags and categories
+AddType = Add type
+NewTypeName = New type name
+PleaseEnterATypeName = Please enter a type name
+
+#
+# Common actions
+#
+Create = Create
+Save = Save
+Cancel = Cancel
+Modify = Modify
+Edit = Edit
+Delete = Delete
+View = View
+Export = Export
+Import = Import
+Print = Print
+Card = Card
+BackToList = Back to list
+AutoGenerated = Auto-generated
+NoRecordFound = No record found
+RecordDeleted = Record deleted
+Action = Action
+Actions = Actions
+Count = Count
+Stock = Stock
+Reference = Reference
+Ref = Ref
+Date = Date
+Note = Note
+Notes = Notes
+Priority = Priority
+Schedule = Schedule
+Unit = Unit
+Units = Units
+Qty = Qty
+Tax = Tax
+TaxRate = Tax rate
+UnitPrice = Unit price
+Unit Price = Unit price
+Unit Cost = Unit cost
+UnitCost = Unit cost
+Incl Tax = Incl. Tax
+Excl Tax = Excl. Tax
+Yes = Yes
+No = No
+Error = Error
+Warning = Warning
+Add = Add
+Close = Close
+Filter = Filter
+Details = Details
+Label = Label
+Log = Log
+Source = Source
+Progress = Progress
+Row = Row
+Page = Page
+PageTotal = Page total
+Required = Required
+Column = Column
+ColumnName = Column name
+Photo = Photo
+Photos = Photos
+Upload = Upload
+UploadPhoto = Upload photo
+DragDropOrClick = Drag and drop or click to select
+DropCSVHere = Drop CSV file here
+ShowCSVColumns = Show CSV columns
+DownloadCSVTemplate = Download CSV template
+ImportNow = Import now
+ImportSuccess = Import successful
+ImportNoticeText = Please verify data before importing. Duplicate entries will be skipped.
+ErrorNoFileUploaded = No file uploaded
+ErrorOnlyCSVAccepted = Only CSV files are accepted
+ErrorOnlyCSVAllowed = Only CSV files are allowed
+OnlyCSVAccepted = Only CSV files are accepted
+
+#
+# Common forms and fields
+#
+SelectType = Select type
+SelectStatus = Select status
+Select Status = Select status
+TypeToSearch = Type to search
+AutoCalculated = Auto-calculated
+Calculating = Calculating...
+Current = Current
+NameOrDepartment = Name or department
+AssignedTo = Assigned to
+Availability = Availability
+Category = Category
+Department = Department
+Price = Price
+Reading = Reading
+Days = days
+days = days
+Km = Km
+L = L
+cm = cm
+kg = kg
+records = records
+Amount = Amount
+Total = Total
+DateCreation = Creation date
+DateFrom = Date from
+DateTo = Date to
+From = From
+To = To
+Search = Search
+Reset = Reset
+AcceptedFormats = Accepted formats: JPG, PNG, PDF
+Click to select — JPG, PNG, PDF = Click to select — JPG, PNG, PDF
+
+#
+# Third parties / Company
+#
+ThirdParty = Third party
+Third Party = Third party
+CreateThirdParty = Create third party
+SelectThirdParty = Select third party
+Select Third Party To Autofill = Select third party to autofill
+SelectThirdPartyHint = Select a third party to automatically fill the fields below.
+Seleting a third party will auto-fill the fields below. = Selecting a third party will auto-fill the fields below.
+Selecting a third party will auto-fill the fields below. = Selecting a third party will auto-fill the fields below.
+SIREN = SIREN
+SearchSIREN = Search SIREN...
+SearchTown = Town...
+SearchState = State/Region...
+
+#
+# Vehicle
+#
+Vehicle = Vehicle
+VehiclesList = Vehicle list
+Vehicles List = Vehicle list
+NewVehicle = New vehicle
+New Vehicle = New vehicle
+EditVehicle = Edit vehicle
+DeleteVehicle = Delete vehicle
+ConfirmDeleteVehicle = Are you sure you want to delete this vehicle?
+ShowVehicle = Show vehicle
+VehicleCreatedSuccessfully = Vehicle created successfully
+VehicleUpdatedSuccessfully = Vehicle updated successfully
+VehicleDeletedSuccessfully = Vehicle deleted successfully
+VehicleNotFound = Vehicle not found
+BasicInformation = Basic information
+Basic Information = Basic information
+VehicleDetails = Vehicle details
+Vehicle Details = Vehicle details
+VehicleModel = Vehicle model
+Vehicle Model = Vehicle model
+ServiceInformation = Service information
+Service Information = Service information
+DimensionsAndSpecs = Dimensions and specs
+Dimensions And Specs = Dimensions and specs
+Maker = Make
+VehicleMaker = Vehicle make
+Model = Model
+Year = Year
+Color = Color
+VIN = VIN (Serial number)
+LicensePlate = License plate
+License Plate = License plate
+EngineType = Engine type
+Engine Type = Engine type
+SelectEngineType = Select engine type
+Horsepower = Horsepower
+Horse Power = Horsepower
+HP = HP
+Mileage = Mileage
+InitialMileage = Initial mileage
+Initial Mileage = Initial mileage
+RegistrationExpiry = Registration expiry
+Registration Expiry = Registration expiry
+LicenseExpiry = License expiry
+License Expiry = License expiry
+InsuranceExpiry = Insurance expiry
+Insurance Expiry = Insurance expiry
+GroundHeight = Ground height
+Ground Height = Ground height
+MaxWeight = Max weight
+Max Weight = Max weight
+InService = In service
+In Service = In service
+OutOfService = Out of service
+Off = Out of service
+VehicleSearch = Vehicle search
+VehiclePhoto = Vehicle photo
+Vehicle Photo = Vehicle photo
+RegistrationCard = Registration card
+Registration Card = Registration card
+PlatformRegistrationCard = Platform registration card
+Platform Registration Card = Platform registration card
+InsuranceDocument = Insurance document
+Insurance Document = Insurance document
+RelatedRecords = Related records
+FuelRecords = Fuel records
+VehicleType = Vehicle type
+VehicleRef = Vehicle reference
+Car = Car
+Truck = Truck
+Van = Van
+Bus = Bus
+Motorcycle = Motorcycle
+BoxTruck = Box truck
+TankerTruck = Tanker truck
+RefrigeratedTruck = Refrigerated truck
+TractorUnit = Tractor unit
+Curtainsider = Curtainsider
+Distributor = Distributor
+Petrol = Petrol
+Diesel = Diesel
+Electric = Electric
+Hybrid = Hybrid
+Gasoline = Gasoline
+Fill In Vehicle Details = Fill in vehicle details
+FillInVehicleDetails = Fill in vehicle details
+Documents And Photos = Documents and photos
+DocumentsAndPhotos = Documents and photos
+VehiclesFound = vehicle(s) found
+AllStatuses = All statuses
+SearchRef = Search reference...
+SearchMaker = e.g. Toyota...
+SearchModel = e.g. Corolla...
+SearchPlate = Search plate...
+NoVehiclesFound = No vehicles found
+AddFirstVehicle = Add first vehicle
+ShowingVehicles = Showing %s to %s of %s vehicle(s)
+ImportVehicles = Import vehicles
+ImportVehiclesSubtitle = Import vehicles from a CSV file
+ImportedVehiclesCount = %s vehicle(s) imported
+SelectAVehicle = Select a vehicle
+SelectVehicleToBegin = Select a vehicle to begin
+ChooseVehicleFromDropdown = Choose a vehicle from the dropdown
+
+#
+# Driver
+#
+Driver = Driver
+DriversList = Driver list
+Drivers List = Driver list
+New Driver = New driver
+NewDriver = New driver
+EditDriver = Edit driver
+DeleteDriver = Delete driver
+ConfirmDeleteDriver = Are you sure you want to delete this driver?
+DriverDeletedSuccessfully = Driver deleted successfully
+DriverCreatedSuccessfully = Driver created successfully
+DriverUpdatedSuccessfully = Driver updated successfully
+DriverNotFound = Driver not found
+DriverInformation = Driver information
+Driver Image = Driver photo
+DriverImage = Driver photo
+SelectDriver = Select driver
+NoActiveDriversFound = No active drivers found
+AdditionalInformation = Additional information
+Additional Information = Additional information
+FirstName = First name
+First Name = First name
+FirsName = First name
+MiddleName = Middle name
+Middle Name = Middle name
+LastName = Last name
+Last Name = Last name
+Gender = Gender
+SelectGender = Select gender
+Male = Male
+Female = Female
+Address = Address
+Email = Email
+Phone = Phone
+Password = Password
+EmployeeID = Employee ID
+Employee ID = Employee ID
+ContractNumber = Contract number
+Contract Number = Contract number
+LicenseNumber = License number
+License Number = License number
+LicenseIssueDate = License issue date
+License Issue Date = License issue date
+LicenseExpiryDate = License expiry date
+License Expiry Date = License expiry date
+JoinDate = Join date
+Join Date = Join date
+LeaveDate = Leave date
+Leave Date = Leave date
+Active = Active
+Inactive = Inactive
+Suspended = Suspended
+OnLeave = On leave
+EmergencyContact = Emergency contact
+Emergency Contact = Emergency contact
+AssignedVehicle = Assigned vehicle
+Assigned Vehicle = Assigned vehicle
+NoVehicleAssigned = No vehicle assigned
+NotAssigned = Not assigned
+Not Assigned = Not assigned
+LicenseImage = License photo
+License Image = License photo
+Documents = Documents
+Files = Files
+NoImageUploaded = No image uploaded
+ViewDocument = View document
+NoDocumentUploaded = No document uploaded
+Assignment And Status = Assignment and status
+AssignmentAndStatus = Assignment and status
+FillInDriverDetails = Fill in driver details
+LicenseInformation = License information
+EmploymentInformation = Employment information
+Employee = Employee
+Select Employee = Select employee
+Create Employee = Create employee
+PleaseSelectEmployee = Please select an employee from human resources
+EmployeeAlreadyDriver = This employee is already registered as a driver
+DriverRef = Driver reference
+DriverDetails = Driver details
+DriversFound = driver(s) found
+NoDriversFound = No drivers found
+AddFirstDriver = Add first driver
+ShowingDrivers = Showing %s to %s of %s driver(s)
+SearchEmployeeId = Employee ID...
+SearchLicenseNo = License no...
+SearchFirstName = First name...
+SearchLastName = Last name...
+SearchPhone = Phone...
+ImportDrivers = Import drivers
+ImportDriversSubtitle = Import drivers from a CSV file
+ImportDriversNote = Only active drivers with first and last name will be imported.
+ImportedDriversCount = %s driver(s) imported
+
+#
+# Customer
+#
+Customer = Customer
+CustomersList = Customer list
+Customers List = Customer list
+New Customer = New customer
+NewCustomer = New customer
+EditCustomer = Edit customer
+Edit Customer = Edit customer
+DeleteCustomer = Delete customer
+ConfirmDeleteCustomer = Are you sure you want to delete this customer?
+CustomerCreatedSuccessfully = Customer created successfully
+CustomerUpdatedSuccessfully = Customer updated successfully
+CustomerDeletedSuccessfully = Customer deleted successfully
+CustomerNotFound = Customer not found
+ErrorLoadingCustomer = Error loading customer
+ErrorCreatingCustomer = Error creating customer
+ErrorUpdatingCustomer = Error updating customer
+ErrorDeletingCustomer = Error deleting customer
+CustomerInformation = Customer information
+Customer Information = Customer information
+ShowCustomer = Show customer
+CompanyName = Company name
+Company Name = Company name
+TaxNumber = Tax number
+Tax Number = Tax number
+TaxNo = Tax no.
+PaymentDelay = Payment delay
+Payment Delay = Payment delay
+ErrorFieldRequired = The %s field is required
+Fill In Customer Details = Fill in customer details
+FillInCustomerDetails = Fill in customer details
+CustomersFound = customer(s) found
+NoCustomersFound = No customers found
+AddFirstCustomer = Add first customer
+ShowingCustomers = Showing %s to %s of %s customer(s)
+SearchEmail = Email...
+SearchCompany = Company...
+WithCompany = With company
+CustomerRef = Customer reference
+
+#
+# Booking
+#
+Booking = Booking
+BookingsList = Booking list
+Bookings List = Booking list
+NewBooking = New booking
+New Booking = New booking
+EditBooking = Edit booking
+DeleteBooking = Delete booking
+ConfirmDeleteBooking = Are you sure you want to delete this booking?
+BookingCreatedSuccessfully = Booking created successfully
+BookingUpdatedSuccessfully = Booking updated successfully
+BookingDeletedSuccessfully = Booking deleted successfully
+BookingNotFound = Booking not found
+ErrorLoadingBooking = Error loading booking
+ErrorCreatingBooking = Error creating booking
+ErrorUpdatingBooking = Error updating booking
+ErrorDeletingBooking = Error deleting booking
+BookingInformation = Booking information
+FillInBookingDetails = Fill in booking details
+BookingDate = Booking date
+DepartureAddress = Departure address
+Departure Address = Departure address
+ArrivingAddress = Arrival address
+Arriving Address = Arrival address
+Distance = Distance
+BuyingAmount = Purchase amount
+SellingAmount = Selling amount
+Selling = Selling
+Buying = Buying
+ETA = ETA
+Stops = Stops
+Add Stop = Add stop
+TripDetails = Trip details
+RoutePreview = Route preview
+Route Preview = Route preview
+EnterAddressesToSeeRoute = Enter addresses to see route
+Enter Addresses To See Route = Enter addresses to see route
+Pending = Pending
+Confirmed = Confirmed
+InProgress = In progress
+In Progress = In progress
+Completed = Completed
+Cancelled = Cancelled
+ViewAllBookings = View all bookings
+BookingsFound = booking(s) found
+NoBookingsFound = No bookings found
+AddFirstBooking = Add first booking
+ShowingBookings = Showing %s to %s of %s booking(s)
+BookingsSelected = booking(s) selected
+Invoice = Invoice
+SearchVehicle = Ref, make, model...
+SearchDriver = First or last name...
+SearchCustomer = Name or company...
+SearchVendor = Vendor name...
+All = All
+Invoiced = Invoiced
+NotInvoiced = Not invoiced
+CustomerInvoiced = Cust. invoiced
+VendorInvoiced = Vendor invoiced
+CustomerInvoice = Customer invoice
+VendorInvoice = Vendor invoice
+PickupDateTime = Pickup date and time
+DropoffDateTime = Drop-off date and time
+DropoffAutoCalculated = Auto-calculated from pickup + ETA, or enter manually
+BookingRef = Booking reference
+BLNumber = BL number
+EnterBLNumber = Enter BL number
+EditInBooking = Edit in booking
+ImportBookings = Import bookings
+ImportBookingsSubtitle = Import bookings from a CSV file
+NoBookingsSelected = No bookings selected
+InvalidInvoiceType = Invalid invoice type
+DbError = Database error
+BookingNoPartyAssigned = Booking %s has no %s assigned
+ErrorCreatingInvoice = Error creating invoice
+ErrorCreatingSupplierInvoice = Error creating supplier invoice
+ErrorAddingInvoiceLine = Error adding line for %s
+
+#
+# Expenses
+#
+Expense = Expense
+ExpensesList = Expense list
+NewExpense = New expense
+EditExpense = Edit expense
+DeleteExpense = Delete expense
+ConfirmDeleteExpense = Are you sure you want to delete this expense?
+ExpenseCreatedSuccessfully = Expense created successfully
+ExpenseUpdatedSuccessfully = Expense updated successfully
+ExpenseDeletedSuccessfully = Expense deleted successfully
+ExpenseDetails = Expense details
+FillInExpenseDetails = Fill in expense details
+ExpenseLabel = Expense label
+ExpenseFromBookingNotice = This expense is linked to a booking. Some fields are pre-filled.
+NoExpensesFound = No expenses found
+TotalExpenses = Total expenses
+ViewAllExpenses = View all expenses
+FuelExpenses = Fuel expenses
+FuelType = Fuel type
+FuelQty = Fuel qty
+FuelPrice = Fuel price
+PricePerLiter = Price per litre
+FuelTotalHint = Total is auto-calculated (Qty × Price)
+Liters = Litres
+RoadExpenses = Road expenses
+RoadDetails = Road details
+TollFees = Toll fees
+ParkingFees = Parking fees
+OtherRoadExpenses = Other road expenses
+OtherFees = Other fees
+DriverExpenses = Driver expenses
+DriverSalary = Driver salary
+Salary = Salary
+SalaryDayRate = Day rate
+OvernightFee = Overnight fee
+OvernightFees = Overnight fees
+Bonus = Bonus
+CommissionExpenses = Commission expenses
+CommissionDetails = Commission details
+AgentCommission = Agent commission
+CommissionTax = Commission tax
+OtherCommission = Other commission
+Agent = Agent
+OtherExpenses = Other expenses
+OtherExpenseDetails = Other expense details
+OptionalNotes = Optional notes
+Manual = Manual
+ImportExpenses = Import expenses
+ImportExpensesSubtitle = Import expenses from a CSV file
+SearchByRef = Search by ref...
+SearchName = Search by name...
+
+#
+# Fuel
+#
+FuelRecord = Fuel record
+FuelRecordsList = Fuel record list
+Fuel Records List = Fuel record list
+NewFuelRecord = New fuel record
+New Fuel Record = New fuel record
+EditFuelRecord = Edit fuel record
+DeleteFuelRecord = Delete fuel record
+ConfirmDeleteFuelRecord = Are you sure you want to delete this fuel record?
+FuelRecordCreatedSuccessfully = Fuel record created successfully
+FuelRecordUpdatedSuccessfully = Fuel record updated successfully
+FuelRecordDeletedSuccessfully = Fuel record deleted successfully
+FuelRecordNotFound = Fuel record not found
+ErrorLoadingFuelRecord = Error loading fuel record
+ErrorCreatingFuelRecord = Error creating fuel record
+ErrorUpdatingFuelRecord = Error updating fuel record
+ErrorDeletingFuelRecord = Error deleting fuel record
+FuelRecordInformation = Fuel information
+Fuel Record Information = Fuel information
+FillInFuelDetails = Fill in fuel details
+FuelDetails = Fuel details
+Fuel Details = Fuel details
+FuelSource = Fuel source
+Fuel Source = Fuel source
+FuelIn = Fuel in
+Fuel In = Fuel in
+FuelOut = Fuel out
+Fuel Out = Fuel out
+FuelPhoto = Receipt photo
+Fuel Photo = Fuel photo
+MeterReading = Odometer reading
+Meter Reading = Meter reading
+ReferenceNumber = Reference number
+Reference Number = Reference number
+ReceiptRef = Receipt ref
+State = State
+Station = Station
+Tank = Tank
+CompleteFillup = Complete fill-up
+Complete Fill up = Complete fill-up
+Quantity = Quantity
+CostUnit = Unit cost
+Cost Unit = Unit cost
+TotalCost = Total cost
+Total Cost = Total cost
+Approved = Approved
+Rejected = Rejected
+Notes And Approval = Notes and approval
+NotesAndApproval = Notes and approval
+RecordsFound = record(s) found
+NoFuelRecordsFound = No fuel records found
+AddFirstRecord = Add first record
+ShowingRecords = Showing %s to %s of %s record(s)
+SearchVehiclePlate = Make, model, plate...
+SearchReceiptRef = Receipt ref...
+
+#
+# Parts
+#
+Part = Part
+PartsList = Parts list
+Parts List = Parts list
+NewPart = New part
+New Part = New part
+EditPart = Edit part
+DeletePart = Delete part
+ConfirmDeletePart = Are you sure you want to delete this part?
+PartCreatedSuccessfully = Part created successfully
+PartUpdatedSuccessfully = Part updated successfully
+PartNotFound = Part not found
+ErrorCreatingPart = Error creating part
+ErrorUpdatingPart = Error updating part
+ErrorDeletingPart = Error deleting part
+ErrorLoadingPart = Error loading part
+PartInformation = Part information
+Part Information = Part information
+PartTitle = Part title
+Part Title = Part title
+PartNumber = Part number
+Part Number = Part number
+Barcode = Barcode
+Manufacturer = Manufacturer
+Manu facturer = Manufacturer
+QuantityOnHand = Quantity on hand
+Qty On Hand = Quantity on hand
+Discontinued = Discontinued
+OutOfStock = Out of stock
+InventoryAndSourcing = Inventory and sourcing
+Inventory And Sourcing = Inventory and sourcing
+ImportParts = Import parts
+ImportPartsSubtitle = Import parts from a CSV file
+
+#
+# Work order
+#
+WorkOrder = Work Order
+WorkOrdersList = Work order list
+NewWorkOrder = New work order
+New WorkOrder = New work order
+EditWorkOrder = Edit work order
+DeleteWorkOrder = Delete work order
+ConfirmDeleteWorkOrder = Are you sure you want to delete this work order?
+WorkOrderCreatedSuccessfully = Work order created successfully
+WorkOrderUpdatedSuccessfully = Work order updated successfully
+WorkOrderDeletedSuccessfully = Work order deleted successfully
+WorkOrderNotFound = Work order not found
+ErrorCreatingWorkOrder = Error creating work order
+ErrorUpdatingWorkOrder = Error updating work order
+ErrorDeletingWorkOrder = Error deleting work order
+ErrorLoadingWorkOrder = Error loading work order
+WorkOrderInformation = Work order information
+Work Order Information = Work order information
+FillInWorkOrderDetails = Fill in work order details
+TaskDetails = Task details
+Task Details = Task details
+RequiredBy = Required by
+Required By = Required by
+StartDate = Start date
+Start Date = Start date
+DueDate = Due date
+Due Date = Due date
+RequestedBy = Requested by
+Requested By = Requested by
+ResponsiblePerson = Responsible person
+Responsible Person = Responsible person
+SupervisorOrApprover = Supervisor or approver
+Supervisor Or Approver = Supervisor or approver
+ProblemDescription = Problem description
+Problem Description = Problem description
+DescribeProblemOrSymptoms = Describe the problem or symptoms
+Describe Problem Or Symptoms = Describe the problem or symptoms
+TaskToPerform = Task to perform
+Task To Perform = Task to perform
+DescribeTasksToBePerformed = Describe the tasks to be performed
+DescribecTaskscToBe Performed = Describe the tasks to be performed
+TechnicianNotes = Technician notes
+Technician Notes = Technician notes
+FindingsObservationsRecommendations = Findings, observations and recommendations
+Findings Observations Recommendations = Findings, observations and recommendations
+PartsReplacedObservations = Parts replaced and observations
+Low = Low
+Medium = Medium
+High = High
+
+#
+# Vehicle maintenance
+#
+Service = Service
+ServiceDate = Service date
+LastService = Last service
+NextDue = Next due
+Odometer = Odometer
+OdometerAtService = Odometer at service
+Interval = Interval
+IntervalUsed = Interval used
+Every = Every
+KmLeft = km remaining
+KmOverdue = km overdue
+DaysLeft = days remaining
+DaysLate = days overdue
+Overdue = Overdue
+DueSoon = Due soon
+UpToDate = Up to date
+ServiceOverdue = Service overdue
+ServiceDueSoon = Service due soon
+ScheduleServiceSoon = Schedule service soon
+AllClear = All clear
+AllServicesUpToDate = All services are up to date
+MaintenanceAlerts = Maintenance alerts
+MaintenanceSaved = Maintenance saved
+LogService = Log service
+SaveRecord = Save record
+SelectVehicle = Select vehicle
+SelectVehicleFromSidebar = Select a vehicle from the sidebar to view its tracking information.
+NoRecord = No record
+SearchService = Search service
+Safety = Safety
+ExAutoProGarage = Performed by Pro Garage
+TechnicianGarage = Technician / Garage
+ImmediateAttentionRequired = Immediate attention required
+JavaScriptRequired = JavaScript is required for this feature
+InvalidToken = Invalid token
+
+#
+# Inspection
+#
+Inspection = Inspection
+InspectionsList = Inspection list
+Inspections List = Inspection list
+NewInspection = New inspection
+New Inspection = New inspection
+EditInspection = Edit inspection
+Edit Inspection = Edit inspection
+DeleteInspection = Delete inspection
+ConfirmDeleteInspection = Are you sure you want to delete this inspection?
+InspectionCreatedSuccessfully = Inspection created successfully
+InspectionUpdatedSuccessfully = Inspection updated successfully
+InspectionNotFound = Inspection not found
+ErrorCreatingInspection = Error creating inspection
+ErrorUpdatingInspection = Error updating inspection
+ErrorDeletingInspection = Error deleting inspection
+ErrorLoadingInspection = Error loading inspection
+InspectionInformation = Inspection information
+Inspection Information = Inspection information
+FillInInspectionDetails = Fill in inspection details
+MeterAndFuelInformation = Meter and fuel information
+Meter And Fuel Information = Meter and fuel information
+InspectionChecklist = Inspection checklist
+Inspection Checklist = Inspection checklist
+ShowInspection = Show inspection
+DateOut = Date out
+Date Out = Date out
+DateIn = Date in
+Date In = Date in
+MeterOut = Meter out
+Meter Out = Meter out
+MeterIn = Meter in
+Meter In = Meter in
+RegistrationNumber = Registration number
+Registration Number = Registration number
+PetrolCard = Petrol card
+Petrol Card = Petrol card
+LightsIndicators = Lights and indicators
+Lights Indicators = Lights and indicators
+InverterCigarette = Inverter / cigarette lighter
+Inverter Cigarette = Inverter / cigarette lighter
+MatsSeats = Mats and seats
+Mats Seats = Mats and seats
+InteriorDamage = Interior damage
+Interior Damage = Interior damage
+InteriorLights = Interior lights
+Interior Lights = Interior lights
+ExteriorDamage = Exterior damage
+Exterior Damage = Exterior damage
+TyresCondition = Tyres condition
+Tyres Condition = Tyres condition
+Ladders = Ladders
+ExtensionLeeds = Extension cables
+Extension Leeds = Extension cables
+PowerTools = Power tools
+Power Tools = Power tools
+ACWorking = AC working
+AC Working = AC working
+HeadlightsWorking = Headlights working
+Headlights Working = Headlights working
+LocksAlarms = Locks and alarms
+Locks Alarms = Locks and alarms
+WindowsCondition = Windows condition
+Windows Condition = Windows condition
+SeatsCondition = Seats condition
+Seats Condition = Seats condition
+OilCheck = Oil check
+Oil Check = Oil check
+Suspension = Suspension
+ToolboxesCondition = Toolboxes condition
+Toolboxes Condition = Toolboxes condition
+InspectionDue = Inspection due
+
+#
+# Vendor
+#
+Vendor = Vendor
+VendorsList = Vendor list
+Vendors List = Vendor list
+NewVendor = New vendor
+New Vendor = New vendor
+EditVendor = Edit vendor
+DeleteVendor = Delete vendor
+Delete Vendor = Delete vendor
+ConfirmDeleteVendor = Are you sure you want to delete this vendor?
+VendorNotFound = Vendor not found
+Vendor Not Found = Vendor not found
+VendorInformation = Vendor information
+Vendor Information = Vendor information
+ShowVendor = Show vendor
+VendorCreatedSuccessfully = Vendor created successfully
+VendorUpdatedSuccessfully = Vendor updated successfully
+VendorAlreadyExists = This vendor already exists
+ErrorCreatingVendor = Error creating vendor
+ErrorUpdatingVendor = Error updating vendor
+ErrorDeletingVendor = Error deleting vendor
+VendorRef = Vendor reference
+AddressInformation = Address information
+Address Information = Address information
+AddressLine1 = Address line 1
+AddressLine2 = Address line 2
+City = City
+Town = Town
+StateProvince = State / Province
+Website = Website
+Insurance = Insurance
+Other = Other
+
+#
+# Tracking / Map
+#
+VehicleTrackingMap = Vehicle tracking map
+LiveTracking = Live tracking
+NoRouteData = No route data available
+NoAddressRecorded = No address recorded for this vehicle
+EstimatedPosition = Estimated position along the route
+CardView = Card view
+Available = Available
+InUse = In use
+FullScreen = Full screen
+ExitFullScreen = Exit full screen
+NoDepartureSet = No departure set
+NoDestinationSet = No destination set
+NoAddressesRecorded = No addresses recorded for this vehicle's booking — displaying map without route.
+AddAddresses = Add addresses
+NoVehicleSelected = No vehicle selected
+NoAddressDataAvailable = No address data available
+EstimatedCurrentPosition = Estimated current position on route
+NoRouteDataAvailable = No route data available
+
+#
+# Notification centre
+#
+NotificationCenter = Notification centre
+FirebaseNotConfigured = Firebase not configured
+FirebaseNotConfiguredDesc = To enable push notifications, please configure your Firebase credentials.
+GoToSettings = Go to settings
+TotalNotifications = Total notifications
+FirebaseStatus = Firebase status
+Connected = Connected
+NotSet = Not set
+NotificationHistory = Notification history
+AllTypes = All types
+CustomTest = Custom / Test
+SentAt = Sent at
+NoNotificationsFound = No notifications found.
+Prev = Previous
+Next = Next
+RegisterDevice = Register device
+SendTest = Send test
+RunAlertScan = Run alert scan
+ConfirmRunAlertScan = Run alert scan now?
+NotificationSent = Notification sent (%s device(s))
+SendFailed = Send failed
+NoDevicesRegistered = No devices registered
+AlertScanComplete = Alert scan complete. Notifications sent: %s
+RegisterThisDevice = Register this device
+AllowBrowserPush = Allow your browser to receive push notifications from Flotte.
+DeviceLabelOptional = Device label (optional)
+DeviceLabelPlaceholder = e.g. My work computer
+EnableNotifications = Enable notifications
+SendTestNotification = Send test notification
+TestFromFlotte = Test from Flotte 🚗
+Message = Message
+Target = Target
+OnlyMe = Only me
+AllUsersBroadcast = All users (broadcast)
+Send = Send
+Clear = Clear
+Sent = Sent
+Failed = Failed
+Title = Title
+
+#
+# Notification settings
+#
+NotificationSettingsDesc = Configure Firebase Cloud Messaging and alert rules
+FirebaseCloudMessaging = Firebase Cloud Messaging (FCM)
+HowToSetupFirebase = How to set up Firebase:
+APIVersion = API version
+FCMv1Recommended = FCM v1 (Recommended — uses service account)
+LegacyHTTPAPI = Legacy HTTP API (uses server key)
+FirebaseProjectID = Firebase project ID
+ServiceAccountJSON = Service account JSON
+ServerKey = Server key
+VAPIDPublicKey = VAPID public key
+FirebaseIsConfigured = Firebase is configured
+NotConfiguredYet = Not configured yet
+SaveFirebaseConfig = Save Firebase configuration
+AlertRules = Alert rules
+EditRule = Edit rule
+AddNewAlertRule = Add new alert rule
+RuleName = Rule name
+AlertType = Alert type
+VehicleRegistrationExpiry = Vehicle registration expiry
+DriverLicenseExpiry = Driver license expiry
+ScheduledInspectionDue = Scheduled inspection due
+FirstAlertDaysBefore = First alert (days before)
+SecondReminderDaysBefore = Second reminder (days before)
+NotifyChannel = Notification channel
+FirebasePushOnly = Firebase push only
+EmailOnly = Email only
+BothPushAndEmail = Both (Push + Email)
+Normal = Normal
+NotifyUsers = Notify users
+EnableThisRule = Enable this rule
+UpdateRule = Update rule
+AddRule = Add rule
+NoAlertRulesConfigured = No alert rules configured. Add one above.
+AlertsDays = Alerts (days)
+Channel = Channel
+ConfirmDeleteRule = Delete this rule?
+AutomatedCronJob = Automated cron job
+CronJobDesc = To automatically send daily alerts, add a cron job to your server:
+CronJobDolibarrTip = Or use Dolibarr's built-in cron system: Home → Setup → Cron jobs → add a call to flotte/cron_alerts.php
+FirebaseConfigSaved = Firebase configuration saved successfully.
+FailedToSaveConfig = Failed to save configuration
+AlertRuleSaved = Alert rule saved.
+RuleDeleted = Rule deleted.
+
+#
+# Fleet reports
+#
+FleetReports = Fleet reports
+FleetReportsAnalytics = Fleet reports & analytics
+RptExecutiveDashboard = Executive dashboard & performance overview
+ReportPeriod = Report period
+RptLast7Days = Last 7 days
+RptLast90Days = Last 90 days
+RptThisYear = This year
+RptLastYear = Last year
+RptLastMonth = Last month
+RptCustomRange = Custom range
+RptYear = Year %s
+RptOverview = Overview
+RptNetProfit = Net profit
+RptFuelCost = Fuel cost
+RptFiltersDateRange = Filters & date range
+RptActiveFilters = %s active
+RptCollapse = Collapse
+RptExpand = Expand
+RptTimePeriod = Time period
+RptDateRange = Date range
+RptBookingStatus = Booking status
+RptFuelSource = Fuel source
+RptWoPriority = WO priority
+RptAllPriorities = — All priorities —
+RptVehicleType = Vehicle type
+RptRevenueRange = Revenue range
+RptApplyFilters = Apply filters
+RptClearAll = Clear all
+RptAllVehicles = — All vehicles —
+RptAllDrivers = — All drivers —
+RptAllCustomers = — All customers —
+RptAllVendors = — All vendors —
+RptAllStatuses = — All statuses —
+RptAllSources = — All sources —
+RptAllTypes = — All types —
+RptTotalRevenue = Total revenue
+RptVsPrevPeriod = %s%% vs prev. period
+RptVsPrev = %s%% vs prev.
+RptAvgPerTrip = Avg. / trip
+RptNetMargin = Net margin: %s%%
+RptGrossMargin = Gross margin
+RptGrossProfit = Gross profit
+RptBookingCost = Booking cost
+RptPercentOfRevenue = %s%% of revenue
+RptTotalExpenses = Total expenses
+RptEntries = Entries
+RptAvg = Avg.
+RptKmDriven = km driven
+RptAvgPerTripKm = %s avg./trip
+RptFuelUsed = Fuel used
+RptOpenWorkOrders = Open work orders
+RptPercentDone = %s%% done
+RptFleetInService = Fleet in service
+RptPercentAvailable = %s%% available
+RptRevenue = Revenue
+RptCost = Cost
+RptProfit = Profit
+RptTrips = Trips
+RptAmount = Amount
+RptLitres = Litres
+RptVehicles = Vehicles
+RptRoad = Road
+RptCommission = Commission
+RptInService = In service
+RptOutOfService = Out of service
+RptCostBreakdown = Cost breakdown
+RptRevenueCostProfit6M = Revenue, cost & profit — last 6 months
+RptKeyMetrics = Key metrics
+RptAvgDistanceTrip = Avg. distance / trip
+RptAvgRevenueTrip = Avg. revenue / trip
+RptFuelEfficiency = Fuel efficiency
+RptAvgCostLitre = Avg. cost / litre
+RptAvgMaintCostWo = Avg. maint. cost / WO
+RptActiveDrivers = Active drivers
+RptActivityByDow = Activity by day of week
+RptTopCustomersRevenue = Top customers by revenue
+RptNoDataPeriod = No data for this period
+RptNoData = No data
+RptTripsCount = %s trips
+RptTotalBookings = Total bookings
+RptAvgRevenueLabel = Avg. %s revenue
+RptMarginLabel = Margin %s%%
+RptTotalCost = Total cost
+RptProfitLabel = Profit %s
+RptAvgPerTripSlash = %s avg. / trip
+RptMonthlyTrend6M = Monthly trend (6 months)
+RptShare = Share
+RptTotalConsumed = Total consumed
+RptFuelSpend = Fuel spend
+RptPerLitreAvg = %s / litre avg.
+RptKmPerLitre = km / litre
+RptKmDrivenLabel = %s km driven
+RptFuelTrend6M = Fuel trend (6 months)
+RptConsumptionBySource = Consumption by source
+RptNoFuelData = No fuel data for this period
+RptTotalWorkOrders = Total work orders
+RptPercentCompleted = %s%% completed
+RptTotalMaintCost = Total maint. cost
+RptAvgPerWo = Avg. %s / WO
+RptPendingOpen = Pending / open
+RptOther = other
+RptCompletionRate = %s%% completion rate
+RptWorkOrdersByStatus = Work orders by status
+RptMaintCostByVehicle = Maintenance cost by vehicle
+RptNoMaintData = No maintenance data available
+RptWorkOrders = Work orders
+RptCostShare = Cost share
+RptExpenseEntries = Expense entries
+RptAvgPerEntry = Avg. %s / entry
+RptFuelExpenses = Fuel expenses
+RptOfTotal = of total
+RptRoadExpenses = Road expenses
+RptRoadExpenseDetail = Toll · Parking · Other
+RptDriverCosts = Driver costs
+RptDriverCostDetail = Salary · Overnight · Bonus
+RptCommissions = Commissions
+RptCommissionDetail = Agent · Tax · Fees
+RptOtherExpenses = Other expenses
+RptTotalSpend = Total spend
+RptPeriodRevenue = Period revenue
+RptExpensesRevenue = Expenses / revenue
+RptAvgPerEntryLabel = Avg. per entry
+RptVsPreviousPeriod = vs previous period
+RptMonthlyExpenseTrend6M = Monthly expense trend (6 months)
+RptBreakdownByCategory = Breakdown by category
+RptNoExpenseData = No expenses for this period
+RptExpensesByVehicle = Expenses by vehicle
+RptTop10LinkedBookings = Top 10 via linked bookings
+RptRecentExpenses = Recent expenses
+RptNewExpense = New expense
+RptViewAll = View all
+RptNoExpensesRecorded = No expenses recorded for this period.
+RptAddOneNow = Add one now →
+RptNotesLabel = Notes / label
+RptTotalVehicles = Total vehicles
+RptAvailability = %s%% availability
+RptDrivers = Drivers
+RptCustomersCount = %s customers
+RptFleetAvailability = Fleet availability
+RptFleetAvailabilityRate = Fleet availability rate
+RptFleetByType = Fleet by vehicle type
+RptNoTypeData = No data by type
+RptRate = Rate
+RptFleetByManufacturer = Fleet by manufacturer
+RptAlertWoPending = %s work order(s) pending
+RptAlertVehiclesOos = %s vehicle(s) out of service
+RptAlertMarginLow = Gross margin critical at %s%%
+RptAlertExpensesHigh = Expenses at %s%% of revenue — review expenses
+RptAlertFuelLow = Low fuel efficiency: %s km/L
+RptAlertFleetUtil = Excellent fleet utilization at %s%%
+RptAlertStrongMargin = Strong margin: %s%% gross margin this period
+RptDaySun = Sun
+RptDayMon = Mon
+RptDayTue = Tue
+RptDayWed = Wed
+RptDayThu = Thu
+RptDayFri = Fri
+RptDaySat = Sat
+RptFilteredRecords = Filtered records
+RptAllRecords = All records
+RptShowingResultsFor = Results for:
+RptRecordsFound = %s record(s) found
+RptShowingFirst400 = (first 400 shown)
+RptExportCSV = Export CSV
+RptNoRecordsMatch = No records match the filters.
+RptType = Type
+RptCustomerTask = Customer / task
+RptStatusPriority = Status / priority
+RptRevenueRangeFilter = Revenue range
+RptMin = Min
+RptMax = Max
+RptCritical = Critical
+RptHigh = High
+RptMedium = Medium
+RptTripsLabel = Trips
+RptCostLabel = Cost
+RptCount = Count
+RptCompleted = Completed
+RptActiveLabel = Active
+RptWorkOrderLabel = Work order
+RptBookingLabel = Booking
+RptNotesOrLabel = Notes / label
+RptViewAllRecords = View all
+BookingsByStatus = Bookings by status
+FuelByVehicle = Fuel consumption by vehicle
+WorkOrdersByPriority = Work orders by priority
+TopVehicles = Top vehicles
+TopDrivers = Top drivers
+FleetStatus = Fleet status
+MaintenanceSummary = Maintenance summary
+TotalDistance = Total distance
+FuelConsumed = Fuel consumed
+NoDataAvailable = No data available for this period
+
+#
+# Import from contacts
+#
+ImportFromContacts = Import from contacts/addresses
 ImportFromContactsSubtitle = Sync active contacts into the driver list
-ImportFromContactsInfo = All active Contacts/Addresses will be synced as drivers.
+ImportFromContactsInfo = All active contacts/addresses will be synced as drivers.
 ImportFromContactsNote = Only active contacts are imported. Existing drivers are updated, not duplicated.
-ImportFromContactsRule1 = New contacts are added as active drivers with an auto-generated ref (DRV-XXXX).
-ImportFromContactsRule2 = Contacts already imported are updated (name, phone, email, address).
+ImportFromContactsRule1 = New contacts are added as active drivers with an auto-generated reference (DRV-XXXX).
+ImportFromContactsRule2 = Already-imported contacts are updated (name, phone, email, address).
 ImportFromContactsRule3 = Contacts with no first or last name are skipped.
 ImportFromContactsDone = Import complete
 ContactsImportAdded = added
@@ -77,3 +1322,36 @@ ContactsImportUpdated = updated
 ContactsImportSkipped = skipped
 ImportFromContactsNone = No contacts found to import.
 ProceedImport = Proceed
+
+#
+# Permissions
+#
+FlottePermRead = Read Flotte objects
+FlottePermWrite = Create and edit Flotte objects
+FlottePermDelete = Delete Flotte objects
+
+#
+# Address and contact fields
+#
+AddressAndContact = Address and contact
+
+#
+# Miscellaneous
+#
+Disable = Disable
+RecordNotFound = Record not found
+
+OilChange = Oil change
+OilFilter = Oil filter
+AirFilter = Air filter
+CabinAirFilter = Cabin air filter
+TyreRotation = Tyre rotation
+BrakeFluid = Brake fluid
+BrakePads = Brake pads
+CoolantFlush = Coolant flush
+TransmissionFluid = Transmission fluid
+SparkPlugs = Spark plugs
+TimingBelt = Timing belt
+BatteryCheck = Battery check
+WheelAlignment = Wheel alignment
+AcService = AC service

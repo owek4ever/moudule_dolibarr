@@ -30,20 +30,20 @@ if ($cancel) { $action = 'view'; }
 
 /* ── Maintenance Interval Definitions ───────────────────────────────────── */
 $maintenanceItems = array(
-    'oil_change'      => array('label'=>'Oil Change',          'icon'=>'fa-oil-can',         'interval_km'=>30000, 'interval_days'=>180,  'warning_km'=>500,  'warning_days'=>14,  'critical'=>true),
-    'oil_filter'      => array('label'=>'Oil Filter',          'icon'=>'fa-filter',          'interval_km'=>5000,  'interval_days'=>180,  'warning_km'=>500,  'warning_days'=>14,  'critical'=>true),
-    'air_filter'      => array('label'=>'Air Filter',          'icon'=>'fa-wind',            'interval_km'=>15000, 'interval_days'=>365,  'warning_km'=>1000, 'warning_days'=>21,  'critical'=>false),
-    'cabin_filter'    => array('label'=>'Cabin Air Filter',    'icon'=>'fa-snowflake',       'interval_km'=>15000, 'interval_days'=>365,  'warning_km'=>1000, 'warning_days'=>21,  'critical'=>false),
-    'tyre_rotation'   => array('label'=>'Tyre Rotation',       'icon'=>'fa-circle-notch',    'interval_km'=>10000, 'interval_days'=>180,  'warning_km'=>800,  'warning_days'=>14,  'critical'=>false),
-    'brake_fluid'     => array('label'=>'Brake Fluid',         'icon'=>'fa-tint',            'interval_km'=>40000, 'interval_days'=>730,  'warning_km'=>2000, 'warning_days'=>30,  'critical'=>true),
-    'brake_pads'      => array('label'=>'Brake Pads',          'icon'=>'fa-stop-circle',     'interval_km'=>30000, 'interval_days'=>730,  'warning_km'=>2000, 'warning_days'=>30,  'critical'=>true),
-    'coolant'         => array('label'=>'Coolant Flush',       'icon'=>'fa-thermometer-half','interval_km'=>50000, 'interval_days'=>730,  'warning_km'=>3000, 'warning_days'=>30,  'critical'=>false),
-    'transmission'    => array('label'=>'Transmission Fluid',  'icon'=>'fa-cogs',            'interval_km'=>60000, 'interval_days'=>1095, 'warning_km'=>3000, 'warning_days'=>30,  'critical'=>false),
-    'spark_plugs'     => array('label'=>'Spark Plugs',         'icon'=>'fa-bolt',            'interval_km'=>30000, 'interval_days'=>730,  'warning_km'=>2000, 'warning_days'=>30,  'critical'=>false),
-    'timing_belt'     => array('label'=>'Timing Belt',         'icon'=>'fa-clock',           'interval_km'=>80000, 'interval_days'=>1825, 'warning_km'=>5000, 'warning_days'=>60,  'critical'=>true),
-    'battery'         => array('label'=>'Battery Check',       'icon'=>'fa-battery-half',    'interval_km'=>0,     'interval_days'=>365,  'warning_km'=>0,    'warning_days'=>30,  'critical'=>false),
-    'wheel_alignment' => array('label'=>'Wheel Alignment',     'icon'=>'fa-arrows-alt-h',    'interval_km'=>20000, 'interval_days'=>365,  'warning_km'=>1500, 'warning_days'=>14,  'critical'=>false),
-    'ac_service'      => array('label'=>'A/C Service',         'icon'=>'fa-fan',             'interval_km'=>0,     'interval_days'=>730,  'warning_km'=>0,    'warning_days'=>30,  'critical'=>false),
+    'oil_change'      => array('label'=>'OilChange',         'icon'=>'fa-oil-can',         'interval_km'=>30000, 'interval_days'=>180,  'warning_km'=>500,  'warning_days'=>14,  'critical'=>true),
+    'oil_filter'      => array('label'=>'OilFilter',         'icon'=>'fa-filter',          'interval_km'=>5000,  'interval_days'=>180,  'warning_km'=>500,  'warning_days'=>14,  'critical'=>true),
+    'air_filter'      => array('label'=>'AirFilter',         'icon'=>'fa-wind',            'interval_km'=>15000, 'interval_days'=>365,  'warning_km'=>1000, 'warning_days'=>21,  'critical'=>false),
+    'cabin_filter'    => array('label'=>'CabinAirFilter',    'icon'=>'fa-snowflake',       'interval_km'=>15000, 'interval_days'=>365,  'warning_km'=>1000, 'warning_days'=>21,  'critical'=>false),
+    'tyre_rotation'   => array('label'=>'TyreRotation',      'icon'=>'fa-circle-notch',    'interval_km'=>10000, 'interval_days'=>180,  'warning_km'=>800,  'warning_days'=>14,  'critical'=>false),
+    'brake_fluid'     => array('label'=>'BrakeFluid',        'icon'=>'fa-tint',            'interval_km'=>40000, 'interval_days'=>730,  'warning_km'=>2000, 'warning_days'=>30,  'critical'=>true),
+    'brake_pads'      => array('label'=>'BrakePads',         'icon'=>'fa-stop-circle',     'interval_km'=>30000, 'interval_days'=>730,  'warning_km'=>2000, 'warning_days'=>30,  'critical'=>true),
+    'coolant'         => array('label'=>'CoolantFlush',      'icon'=>'fa-thermometer-half','interval_km'=>50000, 'interval_days'=>730,  'warning_km'=>3000, 'warning_days'=>30,  'critical'=>false),
+    'transmission'    => array('label'=>'TransmissionFluid', 'icon'=>'fa-cogs',            'interval_km'=>60000, 'interval_days'=>1095, 'warning_km'=>3000, 'warning_days'=>30,  'critical'=>false),
+    'spark_plugs'     => array('label'=>'SparkPlugs',        'icon'=>'fa-bolt',            'interval_km'=>30000, 'interval_days'=>730,  'warning_km'=>2000, 'warning_days'=>30,  'critical'=>false),
+    'timing_belt'     => array('label'=>'TimingBelt',        'icon'=>'fa-clock',           'interval_km'=>80000, 'interval_days'=>1825, 'warning_km'=>5000, 'warning_days'=>60,  'critical'=>true),
+    'battery'         => array('label'=>'BatteryCheck',      'icon'=>'fa-battery-half',    'interval_km'=>0,     'interval_days'=>365,  'warning_km'=>0,    'warning_days'=>30,  'critical'=>false),
+    'wheel_alignment' => array('label'=>'WheelAlignment',    'icon'=>'fa-arrows-alt-h',    'interval_km'=>20000, 'interval_days'=>365,  'warning_km'=>1500, 'warning_days'=>14,  'critical'=>false),
+    'ac_service'      => array('label'=>'AcService',         'icon'=>'fa-fan',             'interval_km'=>0,     'interval_days'=>730,  'warning_km'=>0,    'warning_days'=>30,  'critical'=>false),
 );
 
 /* ── Load Vehicles ──────────────────────────────────────────────────────── */
@@ -679,7 +679,7 @@ $warnItems = array_filter($alertData, function($a){ return $a['status']==='warni
             <div class="mc-alert-title"><i class="fa fa-shield-alt" style="margin-right:5px;"></i><?= $langs->trans('ServiceOverdue') ?> — <?= $langs->trans('ImmediateAttentionRequired') ?></div>
             <div class="mc-alert-tags">
                 <?php foreach ($critItems as $key => $a): ?>
-                <span class="mc-alert-tag"><i class="fa <?= $maintenanceItems[$key]['icon'] ?>"></i><?= dol_escape_htmltag($maintenanceItems[$key]['label']) ?></span>
+                <span class="mc-alert-tag"><i class="fa <?= $maintenanceItems[$key]['icon'] ?>"></i><?= dol_escape_htmltag($langs->trans($maintenanceItems[$key]['label'])) ?></span>
                 <?php endforeach; ?>
             </div>
         </div>
@@ -692,7 +692,7 @@ $warnItems = array_filter($alertData, function($a){ return $a['status']==='warni
             <div class="mc-alert-title"><?= $langs->trans('ServiceDueSoon') ?> — <?= $langs->trans('ScheduleServiceSoon') ?></div>
             <div class="mc-alert-tags">
                 <?php foreach ($warnItems as $key => $a): ?>
-                <span class="mc-alert-tag"><i class="fa <?= $maintenanceItems[$key]['icon'] ?>"></i><?= dol_escape_htmltag($maintenanceItems[$key]['label']) ?></span>
+                <span class="mc-alert-tag"><i class="fa <?= $maintenanceItems[$key]['icon'] ?>"></i><?= dol_escape_htmltag($langs->trans($maintenanceItems[$key]['label'])) ?></span>
                 <?php endforeach; ?>
             </div>
         </div>
@@ -800,13 +800,13 @@ foreach (array('critical','warning','ok','unknown') as $sectionStatus):
     $nextKmVal   = ($rec && $rec->next_km > 0 && $item['interval_km'] > 0) ? (int)$rec->next_km : null;
     $nextDateVal = ($rec && !empty($rec->next_date) && $item['interval_days'] > 0) ? $rec->next_date : null;
 ?>
-<tr onclick="openModal('<?= $key ?>')" data-label="<?= dol_escape_htmltag(strtolower($item['label'])) ?>" class="mc-data-row">>
+<tr onclick="openModal('<?= $key ?>')" data-label="<?= dol_escape_htmltag(strtolower($langs->trans($item['label']))) ?>" class="mc-data-row">>
     <td class="mc-stripe <?= $sectionStatus ?>"></td>
     <td style="padding:12px 8px 12px 16px;">
         <div class="mc-row-icon <?= $sectionStatus ?>"><i class="fa <?= $item['icon'] ?>"></i></div>
     </td>
     <td>
-        <div class="mc-row-name"><?= dol_escape_htmltag($item['label']) ?></div>
+        <div class="mc-row-name"><?= dol_escape_htmltag($langs->trans($item['label'])) ?></div>
         <div class="mc-row-badges">
             <span class="mc-row-badge <?= $sectionStatus ?>">
                 <?= array('critical'=>$langs->trans('Overdue'),'warning'=>$langs->trans('DueSoon'),'ok'=>'OK','unknown'=>$langs->trans('NoRecord'))[$sectionStatus] ?>
@@ -926,7 +926,7 @@ foreach (array('critical','warning','ok','unknown') as $sectionStatus):
 var maintenanceItems = <?php
     $out = array();
     foreach ($maintenanceItems as $k => $v) {
-        $out[$k] = array('label'=>$v['label'],'interval_km'=>$v['interval_km'],'interval_days'=>$v['interval_days']);
+        $out[$k] = array('label'=>$langs->trans($v['label']),'interval_km'=>$v['interval_km'],'interval_days'=>$v['interval_days']);
     }
     echo json_encode($out);
 ?>;

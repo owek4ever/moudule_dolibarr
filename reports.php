@@ -17,6 +17,39 @@ if (!$res) { die("Include of main fails"); }
 $langs->loadLangs(array("flotte@flotte", "other"));
 if (!$user->rights->flotte->read) { accessforbidden(); }
 
+// Chart.js labels (no HTML entities)
+$rptChart = array(
+    'revenue' => $langs->transnoentities('RptRevenue'),
+    'cost' => $langs->transnoentities('RptCost'),
+    'profit' => $langs->transnoentities('RptProfit'),
+    'trips' => $langs->transnoentities('RptTrips'),
+    'amount' => $langs->transnoentities('RptAmount'),
+    'bookingCost' => $langs->transnoentities('RptBookingCost'),
+    'fuel' => $langs->transnoentities('Fuel'),
+    'expenses' => $langs->transnoentities('Expenses'),
+    'maintenance' => $langs->transnoentities('Maintenance'),
+    'litres' => $langs->transnoentities('RptLitres'),
+    'vehicles' => $langs->transnoentities('RptVehicles'),
+    'total' => $langs->transnoentities('Total'),
+    'road' => $langs->transnoentities('RptRoad'),
+    'driver' => $langs->transnoentities('Driver'),
+    'commission' => $langs->transnoentities('RptCommission'),
+    'other' => $langs->transnoentities('Other'),
+    'inService' => $langs->transnoentities('RptInService'),
+    'outOfService' => $langs->transnoentities('RptOutOfService'),
+    'collapse' => $langs->transnoentities('RptCollapse'),
+    'expand' => $langs->transnoentities('RptExpand'),
+    'booking' => $langs->transnoentities('Booking'),
+    'workOrder' => $langs->transnoentities('WorkOrder'),
+);
+$rptExpCatLabels = array(
+    'fuel' => $langs->transnoentities('Fuel'),
+    'road' => $langs->transnoentities('RptRoad'),
+    'driver' => $langs->transnoentities('Driver'),
+    'commission' => $langs->transnoentities('RptCommission'),
+    'other' => $langs->transnoentities('Other'),
+);
+
 // ════════════════════════════════════════════════════════════
 // FILTER PARAMETERS
 // ════════════════════════════════════════════════════════════
@@ -38,18 +71,18 @@ $filter_max_revenue = GETPOST('filter_max_revenue','alpha');
 $today_ts = mktime(0, 0, 0, (int)date('m'), (int)date('d'), (int)date('Y'));
 
 switch ($period) {
-    case 'week':    $date_from = date('Y-m-d', strtotime('-7 days', $today_ts));  $date_to = date('Y-m-d', $today_ts); $period_label = 'Last 7 Days'; break;
-    case 'month':   $date_from = date('Y-m-01', $today_ts); $date_to = date('Y-m-d', $today_ts); $period_label = date('F Y', $today_ts); break;
-    case 'quarter': $date_from = date('Y-m-d', strtotime('-90 days', $today_ts)); $date_to = date('Y-m-d', $today_ts); $period_label = 'Last 90 Days'; break;
-    case 'year':    $date_from = date('Y-01-01', $today_ts); $date_to = date('Y-m-d', $today_ts); $period_label = 'Year '.date('Y'); break;
-    case 'last_month': $lm = strtotime('first day of last month', $today_ts); $date_from = date('Y-m-01', $lm); $date_to = date('Y-m-t', $lm); $period_label = date('F Y', $lm); break;
-    case 'last_year':  $date_from = (date('Y')-1).'-01-01'; $date_to = (date('Y')-1).'-12-31'; $period_label = 'Year '.(date('Y')-1); break;
+    case 'week':    $date_from = date('Y-m-d', strtotime('-7 days', $today_ts));  $date_to = date('Y-m-d', $today_ts); $period_label = $langs->trans('RptLast7Days'); break;
+    case 'month':   $date_from = date('Y-m-01', $today_ts); $date_to = date('Y-m-d', $today_ts); $period_label = dol_print_date($today_ts, '%B %Y'); break;
+    case 'quarter': $date_from = date('Y-m-d', strtotime('-90 days', $today_ts)); $date_to = date('Y-m-d', $today_ts); $period_label = $langs->trans('RptLast90Days'); break;
+    case 'year':    $date_from = date('Y-01-01', $today_ts); $date_to = date('Y-m-d', $today_ts); $period_label = $langs->trans('RptThisYear'); break;
+    case 'last_month': $lm = strtotime('first day of last month', $today_ts); $date_from = date('Y-m-01', $lm); $date_to = date('Y-m-t', $lm); $period_label = dol_print_date($lm, '%B %Y'); break;
+    case 'last_year':  $date_from = (date('Y')-1).'-01-01'; $date_to = (date('Y')-1).'-12-31'; $period_label = $langs->trans('RptYear', date('Y') - 1); break;
     case 'custom':
         $date_from = !empty($date_from_input) ? $date_from_input : date('Y-m-01', $today_ts);
         $date_to   = !empty($date_to_input)   ? $date_to_input   : date('Y-m-d', $today_ts);
         $period_label = $date_from.' → '.$date_to;
         break;
-    default: $date_from = date('Y-m-01', $today_ts); $date_to = date('Y-m-d', $today_ts); $period_label = date('F Y', $today_ts);
+    default: $date_from = date('Y-m-01', $today_ts); $date_to = date('Y-m-d', $today_ts); $period_label = dol_print_date($today_ts, '%B %Y');
 }
 
 // ════════════════════════════════════════════════════════════
@@ -129,7 +162,7 @@ for ($m = 5; $m >= 0; $m--) {
     $ts = strtotime("-$m months", $today_ts);
     $y  = (int)date('Y',$ts); $mo = (int)date('m',$ts);
     $trend_data[] = array(
-        'month'    => date('M Y',$ts),
+        'month'    => dol_print_date($ts, '%b %Y'),
         'bookings' => (int)   rpt_val($db, "SELECT COUNT(*) as val FROM ".MAIN_DB_PREFIX."flotte_booking WHERE entity=$entity AND YEAR(booking_date)=$y AND MONTH(booking_date)=$mo"),
         'revenue'  => (float) rpt_val($db, "SELECT COALESCE(SUM(selling_amount),0) as val FROM ".MAIN_DB_PREFIX."flotte_booking WHERE entity=$entity AND YEAR(booking_date)=$y AND MONTH(booking_date)=$mo"),
         'cost'     => (float) rpt_val($db, "SELECT COALESCE(SUM(buying_amount),0) as val FROM ".MAIN_DB_PREFIX."flotte_booking WHERE entity=$entity AND YEAR(booking_date)=$y AND MONTH(booking_date)=$mo"),
@@ -143,7 +176,10 @@ $top_customers = rpt_rows($db, "SELECT c.ref, c.firstname, c.lastname, c.company
 
 // Revenue by day of week
 $dow_data = array();
-$dow_names = array('Sun','Mon','Tue','Wed','Thu','Fri','Sat');
+$dow_names = array(
+    $langs->trans('RptDaySun'), $langs->trans('RptDayMon'), $langs->trans('RptDayTue'),
+    $langs->trans('RptDayWed'), $langs->trans('RptDayThu'), $langs->trans('RptDayFri'), $langs->trans('RptDaySat'),
+);
 foreach ($dow_names as $k => $dn) {
     $dow_data[] = array('day'=>$dn, 'cnt'=>(int)rpt_val($db,"SELECT COUNT(*) as val FROM ".MAIN_DB_PREFIX."flotte_booking b WHERE DAYOFWEEK(b.booking_date)=".($k+1).$base), 'rev'=>(float)rpt_val($db,"SELECT COALESCE(SUM(selling_amount),0) as val FROM ".MAIN_DB_PREFIX."flotte_booking b WHERE DAYOFWEEK(b.booking_date)=".($k+1).$base));
 }
@@ -164,7 +200,7 @@ $fuel_trend = array();
 for ($m = 5; $m >= 0; $m--) {
     $ts = strtotime("-$m months", $today_ts);
     $y=(int)date('Y',$ts); $mo=(int)date('m',$ts);
-    $fuel_trend[] = array('month'=>date('M Y',$ts), 'qty'=>(float)rpt_val($db,"SELECT COALESCE(SUM(qty),0) as val FROM ".MAIN_DB_PREFIX."flotte_fuel WHERE entity=$entity AND YEAR(date)=$y AND MONTH(date)=$mo"), 'cost'=>(float)rpt_val($db,"SELECT COALESCE(SUM(qty*cost_unit),0) as val FROM ".MAIN_DB_PREFIX."flotte_fuel WHERE entity=$entity AND YEAR(date)=$y AND MONTH(date)=$mo"));
+    $fuel_trend[] = array('month'=>dol_print_date($ts, '%b %Y'), 'qty'=>(float)rpt_val($db,"SELECT COALESCE(SUM(qty),0) as val FROM ".MAIN_DB_PREFIX."flotte_fuel WHERE entity=$entity AND YEAR(date)=$y AND MONTH(date)=$mo"), 'cost'=>(float)rpt_val($db,"SELECT COALESCE(SUM(qty*cost_unit),0) as val FROM ".MAIN_DB_PREFIX."flotte_fuel WHERE entity=$entity AND YEAR(date)=$y AND MONTH(date)=$mo"));
 }
 
 // ════════════════════════════════════════════════════════════
@@ -248,7 +284,7 @@ for ($m = 5; $m >= 0; $m--) {
     $ts2 = strtotime("-$m months", $today_ts);
     $y2=(int)date('Y',$ts2); $mo2=(int)date('m',$ts2);
     $exp_trend[] = array(
-        'month' => date('M Y',$ts2),
+        'month' => dol_print_date($ts2, '%b %Y'),
         'total' => (float)rpt_val($db,"SELECT COALESCE(SUM(amount),0) as val FROM ".MAIN_DB_PREFIX."flotte_expense WHERE entity=$entity AND YEAR(expense_date)=$y2 AND MONTH(expense_date)=$mo2"),
         'fuel'  => (float)rpt_val($db,"SELECT COALESCE(SUM(amount),0) as val FROM ".MAIN_DB_PREFIX."flotte_expense WHERE entity=$entity AND category='fuel' AND YEAR(expense_date)=$y2 AND MONTH(expense_date)=$mo2"),
         'road'  => (float)rpt_val($db,"SELECT COALESCE(SUM(amount),0) as val FROM ".MAIN_DB_PREFIX."flotte_expense WHERE entity=$entity AND category='road' AND YEAR(expense_date)=$y2 AND MONTH(expense_date)=$mo2"),
@@ -279,36 +315,36 @@ $net_margin_pct = $total_revenue > 0 ? round(($net_profit / $total_revenue) * 10
 // ════════════════════════════════════════════════════════════
 // FILTER DROPDOWNS DATA
 // ════════════════════════════════════════════════════════════
-$vehicles_list  = array(0=>'— All Vehicles —');
+$vehicles_list  = array(0 => $langs->trans('RptAllVehicles'));
 foreach (rpt_rows($db,"SELECT rowid, ref, maker, model FROM ".MAIN_DB_PREFIX."flotte_vehicle WHERE entity=$entity ORDER BY ref") as $o) {
     $vehicles_list[$o->rowid] = $o->ref.' · '.trim($o->maker.' '.$o->model);
 }
-$drivers_list   = array(0=>'— All Drivers —');
+$drivers_list   = array(0 => $langs->trans('RptAllDrivers'));
 foreach (rpt_rows($db,"SELECT rowid, ref, lastname, firstname FROM ".MAIN_DB_PREFIX."flotte_driver WHERE entity=$entity ORDER BY lastname") as $o) {
     $drivers_list[$o->rowid] = $o->ref.' · '.trim($o->firstname.' '.$o->lastname);
 }
-$customers_list = array(0=>'— All Customers —');
+$customers_list = array(0 => $langs->trans('RptAllCustomers'));
 foreach (rpt_rows($db,"SELECT rowid, ref, firstname, lastname, company_name FROM ".MAIN_DB_PREFIX."flotte_customer WHERE entity=$entity ORDER BY lastname") as $o) {
     $name = !empty($o->company_name) ? $o->company_name : trim($o->firstname.' '.$o->lastname);
     $customers_list[$o->rowid] = $o->ref.' · '.$name;
 }
-$vendors_list   = array(0=>'— All Vendors —');
+$vendors_list   = array(0 => $langs->trans('RptAllVendors'));
 foreach (rpt_rows($db,"SELECT rowid, ref, name FROM ".MAIN_DB_PREFIX."flotte_vendor WHERE entity=$entity ORDER BY name") as $o) {
     $vendors_list[$o->rowid] = $o->ref.' · '.$o->name;
 }
 
 // Distinct statuses from bookings
-$booking_statuses = array(''=>'— All Statuses —');
+$booking_statuses = array('' => $langs->trans('RptAllStatuses'));
 foreach (rpt_rows($db,"SELECT DISTINCT status FROM ".MAIN_DB_PREFIX."flotte_booking WHERE entity=$entity AND status IS NOT NULL AND status != '' ORDER BY status") as $o) {
     $booking_statuses[$o->status] = ucfirst($o->status);
 }
 // Distinct fuel sources
-$fuel_sources = array(''=>'— All Sources —');
+$fuel_sources = array('' => $langs->trans('RptAllSources'));
 foreach (rpt_rows($db,"SELECT DISTINCT fuel_source FROM ".MAIN_DB_PREFIX."flotte_fuel WHERE entity=$entity AND fuel_source IS NOT NULL AND fuel_source != '' ORDER BY fuel_source") as $o) {
     $fuel_sources[$o->fuel_source] = ucfirst($o->fuel_source);
 }
 // Vehicle types
-$vehicle_types = array(''=>'— All Types —');
+$vehicle_types = array('' => $langs->trans('RptAllTypes'));
 foreach (rpt_rows($db,"SELECT DISTINCT type FROM ".MAIN_DB_PREFIX."flotte_vehicle WHERE entity=$entity AND type IS NOT NULL AND type != '' ORDER BY type") as $o) {
     $vehicle_types[$o->type] = ucfirst($o->type);
 }
@@ -324,7 +360,7 @@ function rpt_params($extra='') {
 // ════════════════════════════════════════════════════════════
 // RENDER
 // ════════════════════════════════════════════════════════════
-llxHeader('', 'Fleet Reports & Analytics', '');
+llxHeader('', $langs->trans('FleetReportsAnalytics'), '');
 print '<div class="fichecenter">';
 ?>
 
@@ -494,13 +530,13 @@ print '<div class="fichecenter">';
      ══════════════════════════════════════════════════ -->
 <div class="rpt-header">
     <div class="rpt-header-left">
-        <h1><i class="fa fa-chart-bar" style="color:#667eea;margin-right:8px;"></i>Fleet Reports &amp; Analytics</h1>
-        <p>Executive dashboard &amp; performance overview &middot; <strong style="color:#667eea;"><?php echo htmlspecialchars($period_label); ?></strong></p>
+        <h1><i class="fa fa-chart-bar" style="color:#667eea;margin-right:8px;"></i><?php echo $langs->trans('FleetReportsAnalytics'); ?></h1>
+        <p><?php echo $langs->trans('RptExecutiveDashboard'); ?> &middot; <strong style="color:#667eea;"><?php echo dol_escape_htmltag($period_label); ?></strong></p>
     </div>
     <div class="rpt-header-right">
-        <span class="period-chip"><i class="fa fa-calendar-alt"></i><?php echo htmlspecialchars($period_label); ?></span>
-        <a href="reports.php?report_tab=overview&period=month" class="export-btn"><i class="fa fa-sync-alt"></i> This Month</a>
-        <span class="export-btn" onclick="window.print()"><i class="fa fa-print"></i> Print</span>
+        <span class="period-chip"><i class="fa fa-calendar-alt"></i><?php echo dol_escape_htmltag($period_label); ?></span>
+        <a href="reports.php?report_tab=overview&period=month" class="export-btn"><i class="fa fa-sync-alt"></i> <?php echo $langs->trans('ThisMonth'); ?></a>
+        <span class="export-btn" onclick="window.print()"><i class="fa fa-print"></i> <?php echo $langs->trans('Print'); ?></span>
     </div>
 </div>
 
@@ -508,12 +544,12 @@ print '<div class="fichecenter">';
 <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:0;background:#fff;border-radius:14px;box-shadow:0 2px 16px rgba(0,0,0,.07);margin-bottom:24px;overflow:hidden;border:1px solid #f0f4f8;">
     <?php
     $ribbon = array(
-        array('#667eea','fa-calendar-check','Bookings',       rpt_fmt($total_bookings)),
-        array('#11998e','fa-dollar-sign',   'Revenue',        rpt_fmt($total_revenue,2)),
-        array('#e53e3e','fa-chart-line',    'Net Profit',     rpt_fmt($net_profit ?? $gross_margin, 2)),
-        array('#f7971e','fa-gas-pump',      'Fuel Cost',      rpt_fmt($total_fuel_cost,2)),
-        array('#764ba2','fa-tools',         'Maintenance',    rpt_fmt($wo_cost,2)),
-        array('#3182ce','fa-receipt',       'Expenses',       rpt_fmt($exp_total_amount,2)),
+        array('#667eea','fa-calendar-check',$langs->trans('Bookings'),       rpt_fmt($total_bookings)),
+        array('#11998e','fa-dollar-sign',   $langs->trans('RptRevenue'),        rpt_fmt($total_revenue,2)),
+        array('#e53e3e','fa-chart-line',    $langs->trans('RptNetProfit'),     rpt_fmt($net_profit ?? $gross_margin, 2)),
+        array('#f7971e','fa-gas-pump',      $langs->trans('RptFuelCost'),      rpt_fmt($total_fuel_cost,2)),
+        array('#764ba2','fa-tools',         $langs->trans('Maintenance'),    rpt_fmt($wo_cost,2)),
+        array('#3182ce','fa-receipt',       $langs->trans('Expenses'),       rpt_fmt($exp_total_amount,2)),
     );
     foreach($ribbon as $i=>$rb):
     ?>
@@ -534,43 +570,43 @@ print '<div class="fichecenter">';
 <input type="hidden" name="report_tab" value="<?php echo htmlspecialchars($report_tab); ?>">
 <div class="rpt-filter-panel">
     <div class="rpt-filter-head" onclick="toggleFilters()">
-        <h3><i class="fa fa-sliders-h"></i> Filters &amp; Date Range
+        <h3><i class="fa fa-sliders-h"></i> <?php echo $langs->trans('RptFiltersDateRange'); ?>
             <?php
             $active_count = 0;
             if ($fk_vehicle) $active_count++; if ($fk_driver) $active_count++; if ($fk_customer) $active_count++;
             if ($fk_vendor) $active_count++; if ($filter_status) $active_count++; if ($filter_fuel_src) $active_count++;
             if ($filter_wo_priority) $active_count++; if ($filter_vehicle_type) $active_count++;
             if (!empty($filter_min_revenue)||!empty($filter_max_revenue)) $active_count++;
-            if ($active_count > 0) echo ' <span class="sbadge sbadge-info">'.$active_count.' active</span>';
+            if ($active_count > 0) echo ' <span class="sbadge sbadge-info">'.$langs->trans('RptActiveFilters', $active_count).'</span>';
             ?>
         </h3>
-        <span class="rpt-filter-toggle" id="filterToggleBtn"><i class="fa fa-chevron-up" id="filterChevron"></i> <span id="filterToggleText">Collapse</span></span>
+        <span class="rpt-filter-toggle" id="filterToggleBtn"><i class="fa fa-chevron-up" id="filterChevron"></i> <span id="filterToggleText"><?php echo $langs->trans('RptCollapse'); ?></span></span>
     </div>
     <div class="rpt-filter-body" id="filterBody">
         <!-- Row 1: Period & dates -->
         <div class="rft">
-            <label><i class="fa fa-clock"></i> Time Period</label>
+            <label><i class="fa fa-clock"></i> <?php echo $langs->trans('RptTimePeriod'); ?></label>
             <select name="period" onchange="handlePeriodChange(this)">
-                <option value="week"      <?php echo $period=='week'      ?'selected':''; ?>>Last 7 Days</option>
-                <option value="month"     <?php echo $period=='month'     ?'selected':''; ?>>This Month</option>
-                <option value="last_month"<?php echo $period=='last_month'?'selected':''; ?>>Last Month</option>
-                <option value="quarter"   <?php echo $period=='quarter'   ?'selected':''; ?>>Last 90 Days</option>
-                <option value="year"      <?php echo $period=='year'      ?'selected':''; ?>>This Year</option>
-                <option value="last_year" <?php echo $period=='last_year' ?'selected':''; ?>>Last Year</option>
-                <option value="custom"    <?php echo $period=='custom'    ?'selected':''; ?>>Custom Range</option>
+                <option value="week"      <?php echo $period=='week'      ?'selected':''; ?>><?php echo $langs->trans('RptLast7Days'); ?></option>
+                <option value="month"     <?php echo $period=='month'     ?'selected':''; ?>><?php echo $langs->trans('ThisMonth'); ?></option>
+                <option value="last_month"<?php echo $period=='last_month'?'selected':''; ?>><?php echo $langs->trans('RptLastMonth'); ?></option>
+                <option value="quarter"   <?php echo $period=='quarter'   ?'selected':''; ?>><?php echo $langs->trans('RptLast90Days'); ?></option>
+                <option value="year"      <?php echo $period=='year'      ?'selected':''; ?>><?php echo $langs->trans('RptThisYear'); ?></option>
+                <option value="last_year" <?php echo $period=='last_year' ?'selected':''; ?>><?php echo $langs->trans('RptLastYear'); ?></option>
+                <option value="custom"    <?php echo $period=='custom'    ?'selected':''; ?>><?php echo $langs->trans('RptCustomRange'); ?></option>
             </select>
         </div>
         <div class="rft" id="customDateRow" style="<?php echo $period!='custom'?'opacity:.4;pointer-events:none;':''; ?>">
-            <label><i class="fa fa-calendar-check"></i> Date Range</label>
+            <label><i class="fa fa-calendar-check"></i> <?php echo $langs->trans('RptDateRange'); ?></label>
             <div class="rft-range">
-                <input type="date" name="date_from" value="<?php echo htmlspecialchars($date_from); ?>" placeholder="From">
+                <input type="date" name="date_from" value="<?php echo dol_escape_htmltag($date_from); ?>" placeholder="<?php echo $langs->trans('From'); ?>">
                 <span>→</span>
-                <input type="date" name="date_to"   value="<?php echo htmlspecialchars($date_to);   ?>" placeholder="To">
+                <input type="date" name="date_to"   value="<?php echo dol_escape_htmltag($date_to);   ?>" placeholder="<?php echo $langs->trans('To'); ?>">
             </div>
         </div>
         <!-- Row 2: Entity filters -->
         <div class="rft">
-            <label><i class="fa fa-car"></i> Vehicle</label>
+            <label><i class="fa fa-car"></i> <?php echo $langs->trans('Vehicle'); ?></label>
             <select name="fk_vehicle">
                 <?php foreach ($vehicles_list as $vid=>$vl): ?>
                 <option value="<?php echo (int)$vid; ?>" <?php echo $fk_vehicle==(int)$vid?'selected':''; ?>><?php echo htmlspecialchars($vl); ?></option>
@@ -578,7 +614,7 @@ print '<div class="fichecenter">';
             </select>
         </div>
         <div class="rft">
-            <label><i class="fa fa-user-tie"></i> Driver</label>
+            <label><i class="fa fa-user-tie"></i> <?php echo $langs->trans('Driver'); ?></label>
             <select name="fk_driver">
                 <?php foreach ($drivers_list as $did=>$dl): ?>
                 <option value="<?php echo (int)$did; ?>" <?php echo $fk_driver==(int)$did?'selected':''; ?>><?php echo htmlspecialchars($dl); ?></option>
@@ -586,7 +622,7 @@ print '<div class="fichecenter">';
             </select>
         </div>
         <div class="rft">
-            <label><i class="fa fa-users"></i> Customer</label>
+            <label><i class="fa fa-users"></i> <?php echo $langs->trans('Customer'); ?></label>
             <select name="fk_customer">
                 <?php foreach ($customers_list as $cid=>$cl): ?>
                 <option value="<?php echo (int)$cid; ?>" <?php echo $fk_customer==(int)$cid?'selected':''; ?>><?php echo htmlspecialchars($cl); ?></option>
@@ -594,7 +630,7 @@ print '<div class="fichecenter">';
             </select>
         </div>
         <div class="rft">
-            <label><i class="fa fa-store"></i> Vendor</label>
+            <label><i class="fa fa-store"></i> <?php echo $langs->trans('Vendor'); ?></label>
             <select name="fk_vendor">
                 <?php foreach ($vendors_list as $vid=>$vl): ?>
                 <option value="<?php echo (int)$vid; ?>" <?php echo $fk_vendor==(int)$vid?'selected':''; ?>><?php echo htmlspecialchars($vl); ?></option>
@@ -603,7 +639,7 @@ print '<div class="fichecenter">';
         </div>
         <!-- Row 3: Operational filters -->
         <div class="rft">
-            <label><i class="fa fa-tag"></i> Booking Status</label>
+            <label><i class="fa fa-tag"></i> <?php echo $langs->trans('RptBookingStatus'); ?></label>
             <select name="filter_status">
                 <?php foreach ($booking_statuses as $sv=>$sl): ?>
                 <option value="<?php echo htmlspecialchars($sv); ?>" <?php echo $filter_status===$sv?'selected':''; ?>><?php echo htmlspecialchars($sl); ?></option>
@@ -611,7 +647,7 @@ print '<div class="fichecenter">';
             </select>
         </div>
         <div class="rft">
-            <label><i class="fa fa-gas-pump"></i> Fuel Source</label>
+            <label><i class="fa fa-gas-pump"></i> <?php echo $langs->trans('RptFuelSource'); ?></label>
             <select name="filter_fuel_src">
                 <?php foreach ($fuel_sources as $sv=>$sl): ?>
                 <option value="<?php echo htmlspecialchars($sv); ?>" <?php echo $filter_fuel_src===$sv?'selected':''; ?>><?php echo htmlspecialchars($sl); ?></option>
@@ -619,17 +655,17 @@ print '<div class="fichecenter">';
             </select>
         </div>
         <div class="rft">
-            <label><i class="fa fa-exclamation-circle"></i> WO Priority</label>
+            <label><i class="fa fa-exclamation-circle"></i> <?php echo $langs->trans('RptWoPriority'); ?></label>
             <select name="filter_wo_priority">
-                <option value="">— All Priorities —</option>
-                <option value="Critical" <?php echo $filter_wo_priority=='Critical'?'selected':''; ?>>Critical</option>
-                <option value="High"     <?php echo $filter_wo_priority=='High'    ?'selected':''; ?>>High</option>
-                <option value="Medium"   <?php echo $filter_wo_priority=='Medium'  ?'selected':''; ?>>Medium</option>
-                <option value="Low"      <?php echo $filter_wo_priority=='Low'     ?'selected':''; ?>>Low</option>
+                <option value=""><?php echo $langs->trans('RptAllPriorities'); ?></option>
+                <option value="Critical" <?php echo $filter_wo_priority=='Critical'?'selected':''; ?>><?php echo $langs->trans('RptCritical'); ?></option>
+                <option value="High"     <?php echo $filter_wo_priority=='High'    ?'selected':''; ?>><?php echo $langs->trans('RptHigh'); ?></option>
+                <option value="Medium"   <?php echo $filter_wo_priority=='Medium'  ?'selected':''; ?>><?php echo $langs->trans('RptMedium'); ?></option>
+                <option value="Low"      <?php echo $filter_wo_priority=='Low'     ?'selected':''; ?>><?php echo $langs->trans('RptLow'); ?></option>
             </select>
         </div>
         <div class="rft">
-            <label><i class="fa fa-car-side"></i> Vehicle Type</label>
+            <label><i class="fa fa-car-side"></i> <?php echo $langs->trans('RptVehicleType'); ?></label>
             <select name="filter_vehicle_type">
                 <?php foreach ($vehicle_types as $sv=>$sl): ?>
                 <option value="<?php echo htmlspecialchars($sv); ?>" <?php echo $filter_vehicle_type===$sv?'selected':''; ?>><?php echo htmlspecialchars($sl); ?></option>
@@ -637,17 +673,17 @@ print '<div class="fichecenter">';
             </select>
         </div>
         <div class="rft">
-            <label><i class="fa fa-dollar-sign"></i> Revenue Range</label>
+            <label><i class="fa fa-dollar-sign"></i> <?php echo $langs->trans('RptRevenueRange'); ?></label>
             <div class="rft-range">
-                <input type="number" name="filter_min_revenue" placeholder="Min" value="<?php echo htmlspecialchars($filter_min_revenue); ?>" step="0.01" min="0">
+                <input type="number" name="filter_min_revenue" placeholder="<?php echo $langs->trans('RptMin'); ?>" value="<?php echo dol_escape_htmltag($filter_min_revenue); ?>" step="0.01" min="0">
                 <span>—</span>
-                <input type="number" name="filter_max_revenue" placeholder="Max" value="<?php echo htmlspecialchars($filter_max_revenue); ?>" step="0.01" min="0">
+                <input type="number" name="filter_max_revenue" placeholder="<?php echo $langs->trans('RptMax'); ?>" value="<?php echo dol_escape_htmltag($filter_max_revenue); ?>" step="0.01" min="0">
             </div>
         </div>
     </div>
     <div class="rpt-filter-actions">
-        <button type="submit" class="btn-apply"><i class="fa fa-filter"></i> Apply Filters</button>
-        <a href="reports.php" class="btn-reset"><i class="fa fa-times"></i> Clear All</a>
+        <button type="submit" class="btn-apply"><i class="fa fa-filter"></i> <?php echo $langs->trans('RptApplyFilters'); ?></button>
+        <a href="reports.php" class="btn-reset"><i class="fa fa-times"></i> <?php echo $langs->trans('RptClearAll'); ?></a>
         <?php if ($active_count > 0): ?>
         <div class="active-filters">
             <?php if ($fk_vehicle && isset($vehicles_list[$fk_vehicle])): ?><span class="af-chip"><i class="fa fa-car"></i><?php echo htmlspecialchars(explode(' · ',$vehicles_list[$fk_vehicle])[0]); ?></span><?php endif; ?>
@@ -668,12 +704,12 @@ print '<div class="fichecenter">';
 <div class="rpt-tabs">
     <?php
     $tabs = array(
-        'overview'    => array('fa fa-tachometer-alt',    'Overview'),
-        'bookings'    => array('fa fa-calendar-check',    'Bookings'),
-        'fuel'        => array('fa fa-gas-pump',          'Fuel'),
-        'maintenance' => array('fa fa-tools',             'Maintenance'),
-        'expenses'    => array('fa fa-receipt',           'Expenses'),
-        'fleet'       => array('fa fa-car',               'Fleet'),
+        'overview'    => array('fa fa-tachometer-alt',    $langs->trans('RptOverview')),
+        'bookings'    => array('fa fa-calendar-check',    $langs->trans('Bookings')),
+        'fuel'        => array('fa fa-gas-pump',          $langs->trans('Fuel')),
+        'maintenance' => array('fa fa-tools',             $langs->trans('Maintenance')),
+        'expenses'    => array('fa fa-receipt',           $langs->trans('Expenses')),
+        'fleet'       => array('fa fa-car',               $langs->trans('Fleet')),
     );
     foreach ($tabs as $tab_key => $tab_info):
         $params = rpt_params('&report_tab='.$tab_key.'&period='.urlencode($period).'&date_from='.urlencode($date_from).'&date_to='.urlencode($date_to));
@@ -701,18 +737,18 @@ $total_all_cost = $total_cost + $exp_total_amount + $total_fuel_cost + $wo_cost;
         <div class="kpi-shine"></div>
         <div class="kpi-icon"><i class="fa fa-dollar-sign"></i></div>
         <div class="kpi-body">
-            <div class="kpi-lbl" style="margin-bottom:8px;">Total Revenue</div>
+            <div class="kpi-lbl" style="margin-bottom:8px;"><?php echo $langs->trans('RptTotalRevenue'); ?></div>
             <div class="kpi-val sm"><?php echo rpt_fmt($total_revenue,2); ?></div>
             <div class="kpi-sub">
                 <?php if ($rev_trend_pct !== null): ?>
                 <span class="kpi-trend <?php echo $rev_trend_pct>=0?'up':'down'; ?>">
-                    <i class="fa fa-arrow-<?php echo $rev_trend_pct>=0?'up':'down'; ?>"></i><?php echo abs($rev_trend_pct); ?>% vs prev period
+                    <i class="fa fa-arrow-<?php echo $rev_trend_pct>=0?'up':'down'; ?>"></i><?php echo $langs->trans('RptVsPrevPeriod', abs($rev_trend_pct)); ?>
                 </span>
                 <?php endif; ?>
             </div>
             <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.2);display:flex;gap:16px;">
-                <div><div style="font-size:11px;opacity:.75;margin-bottom:2px;">Avg / Trip</div><div style="font-size:14px;font-weight:700;"><?php echo rpt_fmt($avg_revenue_trip,2); ?></div></div>
-                <div><div style="font-size:11px;opacity:.75;margin-bottom:2px;">Bookings</div><div style="font-size:14px;font-weight:700;"><?php echo rpt_fmt($total_bookings); ?></div></div>
+                <div><div style="font-size:11px;opacity:.75;margin-bottom:2px;"><?php echo $langs->trans('RptAvgPerTrip'); ?></div><div style="font-size:14px;font-weight:700;"><?php echo rpt_fmt($avg_revenue_trip,2); ?></div></div>
+                <div><div style="font-size:11px;opacity:.75;margin-bottom:2px;"><?php echo $langs->trans('Bookings'); ?></div><div style="font-size:14px;font-weight:700;"><?php echo rpt_fmt($total_bookings); ?></div></div>
             </div>
         </div>
     </div>
@@ -722,12 +758,12 @@ $total_all_cost = $total_cost + $exp_total_amount + $total_fuel_cost + $wo_cost;
         <div class="kpi-shine"></div>
         <div class="kpi-icon"><i class="fa fa-chart-line"></i></div>
         <div class="kpi-body">
-            <div class="kpi-lbl" style="margin-bottom:8px;">Net Profit</div>
+            <div class="kpi-lbl" style="margin-bottom:8px;"><?php echo $langs->trans('RptNetProfit'); ?></div>
             <div class="kpi-val sm"><?php echo rpt_fmt($net_profit,2); ?></div>
-            <div class="kpi-sub"><span>Net margin: <?php echo $net_margin_pct; ?>%</span></div>
+            <div class="kpi-sub"><span><?php echo $langs->trans('RptNetMargin', $net_margin_pct); ?></span></div>
             <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.2);display:flex;gap:16px;">
-                <div><div style="font-size:11px;opacity:.75;margin-bottom:2px;">Gross Margin</div><div style="font-size:14px;font-weight:700;"><?php echo $margin_pct; ?>%</div></div>
-                <div><div style="font-size:11px;opacity:.75;margin-bottom:2px;">Gross Profit</div><div style="font-size:14px;font-weight:700;"><?php echo rpt_fmt($gross_margin,2); ?></div></div>
+                <div><div style="font-size:11px;opacity:.75;margin-bottom:2px;"><?php echo $langs->trans('RptGrossMargin'); ?></div><div style="font-size:14px;font-weight:700;"><?php echo $margin_pct; ?>%</div></div>
+                <div><div style="font-size:11px;opacity:.75;margin-bottom:2px;"><?php echo $langs->trans('RptGrossProfit'); ?></div><div style="font-size:14px;font-weight:700;"><?php echo rpt_fmt($gross_margin,2); ?></div></div>
             </div>
         </div>
     </div>
@@ -737,12 +773,12 @@ $total_all_cost = $total_cost + $exp_total_amount + $total_fuel_cost + $wo_cost;
         <div class="kpi-shine"></div>
         <div class="kpi-icon"><i class="fa fa-file-invoice-dollar"></i></div>
         <div class="kpi-body">
-            <div class="kpi-lbl" style="margin-bottom:8px;">Booking Cost</div>
+            <div class="kpi-lbl" style="margin-bottom:8px;"><?php echo $langs->trans('RptBookingCost'); ?></div>
             <div class="kpi-val sm"><?php echo rpt_fmt($total_cost,2); ?></div>
-            <div class="kpi-sub"><span><?php echo $total_revenue>0?round($total_cost/$total_revenue*100):'0'; ?>% of revenue</span></div>
+            <div class="kpi-sub"><span><?php echo $langs->trans('RptPercentOfRevenue', $total_revenue > 0 ? round($total_cost / $total_revenue * 100) : 0); ?></span></div>
             <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.2);display:flex;gap:16px;">
-                <div><div style="font-size:11px;opacity:.75;margin-bottom:2px;">Fuel Cost</div><div style="font-size:14px;font-weight:700;"><?php echo rpt_fmt($total_fuel_cost,2); ?></div></div>
-                <div><div style="font-size:11px;opacity:.75;margin-bottom:2px;">Expenses</div><div style="font-size:14px;font-weight:700;"><?php echo rpt_fmt($exp_total_amount,2); ?></div></div>
+                <div><div style="font-size:11px;opacity:.75;margin-bottom:2px;"><?php echo $langs->trans('RptFuelCost'); ?></div><div style="font-size:14px;font-weight:700;"><?php echo rpt_fmt($total_fuel_cost,2); ?></div></div>
+                <div><div style="font-size:11px;opacity:.75;margin-bottom:2px;"><?php echo $langs->trans('Expenses'); ?></div><div style="font-size:14px;font-weight:700;"><?php echo rpt_fmt($exp_total_amount,2); ?></div></div>
             </div>
         </div>
     </div>
@@ -752,19 +788,19 @@ $total_all_cost = $total_cost + $exp_total_amount + $total_fuel_cost + $wo_cost;
         <div class="kpi-shine"></div>
         <div class="kpi-icon"><i class="fa fa-receipt"></i></div>
         <div class="kpi-body">
-            <div class="kpi-lbl" style="margin-bottom:8px;">Total Expenses</div>
+            <div class="kpi-lbl" style="margin-bottom:8px;"><?php echo $langs->trans('RptTotalExpenses'); ?></div>
             <div class="kpi-val sm"><?php echo rpt_fmt($exp_total_amount,2); ?></div>
             <div class="kpi-sub">
                 <?php if ($exp_trend_pct !== null): ?>
                 <span class="kpi-trend <?php echo $exp_trend_pct<=0?'up':'down'; ?>">
-                    <i class="fa fa-arrow-<?php echo $exp_trend_pct<=0?'down':'up'; ?>"></i><?php echo abs($exp_trend_pct); ?>% vs prev
+                    <i class="fa fa-arrow-<?php echo $exp_trend_pct<=0?'down':'up'; ?>"></i><?php echo $langs->trans('RptVsPrev', abs($exp_trend_pct)); ?>
                 </span>
                 <?php endif; ?>
-                <span><?php echo $exp_vs_rev_pct; ?>% of revenue</span>
+                <span><?php echo $langs->trans('RptPercentOfRevenue', $exp_vs_rev_pct); ?></span>
             </div>
             <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.2);display:flex;gap:16px;">
-                <div><div style="font-size:11px;opacity:.75;margin-bottom:2px;">Entries</div><div style="font-size:14px;font-weight:700;"><?php echo $exp_total_count; ?></div></div>
-                <div><div style="font-size:11px;opacity:.75;margin-bottom:2px;">Avg</div><div style="font-size:14px;font-weight:700;"><?php echo rpt_fmt($exp_avg_amount,2); ?></div></div>
+                <div><div style="font-size:11px;opacity:.75;margin-bottom:2px;"><?php echo $langs->trans('RptEntries'); ?></div><div style="font-size:14px;font-weight:700;"><?php echo $exp_total_count; ?></div></div>
+                <div><div style="font-size:11px;opacity:.75;margin-bottom:2px;"><?php echo $langs->trans('RptAvg'); ?></div><div style="font-size:14px;font-weight:700;"><?php echo rpt_fmt($exp_avg_amount,2); ?></div></div>
             </div>
         </div>
     </div>
@@ -778,7 +814,7 @@ $total_all_cost = $total_cost + $exp_total_amount + $total_fuel_cost + $wo_cost;
         <div class="kpi-icon" style="font-size:38px;"><i class="fa fa-calendar-check"></i></div>
         <div class="kpi-body">
             <div class="kpi-val" style="font-size:26px;"><?php echo rpt_fmt($total_bookings); ?></div>
-            <div class="kpi-lbl">Bookings</div>
+            <div class="kpi-lbl"><?php echo $langs->trans('Bookings'); ?></div>
             <div class="kpi-sub" style="margin-top:6px;">
                 <?php if ($bkg_trend_pct !== null): ?>
                 <span class="kpi-trend <?php echo $bkg_trend_pct>=0?'up':'down'; ?>"><i class="fa fa-arrow-<?php echo $bkg_trend_pct>=0?'up':'down'; ?>"></i><?php echo abs($bkg_trend_pct); ?>%</span>
@@ -792,8 +828,8 @@ $total_all_cost = $total_cost + $exp_total_amount + $total_fuel_cost + $wo_cost;
         <div class="kpi-icon" style="font-size:38px;"><i class="fa fa-road"></i></div>
         <div class="kpi-body">
             <div class="kpi-val" style="font-size:26px;"><?php echo rpt_fmt($total_distance); ?></div>
-            <div class="kpi-lbl">km Driven</div>
-            <div class="kpi-sub" style="margin-top:6px;"><span><?php echo rpt_fmt($avg_distance_trip,1); ?> avg/trip</span></div>
+            <div class="kpi-lbl"><?php echo $langs->trans('RptKmDriven'); ?></div>
+            <div class="kpi-sub" style="margin-top:6px;"><span><?php echo $langs->trans('RptAvgPerTripKm', rpt_fmt($avg_distance_trip, 1)); ?></span></div>
         </div>
     </div>
 
@@ -802,7 +838,7 @@ $total_all_cost = $total_cost + $exp_total_amount + $total_fuel_cost + $wo_cost;
         <div class="kpi-icon" style="font-size:38px;"><i class="fa fa-gas-pump"></i></div>
         <div class="kpi-body">
             <div class="kpi-val" style="font-size:26px;"><?php echo rpt_fmt($total_fuel_qty,0); ?> <span style="font-size:14px;">L</span></div>
-            <div class="kpi-lbl">Fuel Used</div>
+            <div class="kpi-lbl"><?php echo $langs->trans('RptFuelUsed'); ?></div>
             <div class="kpi-sub" style="margin-top:6px;"><span><?php echo $km_per_litre>0?rpt_fmt($km_per_litre,1).' km/L':'—'; ?></span></div>
         </div>
     </div>
@@ -812,8 +848,8 @@ $total_all_cost = $total_cost + $exp_total_amount + $total_fuel_cost + $wo_cost;
         <div class="kpi-icon" style="font-size:38px;"><i class="fa fa-tools"></i></div>
         <div class="kpi-body">
             <div class="kpi-val" style="font-size:26px;"><?php echo $wo_pending; ?></div>
-            <div class="kpi-lbl">Open Work Orders</div>
-            <div class="kpi-sub" style="margin-top:6px;"><span><?php echo $wo_comp_rate; ?>% done</span></div>
+            <div class="kpi-lbl"><?php echo $langs->trans('RptOpenWorkOrders'); ?></div>
+            <div class="kpi-sub" style="margin-top:6px;"><span><?php echo $langs->trans('RptPercentDone', $wo_comp_rate); ?></span></div>
         </div>
     </div>
 
@@ -822,8 +858,8 @@ $total_all_cost = $total_cost + $exp_total_amount + $total_fuel_cost + $wo_cost;
         <div class="kpi-icon" style="font-size:38px;"><i class="fa fa-car"></i></div>
         <div class="kpi-body">
             <div class="kpi-val" style="font-size:26px;"><?php echo $fleet_active; ?><span style="font-size:14px;opacity:.7;"> / <?php echo $fleet_total; ?></span></div>
-            <div class="kpi-lbl">Fleet In Service</div>
-            <div class="kpi-sub" style="margin-top:6px;"><span><?php echo $fleet_util; ?>% available</span></div>
+            <div class="kpi-lbl"><?php echo $langs->trans('RptFleetInService'); ?></div>
+            <div class="kpi-sub" style="margin-top:6px;"><span><?php echo $langs->trans('RptPercentAvailable', $fleet_util); ?></span></div>
         </div>
     </div>
 </div>
@@ -832,19 +868,19 @@ $total_all_cost = $total_cost + $exp_total_amount + $total_fuel_cost + $wo_cost;
 <?php
 $alerts = array();
 if ($wo_pending > 0)
-    $alerts[] = array('danger', 'fa-exclamation-triangle', $wo_pending.' work order'.($wo_pending>1?'s':'').' pending action');
+    $alerts[] = array('danger', 'fa-exclamation-triangle', $langs->trans('RptAlertWoPending', $wo_pending));
 if ($fleet_inactive > 0)
-    $alerts[] = array('warning', 'fa-car', $fleet_inactive.' vehicle'.($fleet_inactive>1?'s':'').' out of service');
+    $alerts[] = array('warning', 'fa-car', $langs->trans('RptAlertVehiclesOos', $fleet_inactive));
 if ($margin_pct < 10 && $total_revenue > 0)
-    $alerts[] = array('danger', 'fa-chart-line', 'Gross margin critically low at '.$margin_pct.'%');
+    $alerts[] = array('danger', 'fa-chart-line', $langs->trans('RptAlertMarginLow', $margin_pct));
 if ($exp_vs_rev_pct > 50 && $total_revenue > 0)
-    $alerts[] = array('warning', 'fa-receipt', 'Expenses at '.$exp_vs_rev_pct.'% of revenue — review spending');
+    $alerts[] = array('warning', 'fa-receipt', $langs->trans('RptAlertExpensesHigh', $exp_vs_rev_pct));
 if ($km_per_litre > 0 && $km_per_litre < 5)
-    $alerts[] = array('warning', 'fa-gas-pump', 'Low fuel efficiency: '.rpt_fmt($km_per_litre,1).' km/L');
+    $alerts[] = array('warning', 'fa-gas-pump', $langs->trans('RptAlertFuelLow', rpt_fmt($km_per_litre, 1)));
 if ($fleet_util >= 90)
-    $alerts[] = array('info', 'fa-check-circle', 'Fleet utilisation excellent at '.$fleet_util.'%');
+    $alerts[] = array('info', 'fa-check-circle', $langs->trans('RptAlertFleetUtil', $fleet_util));
 if ($margin_pct >= 30 && $total_revenue > 0)
-    $alerts[] = array('info', 'fa-thumbs-up', 'Strong margin: '.$margin_pct.'% gross margin this period');
+    $alerts[] = array('info', 'fa-thumbs-up', $langs->trans('RptAlertStrongMargin', $margin_pct));
 ?>
 <?php if (!empty($alerts)): ?>
 <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px;">
@@ -865,15 +901,15 @@ if ($margin_pct >= 30 && $total_revenue > 0)
 
     <!-- Main trend chart -->
     <div class="card">
-        <h3 class="card-title"><i class="fa fa-chart-area"></i> Revenue, Cost &amp; Profit — Last 6 Months</h3>
+        <h3 class="card-title"><i class="fa fa-chart-area"></i> <?php echo $langs->trans('RptRevenueCostProfit6M'); ?></h3>
         <div class="chart-wrap tall"><canvas id="rptTrend"></canvas></div>
     </div>
 
     <!-- Cost breakdown donut -->
     <div class="card">
-        <h3 class="card-title"><i class="fa fa-chart-pie"></i> Cost Breakdown</h3>
+        <h3 class="card-title"><i class="fa fa-chart-pie"></i> <?php echo $langs->trans('RptCostBreakdown'); ?></h3>
         <?php
-        $cb_labels = array('Booking Cost','Fuel','Expenses','Maintenance');
+        $cb_labels = array($langs->trans('RptBookingCost'), $langs->trans('Fuel'), $langs->trans('Expenses'), $langs->trans('Maintenance'));
         $cb_data   = array($total_cost, $total_fuel_cost, $exp_total_amount, $wo_cost);
         $cb_total  = array_sum($cb_data); if ($cb_total <= 0) $cb_total = 1;
         ?>
@@ -904,9 +940,9 @@ if ($margin_pct >= 30 && $total_revenue > 0)
 
     <!-- Top Vehicles -->
     <div class="card">
-        <h3 class="card-title"><i class="fa fa-car"></i> Top Vehicles</h3>
+        <h3 class="card-title"><i class="fa fa-car"></i> <?php echo $langs->trans('TopVehicles'); ?></h3>
         <?php if (empty($top_vehicles)): ?>
-        <div class="empty-state"><i class="fa fa-car"></i><p>No data for this period</p></div>
+        <div class="empty-state"><i class="fa fa-car"></i><p><?php echo $langs->trans('RptNoDataPeriod'); ?></p></div>
         <?php else: $mx=max(1,max(array_column($top_vehicles,'bookings'))); ?>
         <?php foreach(array_slice($top_vehicles,0,5) as $idx=>$v):
             $pct=round(($v->bookings/$mx)*100);
@@ -922,7 +958,7 @@ if ($margin_pct >= 30 && $total_revenue > 0)
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
                 <div class="prog" style="flex:1;"><div class="prog-fill blue" style="width:<?php echo $pct; ?>%"></div></div>
-                <span style="font-size:11px;color:#718096;width:40px;text-align:right;"><?php echo $v->bookings; ?> trips</span>
+                <span style="font-size:11px;color:#718096;width:40px;text-align:right;"><?php echo $langs->trans('RptTripsCount', $v->bookings); ?></span>
             </div>
         </div>
         <?php endforeach; ?>
@@ -931,9 +967,9 @@ if ($margin_pct >= 30 && $total_revenue > 0)
 
     <!-- Top Drivers -->
     <div class="card">
-        <h3 class="card-title"><i class="fa fa-user-tie"></i> Top Drivers</h3>
+        <h3 class="card-title"><i class="fa fa-user-tie"></i> <?php echo $langs->trans('TopDrivers'); ?></h3>
         <?php if (empty($top_drivers)): ?>
-        <div class="empty-state"><i class="fa fa-users"></i><p>No data</p></div>
+        <div class="empty-state"><i class="fa fa-users"></i><p><?php echo $langs->trans('RptNoData'); ?></p></div>
         <?php else: $mx=max(1,max(array_column($top_drivers,'bookings'))); ?>
         <?php foreach(array_slice($top_drivers,0,5) as $idx=>$d):
             $pct=round(($d->bookings/$mx)*100);
@@ -949,7 +985,7 @@ if ($margin_pct >= 30 && $total_revenue > 0)
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
                 <div class="prog" style="flex:1;"><div class="prog-fill pink" style="width:<?php echo $pct; ?>%"></div></div>
-                <span style="font-size:11px;color:#718096;width:40px;text-align:right;"><?php echo $d->bookings; ?> trips</span>
+                <span style="font-size:11px;color:#718096;width:40px;text-align:right;"><?php echo $langs->trans('RptTripsCount', $d->bookings); ?></span>
             </div>
         </div>
         <?php endforeach; ?>
@@ -958,17 +994,17 @@ if ($margin_pct >= 30 && $total_revenue > 0)
 
     <!-- Quick stats panel -->
     <div class="card">
-        <h3 class="card-title"><i class="fa fa-tachometer-alt"></i> Key Metrics</h3>
+        <h3 class="card-title"><i class="fa fa-tachometer-alt"></i> <?php echo $langs->trans('RptKeyMetrics'); ?></h3>
         <?php
         $metrics = array(
-            array('fa-road',       '#667eea', 'Avg Distance / Trip',    rpt_fmt($avg_distance_trip,1).' km'),
-            array('fa-dollar-sign','#38a169', 'Avg Revenue / Trip',     rpt_fmt($avg_revenue_trip,2)),
-            array('fa-tint',       '#f7971e', 'Fuel Efficiency',        $km_per_litre>0?rpt_fmt($km_per_litre,2).' km/L':'—'),
-            array('fa-dollar-sign','#e53e3e', 'Avg Cost / Litre',       rpt_fmt($avg_cost_per_litre,3)),
-            array('fa-tools',      '#fc4a1a', 'Avg Maint. Cost / WO',  rpt_fmt($wo_avg_cost,2)),
-            array('fa-users',      '#764ba2', 'Active Drivers',         $total_drivers),
-            array('fa-address-book','#11998e','Customers',              $total_customers),
-            array('fa-clipboard-check','#4facfe','Inspections',         $total_inspections),
+            array('fa-road',       '#667eea', $langs->trans('RptAvgDistanceTrip'),    rpt_fmt($avg_distance_trip,1).' km'),
+            array('fa-dollar-sign','#38a169', $langs->trans('RptAvgRevenueTrip'),     rpt_fmt($avg_revenue_trip,2)),
+            array('fa-tint',       '#f7971e', $langs->trans('RptFuelEfficiency'),        $km_per_litre>0?rpt_fmt($km_per_litre,2).' km/L':'—'),
+            array('fa-dollar-sign','#e53e3e', $langs->trans('RptAvgCostLitre'),       rpt_fmt($avg_cost_per_litre,3)),
+            array('fa-tools',      '#fc4a1a', $langs->trans('RptAvgMaintCostWo'),  rpt_fmt($wo_avg_cost,2)),
+            array('fa-users',      '#764ba2', $langs->trans('RptActiveDrivers'),         $total_drivers),
+            array('fa-address-book','#11998e',$langs->trans('Customers'),              $total_customers),
+            array('fa-clipboard-check','#4facfe',$langs->trans('Inspections'),         $total_inspections),
         );
         foreach($metrics as $m):
         ?>
@@ -988,13 +1024,13 @@ if ($margin_pct >= 30 && $total_revenue > 0)
 <!-- ═══ ROW 6: DOW Activity + Top Customers ═══ -->
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
     <div class="card">
-        <h3 class="card-title"><i class="fa fa-calendar-week"></i> Activity by Day of Week</h3>
+        <h3 class="card-title"><i class="fa fa-calendar-week"></i> <?php echo $langs->trans('RptActivityByDow'); ?></h3>
         <div class="chart-wrap"><canvas id="rptDow"></canvas></div>
     </div>
     <div class="card">
-        <h3 class="card-title"><i class="fa fa-users"></i> Top Customers by Revenue</h3>
+        <h3 class="card-title"><i class="fa fa-users"></i> <?php echo $langs->trans('RptTopCustomersRevenue'); ?></h3>
         <?php if (empty($top_customers)): ?>
-        <div class="empty-state"><i class="fa fa-users"></i><p>No data for this period</p></div>
+        <div class="empty-state"><i class="fa fa-users"></i><p><?php echo $langs->trans('RptNoDataPeriod'); ?></p></div>
         <?php else: $mx=max(1,max(array_column($top_customers,'revenue'))); ?>
         <?php foreach(array_slice($top_customers,0,5) as $idx=>$c):
             $pct=round(($c->revenue/$mx)*100);
@@ -1004,7 +1040,7 @@ if ($margin_pct >= 30 && $total_revenue > 0)
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
                 <div>
                     <span style="font-size:13px;font-weight:600;color:#1a202c;"><?php echo htmlspecialchars($cname?:'—'); ?></span>
-                    <span style="font-size:11px;color:#a0aec0;margin-left:6px;"><?php echo $c->bookings; ?> trips</span>
+                    <span style="font-size:11px;color:#a0aec0;margin-left:6px;"><?php echo $langs->trans('RptTripsCount', $c->bookings); ?></span>
                 </div>
                 <span style="font-size:12px;font-weight:700;color:#38a169;"><?php echo rpt_fmt($c->revenue,2); ?></span>
             </div>
@@ -1021,23 +1057,23 @@ if ($margin_pct >= 30 && $total_revenue > 0)
 <?php elseif ($report_tab == 'bookings'): ?>
 
 <div class="kpi-grid">
-    <div class="kpi-card kpi-bookings"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-calendar-check"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo rpt_fmt($total_bookings); ?></div><div class="kpi-lbl">Total Bookings</div><div class="kpi-sub"><span>Avg <?php echo rpt_fmt($avg_revenue_trip,2); ?> revenue</span></div></div></div>
-    <div class="kpi-card kpi-revenue"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-dollar-sign"></i></div><div class="kpi-body"><div class="kpi-val sm"><?php echo rpt_fmt($total_revenue,2); ?></div><div class="kpi-lbl">Revenue</div><div class="kpi-sub"><span>Margin <?php echo $margin_pct; ?>%</span></div></div></div>
-    <div class="kpi-card kpi-cost"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-receipt"></i></div><div class="kpi-body"><div class="kpi-val sm"><?php echo rpt_fmt($total_cost,2); ?></div><div class="kpi-lbl">Total Cost</div><div class="kpi-sub"><span>Profit <?php echo rpt_fmt($gross_margin,2); ?></span></div></div></div>
-    <div class="kpi-card kpi-distance"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-road"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo rpt_fmt($total_distance); ?></div><div class="kpi-lbl">km Driven</div><div class="kpi-sub"><span><?php echo rpt_fmt($avg_distance_trip,1); ?> avg / trip</span></div></div></div>
+    <div class="kpi-card kpi-bookings"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-calendar-check"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo rpt_fmt($total_bookings); ?></div><div class="kpi-lbl"><?php echo $langs->trans('RptTotalBookings'); ?></div><div class="kpi-sub"><span><?php echo $langs->trans('RptAvgRevenueLabel', rpt_fmt($avg_revenue_trip, 2)); ?></span></div></div></div>
+    <div class="kpi-card kpi-revenue"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-dollar-sign"></i></div><div class="kpi-body"><div class="kpi-val sm"><?php echo rpt_fmt($total_revenue,2); ?></div><div class="kpi-lbl"><?php echo $langs->trans('RptRevenue'); ?></div><div class="kpi-sub"><span><?php echo $langs->trans('RptMarginLabel', $margin_pct); ?></span></div></div></div>
+    <div class="kpi-card kpi-cost"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-receipt"></i></div><div class="kpi-body"><div class="kpi-val sm"><?php echo rpt_fmt($total_cost,2); ?></div><div class="kpi-lbl"><?php echo $langs->trans('RptTotalCost'); ?></div><div class="kpi-sub"><span><?php echo $langs->trans('RptProfitLabel', rpt_fmt($gross_margin, 2)); ?></span></div></div></div>
+    <div class="kpi-card kpi-distance"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-road"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo rpt_fmt($total_distance); ?></div><div class="kpi-lbl"><?php echo $langs->trans('RptKmDriven'); ?></div><div class="kpi-sub"><span><?php echo $langs->trans('RptAvgPerTripSlash', rpt_fmt($avg_distance_trip, 1)); ?></span></div></div></div>
 </div>
 
 <div class="two-col" style="margin-bottom:20px;">
     <div class="card">
-        <h3 class="card-title"><i class="fa fa-chart-bar"></i> Monthly Trend (6 months)</h3>
+        <h3 class="card-title"><i class="fa fa-chart-bar"></i> <?php echo $langs->trans('RptMonthlyTrend6M'); ?></h3>
         <div class="chart-wrap tall"><canvas id="rptTrend"></canvas></div>
     </div>
     <div class="card">
-        <h3 class="card-title"><i class="fa fa-chart-pie"></i> Bookings by Status</h3>
+        <h3 class="card-title"><i class="fa fa-chart-pie"></i> <?php echo $langs->trans('BookingsByStatus'); ?></h3>
         <div class="chart-wrap tall"><canvas id="rptStatus"></canvas></div>
         <div style="margin-top:16px;">
         <table class="rpt-table">
-            <thead><tr><th>Status</th><th style="text-align:right">Bookings</th><th style="text-align:right">Revenue</th><th style="text-align:right">Share</th></tr></thead>
+            <thead><tr><th><?php echo $langs->trans('Status'); ?></th><th style="text-align:right"><?php echo $langs->trans('Bookings'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptRevenue'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptShare'); ?></th></tr></thead>
             <tbody>
             <?php $tot_b=max(1,$total_bookings); foreach($status_rows as $s): ?>
             <tr><td><?php rpt_badge($s->lbl); ?></td><td style="text-align:right" class="num"><?php echo rpt_fmt($s->cnt); ?></td><td style="text-align:right" class="rev"><?php echo rpt_fmt($s->rev,2); ?></td><td style="text-align:right" class="num"><?php echo round($s->cnt/$tot_b*100); ?>%</td></tr>
@@ -1050,11 +1086,11 @@ if ($margin_pct >= 30 && $total_revenue > 0)
 
 <div class="two-col" style="margin-bottom:20px;">
     <div class="card">
-        <h3 class="card-title"><i class="fa fa-user-tie"></i> Top Drivers</h3>
-        <?php if(empty($top_drivers)): ?><div class="empty-state"><i class="fa fa-users"></i><p>No data</p></div>
+        <h3 class="card-title"><i class="fa fa-user-tie"></i> <?php echo $langs->trans('TopDrivers'); ?></h3>
+        <?php if(empty($top_drivers)): ?><div class="empty-state"><i class="fa fa-users"></i><p><?php echo $langs->trans('RptNoData'); ?></p></div>
         <?php else: $mx=max(1,max(array_column($top_drivers,'bookings'))); ?>
         <table class="rpt-table">
-            <thead><tr><th>#</th><th>Driver</th><th style="text-align:right">Trips</th><th style="text-align:right">km</th><th style="text-align:right">Revenue</th><th style="width:90px">Share</th></tr></thead>
+            <thead><tr><th>#</th><th><?php echo $langs->trans('Driver'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptTripsLabel'); ?></th><th style="text-align:right">km</th><th style="text-align:right"><?php echo $langs->trans('RptRevenue'); ?></th><th style="width:90px"><?php echo $langs->trans('RptShare'); ?></th></tr></thead>
             <tbody>
             <?php foreach($top_drivers as $idx=>$d): $pct=round(($d->bookings/$mx)*100); ?>
             <tr>
@@ -1071,7 +1107,7 @@ if ($margin_pct >= 30 && $total_revenue > 0)
         <?php endif; ?>
     </div>
     <div class="card">
-        <h3 class="card-title"><i class="fa fa-calendar-week"></i> Activity by Day of Week</h3>
+        <h3 class="card-title"><i class="fa fa-calendar-week"></i> <?php echo $langs->trans('RptActivityByDow'); ?></h3>
         <div class="chart-wrap"><canvas id="rptDow"></canvas></div>
     </div>
 </div>
@@ -1082,22 +1118,22 @@ if ($margin_pct >= 30 && $total_revenue > 0)
 <?php elseif ($report_tab == 'fuel'): ?>
 
 <div class="kpi-grid">
-    <div class="kpi-card kpi-fuel"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-gas-pump"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo rpt_fmt($total_fuel_qty,1); ?> L</div><div class="kpi-lbl">Total Consumed</div><div class="kpi-sub"><span>Cost <?php echo rpt_fmt($total_fuel_cost,2); ?></span></div></div></div>
-    <div class="kpi-card kpi-revenue"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-dollar-sign"></i></div><div class="kpi-body"><div class="kpi-val sm"><?php echo rpt_fmt($total_fuel_cost,2); ?></div><div class="kpi-lbl">Fuel Spend</div><div class="kpi-sub"><span><?php echo rpt_fmt($avg_cost_per_litre,3); ?> / litre avg</span></div></div></div>
-    <div class="kpi-card kpi-distance"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-road"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo $km_per_litre>0?rpt_fmt($km_per_litre,2):'—'; ?></div><div class="kpi-lbl">km / Litre</div><div class="kpi-sub"><span><?php echo $total_distance>0?rpt_fmt($total_distance).' km driven':'—'; ?></span></div></div></div>
-    <div class="kpi-card kpi-margin"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-tachometer-alt"></i></div><div class="kpi-body"><div class="kpi-val sm"><?php echo rpt_fmt($avg_cost_per_litre,3); ?></div><div class="kpi-lbl">Avg Cost / Litre</div></div></div>
+    <div class="kpi-card kpi-fuel"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-gas-pump"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo rpt_fmt($total_fuel_qty,1); ?> L</div><div class="kpi-lbl"><?php echo $langs->trans('RptTotalConsumed'); ?></div><div class="kpi-sub"><span><?php echo $langs->trans('RptCostLabel'); ?> <?php echo rpt_fmt($total_fuel_cost,2); ?></span></div></div></div>
+    <div class="kpi-card kpi-revenue"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-dollar-sign"></i></div><div class="kpi-body"><div class="kpi-val sm"><?php echo rpt_fmt($total_fuel_cost,2); ?></div><div class="kpi-lbl"><?php echo $langs->trans('RptFuelSpend'); ?></div><div class="kpi-sub"><span><?php echo $langs->trans('RptPerLitreAvg', rpt_fmt($avg_cost_per_litre, 3)); ?></span></div></div></div>
+    <div class="kpi-card kpi-distance"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-road"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo $km_per_litre>0?rpt_fmt($km_per_litre,2):'—'; ?></div><div class="kpi-lbl"><?php echo $langs->trans('RptKmPerLitre'); ?></div><div class="kpi-sub"><span><?php echo $total_distance>0?$langs->trans('RptKmDrivenLabel', rpt_fmt($total_distance)):'—'; ?></span></div></div></div>
+    <div class="kpi-card kpi-margin"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-tachometer-alt"></i></div><div class="kpi-body"><div class="kpi-val sm"><?php echo rpt_fmt($avg_cost_per_litre,3); ?></div><div class="kpi-lbl"><?php echo $langs->trans('RptAvgCostLitre'); ?></div></div></div>
 </div>
 
 <div class="two-col" style="margin-bottom:20px;">
     <div class="card">
-        <h3 class="card-title"><i class="fa fa-chart-line"></i> Fuel Trend (6 months)</h3>
+        <h3 class="card-title"><i class="fa fa-chart-line"></i> <?php echo $langs->trans('RptFuelTrend6M'); ?></h3>
         <div class="chart-wrap tall"><canvas id="rptFuelTrend"></canvas></div>
     </div>
     <div class="card">
-        <h3 class="card-title"><i class="fa fa-chart-pie"></i> Consumption by Fuel Source</h3>
+        <h3 class="card-title"><i class="fa fa-chart-pie"></i> <?php echo $langs->trans('RptConsumptionBySource'); ?></h3>
         <div class="chart-wrap sm"><canvas id="rptFuelSource"></canvas></div>
         <table class="rpt-table" style="margin-top:14px;">
-            <thead><tr><th>Source</th><th style="text-align:right">Entries</th><th style="text-align:right">Litres</th><th style="text-align:right">Cost</th></tr></thead>
+            <thead><tr><th><?php echo $langs->trans('Source'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptEntries'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptLitres'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptCostLabel'); ?></th></tr></thead>
             <tbody>
             <?php foreach($fuel_by_source as $fs): ?>
             <tr><td class="num"><?php echo htmlspecialchars($fs->lbl); ?></td><td style="text-align:right" class="num"><?php echo rpt_fmt($fs->cnt); ?></td><td style="text-align:right" class="num"><?php echo rpt_fmt($fs->qty,1); ?></td><td style="text-align:right" class="cost"><?php echo rpt_fmt($fs->cost,2); ?></td></tr>
@@ -1108,11 +1144,11 @@ if ($margin_pct >= 30 && $total_revenue > 0)
 </div>
 
 <div class="card">
-    <h3 class="card-title"><i class="fa fa-car"></i> Fuel Consumption by Vehicle</h3>
-    <?php if(empty($fuel_by_vehicle)): ?><div class="empty-state"><i class="fa fa-gas-pump"></i><p>No fuel data for this period</p></div>
+    <h3 class="card-title"><i class="fa fa-car"></i> <?php echo $langs->trans('FuelByVehicle'); ?></h3>
+    <?php if(empty($fuel_by_vehicle)): ?><div class="empty-state"><i class="fa fa-gas-pump"></i><p><?php echo $langs->trans('RptNoFuelData'); ?></p></div>
     <?php else: $mx=max(1,max(array_map(function($r){return (float)$r->total_qty;},$fuel_by_vehicle))); ?>
     <table class="rpt-table">
-        <thead><tr><th>#</th><th>Vehicle</th><th style="text-align:right">Entries</th><th style="text-align:right">Litres</th><th style="text-align:right">Cost</th><th style="width:120px">Share</th></tr></thead>
+        <thead><tr><th>#</th><th><?php echo $langs->trans('Vehicle'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptEntries'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptLitres'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptCostLabel'); ?></th><th style="width:120px"><?php echo $langs->trans('RptShare'); ?></th></tr></thead>
         <tbody>
         <?php foreach($fuel_by_vehicle as $idx=>$fv): $pct=round(($fv->total_qty/$mx)*100); ?>
         <tr>
@@ -1135,18 +1171,18 @@ if ($margin_pct >= 30 && $total_revenue > 0)
 <?php elseif ($report_tab == 'maintenance'): ?>
 
 <div class="kpi-grid">
-    <div class="kpi-card kpi-maint"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-tools"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo $wo_total; ?></div><div class="kpi-lbl">Total Work Orders</div><div class="kpi-sub"><span><?php echo $wo_comp_rate; ?>% completed</span></div></div></div>
-    <div class="kpi-card kpi-cost"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-dollar-sign"></i></div><div class="kpi-body"><div class="kpi-val sm"><?php echo rpt_fmt($wo_cost,2); ?></div><div class="kpi-lbl">Total Maint. Cost</div><div class="kpi-sub"><span>Avg <?php echo rpt_fmt($wo_avg_cost,2); ?> / WO</span></div></div></div>
-    <div class="kpi-card kpi-fuel"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-clock"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo $wo_pending; ?></div><div class="kpi-lbl">Pending / Open</div><div class="kpi-sub"><span><?php echo $wo_total-$wo_pending-$wo_completed; ?> other</span></div></div></div>
-    <div class="kpi-card kpi-revenue"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-check-circle"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo $wo_completed; ?></div><div class="kpi-lbl">Completed</div><div class="kpi-sub"><span><?php echo $wo_comp_rate; ?>% completion rate</span></div></div></div>
+    <div class="kpi-card kpi-maint"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-tools"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo $wo_total; ?></div><div class="kpi-lbl"><?php echo $langs->trans('RptTotalWorkOrders'); ?></div><div class="kpi-sub"><span><?php echo $langs->trans('RptPercentCompleted', $wo_comp_rate); ?></span></div></div></div>
+    <div class="kpi-card kpi-cost"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-dollar-sign"></i></div><div class="kpi-body"><div class="kpi-val sm"><?php echo rpt_fmt($wo_cost,2); ?></div><div class="kpi-lbl"><?php echo $langs->trans('RptTotalMaintCost'); ?></div><div class="kpi-sub"><span><?php echo $langs->trans('RptAvgPerWo', rpt_fmt($wo_avg_cost, 2)); ?></span></div></div></div>
+    <div class="kpi-card kpi-fuel"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-clock"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo $wo_pending; ?></div><div class="kpi-lbl"><?php echo $langs->trans('RptPendingOpen'); ?></div><div class="kpi-sub"><span><?php echo ($wo_total-$wo_pending-$wo_completed).' '.$langs->trans('RptOther'); ?></span></div></div></div>
+    <div class="kpi-card kpi-revenue"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-check-circle"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo $wo_completed; ?></div><div class="kpi-lbl"><?php echo $langs->trans('RptCompleted'); ?></div><div class="kpi-sub"><span><?php echo $langs->trans('RptCompletionRate', $wo_comp_rate); ?></span></div></div></div>
 </div>
 
 <div class="two-col" style="margin-bottom:20px;">
     <div class="card">
-        <h3 class="card-title"><i class="fa fa-chart-pie"></i> Work Orders by Priority</h3>
+        <h3 class="card-title"><i class="fa fa-chart-pie"></i> <?php echo $langs->trans('WorkOrdersByPriority'); ?></h3>
         <div class="chart-wrap sm"><canvas id="rptWoPriority"></canvas></div>
         <table class="rpt-table" style="margin-top:14px;">
-            <thead><tr><th>Priority</th><th style="text-align:right">Count</th><th style="text-align:right">Cost</th></tr></thead>
+            <thead><tr><th><?php echo $langs->trans('Priority'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptCount'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptCostLabel'); ?></th></tr></thead>
             <tbody>
             <?php foreach($wo_by_priority as $wp): ?>
             <tr><td><?php rpt_badge($wp->lbl); ?></td><td style="text-align:right" class="num"><?php echo rpt_fmt($wp->cnt); ?></td><td style="text-align:right" class="cost"><?php echo rpt_fmt($wp->cost,2); ?></td></tr>
@@ -1155,10 +1191,10 @@ if ($margin_pct >= 30 && $total_revenue > 0)
         </table>
     </div>
     <div class="card">
-        <h3 class="card-title"><i class="fa fa-chart-donut"></i> Work Orders by Status</h3>
+        <h3 class="card-title"><i class="fa fa-chart-donut"></i> <?php echo $langs->trans('RptWorkOrdersByStatus'); ?></h3>
         <div class="chart-wrap sm"><canvas id="rptWoStatus"></canvas></div>
         <table class="rpt-table" style="margin-top:14px;">
-            <thead><tr><th>Status</th><th style="text-align:right">Count</th><th style="text-align:right">Share</th></tr></thead>
+            <thead><tr><th><?php echo $langs->trans('Status'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptCount'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptShare'); ?></th></tr></thead>
             <tbody>
             <?php $tot_wo=max(1,$wo_total); foreach($wo_by_status as $ws): ?>
             <tr><td><?php rpt_badge($ws->lbl); ?></td><td style="text-align:right" class="num"><?php echo rpt_fmt($ws->cnt); ?></td><td style="text-align:right" class="num"><?php echo round($ws->cnt/$tot_wo*100); ?>%</td></tr>
@@ -1169,11 +1205,11 @@ if ($margin_pct >= 30 && $total_revenue > 0)
 </div>
 
 <div class="card">
-    <h3 class="card-title"><i class="fa fa-car"></i> Maintenance Cost by Vehicle</h3>
-    <?php if(empty($wo_by_vehicle)): ?><div class="empty-state"><i class="fa fa-tools"></i><p>No maintenance data available</p></div>
+    <h3 class="card-title"><i class="fa fa-car"></i> <?php echo $langs->trans('RptMaintCostByVehicle'); ?></h3>
+    <?php if(empty($wo_by_vehicle)): ?><div class="empty-state"><i class="fa fa-tools"></i><p><?php echo $langs->trans('RptNoMaintData'); ?></p></div>
     <?php else: $mx=max(1,max(array_map(function($r){return (float)$r->cost;},$wo_by_vehicle))); ?>
     <table class="rpt-table">
-        <thead><tr><th>#</th><th>Vehicle</th><th style="text-align:right">Work Orders</th><th style="text-align:right">Total Cost</th><th style="width:120px">Cost Share</th></tr></thead>
+        <thead><tr><th>#</th><th><?php echo $langs->trans('Vehicle'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptWorkOrders'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptTotalCost'); ?></th><th style="width:120px"><?php echo $langs->trans('RptCostShare'); ?></th></tr></thead>
         <tbody>
         <?php foreach($wo_by_vehicle as $idx=>$wv): $pct=round(($wv->cost/$mx)*100); ?>
         <tr>
@@ -1196,11 +1232,11 @@ if ($margin_pct >= 30 && $total_revenue > 0)
 
 <?php
 $cat_meta = array(
-    'fuel'       => array('icon'=>'fa-gas-pump',          'label'=>'Fuel'),
-    'road'       => array('icon'=>'fa-road',              'label'=>'Road'),
-    'driver'     => array('icon'=>'fa-user-tie',          'label'=>'Driver'),
-    'commission' => array('icon'=>'fa-coins',             'label'=>'Commission'),
-    'other'      => array('icon'=>'fa-tag',               'label'=>'Other'),
+    'fuel'       => array('icon'=>'fa-gas-pump',          'label'=>$langs->trans('Fuel')),
+    'road'       => array('icon'=>'fa-road',              'label'=>$langs->trans('RptRoad')),
+    'driver'     => array('icon'=>'fa-user-tie',          'label'=>$langs->trans('Driver')),
+    'commission' => array('icon'=>'fa-coins',             'label'=>$langs->trans('RptCommission')),
+    'other'      => array('icon'=>'fa-tag',               'label'=>$langs->trans('Other')),
 );
 ?>
 
@@ -1210,10 +1246,10 @@ $cat_meta = array(
         <div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-receipt"></i></div>
         <div class="kpi-body">
             <div class="kpi-val sm"><?php echo rpt_fmt($exp_total_amount,2); ?></div>
-            <div class="kpi-lbl">Total Expenses</div>
+            <div class="kpi-lbl"><?php echo $langs->trans('RptTotalExpenses'); ?></div>
             <div class="kpi-sub">
                 <?php if ($exp_trend_pct !== null): ?>
-                <span class="kpi-trend <?php echo $exp_trend_pct<=0?'up':'down'; ?>"><i class="fa fa-arrow-<?php echo $exp_trend_pct<=0?'down':'up'; ?>"></i><?php echo abs($exp_trend_pct); ?>% vs prev</span>
+                <span class="kpi-trend <?php echo $exp_trend_pct<=0?'up':'down'; ?>"><i class="fa fa-arrow-<?php echo $exp_trend_pct<=0?'down':'up'; ?>"></i><?php echo $langs->trans('RptVsPrev', abs($exp_trend_pct)); ?></span>
                 <?php endif; ?>
             </div>
         </div>
@@ -1222,77 +1258,77 @@ $cat_meta = array(
         <div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-list-alt"></i></div>
         <div class="kpi-body">
             <div class="kpi-val"><?php echo rpt_fmt($exp_total_count); ?></div>
-            <div class="kpi-lbl">Expense Entries</div>
-            <div class="kpi-sub"><span>Avg <?php echo rpt_fmt($exp_avg_amount,2); ?> / entry</span></div>
+            <div class="kpi-lbl"><?php echo $langs->trans('RptExpenseEntries'); ?></div>
+            <div class="kpi-sub"><span><?php echo $langs->trans('RptAvgPerEntry', rpt_fmt($exp_avg_amount, 2)); ?></span></div>
         </div>
     </div>
     <div class="kpi-card kpi-fuel">
         <div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-gas-pump"></i></div>
         <div class="kpi-body">
             <div class="kpi-val sm"><?php echo rpt_fmt($exp_fuel_total,2); ?></div>
-            <div class="kpi-lbl">Fuel Expenses</div>
-            <div class="kpi-sub"><span><?php echo $exp_total_amount>0?round($exp_fuel_total/$exp_total_amount*100).'%':'—'; ?> of total</span></div>
+            <div class="kpi-lbl"><?php echo $langs->trans('RptFuelExpenses'); ?></div>
+            <div class="kpi-sub"><span><?php echo $exp_total_amount>0?round($exp_fuel_total/$exp_total_amount*100).'% '.$langs->trans('RptOfTotal'):'—'; ?></span></div>
         </div>
     </div>
     <div class="kpi-card kpi-distance">
         <div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-road"></i></div>
         <div class="kpi-body">
             <div class="kpi-val sm"><?php echo rpt_fmt($exp_road_total,2); ?></div>
-            <div class="kpi-lbl">Road Expenses</div>
-            <div class="kpi-sub"><span>Toll · Parking · Other</span></div>
+            <div class="kpi-lbl"><?php echo $langs->trans('RptRoadExpenses'); ?></div>
+            <div class="kpi-sub"><span><?php echo $langs->trans('RptRoadExpenseDetail'); ?></span></div>
         </div>
     </div>
     <div class="kpi-card" style="background:linear-gradient(135deg,#3c8ce7,#00eaff);color:#fff;">
         <div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-user-tie"></i></div>
         <div class="kpi-body">
             <div class="kpi-val sm"><?php echo rpt_fmt($exp_driver_total,2); ?></div>
-            <div class="kpi-lbl">Driver Costs</div>
-            <div class="kpi-sub"><span>Salary · Overnight · Bonus</span></div>
+            <div class="kpi-lbl"><?php echo $langs->trans('RptDriverCosts'); ?></div>
+            <div class="kpi-sub"><span><?php echo $langs->trans('RptDriverCostDetail'); ?></span></div>
         </div>
     </div>
     <div class="kpi-card kpi-margin">
         <div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-coins"></i></div>
         <div class="kpi-body">
             <div class="kpi-val sm"><?php echo rpt_fmt($exp_comm_total,2); ?></div>
-            <div class="kpi-lbl">Commissions</div>
-            <div class="kpi-sub"><span>Agent · Tax · Fees</span></div>
+            <div class="kpi-lbl"><?php echo $langs->trans('RptCommissions'); ?></div>
+            <div class="kpi-sub"><span><?php echo $langs->trans('RptCommissionDetail'); ?></span></div>
         </div>
     </div>
     <div class="kpi-card kpi-fleet">
         <div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-tag"></i></div>
         <div class="kpi-body">
             <div class="kpi-val sm"><?php echo rpt_fmt($exp_other_total,2); ?></div>
-            <div class="kpi-lbl">Other Expenses</div>
-            <div class="kpi-sub"><span><?php echo $exp_vs_rev_pct; ?>% of revenue</span></div>
+            <div class="kpi-lbl"><?php echo $langs->trans('RptOtherExpenses'); ?></div>
+            <div class="kpi-sub"><span><?php echo $langs->trans('RptPercentOfRevenue', $exp_vs_rev_pct); ?></span></div>
         </div>
     </div>
 </div>
 
 <!-- Insight bar -->
 <div class="insight-row" style="margin-bottom:24px;">
-    <div class="insight red"><div class="insight-val"><?php echo rpt_fmt($exp_total_amount,2); ?></div><div class="insight-lbl">Total Spend</div></div>
-    <div class="insight green"><div class="insight-val"><?php echo rpt_fmt($total_revenue,2); ?></div><div class="insight-lbl">Period Revenue</div></div>
-    <div class="insight <?php echo $exp_vs_rev_pct>60?'red':($exp_vs_rev_pct>40?'orange':'green'); ?>"><div class="insight-val"><?php echo $exp_vs_rev_pct; ?>%</div><div class="insight-lbl">Expenses / Revenue</div></div>
-    <div class="insight orange"><div class="insight-val"><?php echo rpt_fmt($exp_avg_amount,2); ?></div><div class="insight-lbl">Avg Per Entry</div></div>
+    <div class="insight red"><div class="insight-val"><?php echo rpt_fmt($exp_total_amount,2); ?></div><div class="insight-lbl"><?php echo $langs->trans('RptTotalSpend'); ?></div></div>
+    <div class="insight green"><div class="insight-val"><?php echo rpt_fmt($total_revenue,2); ?></div><div class="insight-lbl"><?php echo $langs->trans('RptPeriodRevenue'); ?></div></div>
+    <div class="insight <?php echo $exp_vs_rev_pct>60?'red':($exp_vs_rev_pct>40?'orange':'green'); ?>"><div class="insight-val"><?php echo $exp_vs_rev_pct; ?>%</div><div class="insight-lbl"><?php echo $langs->trans('RptExpensesRevenue'); ?></div></div>
+    <div class="insight orange"><div class="insight-val"><?php echo rpt_fmt($exp_avg_amount,2); ?></div><div class="insight-lbl"><?php echo $langs->trans('RptAvgPerEntryLabel'); ?></div></div>
     <?php if($exp_trend_pct!==null): ?>
-    <div class="insight <?php echo $exp_trend_pct>0?'red':'green'; ?>"><div class="insight-val"><?php echo ($exp_trend_pct>0?'+':'').abs($exp_trend_pct); ?>%</div><div class="insight-lbl">vs Previous Period</div></div>
+    <div class="insight <?php echo $exp_trend_pct>0?'red':'green'; ?>"><div class="insight-val"><?php echo ($exp_trend_pct>0?'+':'').abs($exp_trend_pct); ?>%</div><div class="insight-lbl"><?php echo $langs->trans('RptVsPreviousPeriod'); ?></div></div>
     <?php endif; ?>
 </div>
 
 <!-- Charts -->
 <div class="two-col" style="margin-bottom:20px;">
     <div class="card">
-        <h3 class="card-title"><i class="fa fa-chart-bar"></i> Monthly Expense Trend (6 months)</h3>
+        <h3 class="card-title"><i class="fa fa-chart-bar"></i> <?php echo $langs->trans('RptMonthlyExpenseTrend6M'); ?></h3>
         <div class="chart-wrap tall"><canvas id="rptExpTrend"></canvas></div>
     </div>
     <div class="card">
-        <h3 class="card-title"><i class="fa fa-chart-pie"></i> Breakdown by Category</h3>
+        <h3 class="card-title"><i class="fa fa-chart-pie"></i> <?php echo $langs->trans('RptBreakdownByCategory'); ?></h3>
         <div class="chart-wrap" style="height:200px;"><canvas id="rptExpCat"></canvas></div>
         <?php if (empty($exp_by_cat)): ?>
-        <div class="empty-state" style="padding:20px 0;"><i class="fa fa-receipt"></i><p>No expense data for this period</p></div>
+        <div class="empty-state" style="padding:20px 0;"><i class="fa fa-receipt"></i><p><?php echo $langs->trans('RptNoExpenseData'); ?></p></div>
         <?php else: $exp_max=max(1,max(array_map(function($r){return (float)$r->total;},$exp_by_cat))); ?>
         <table class="rpt-table" style="margin-top:14px;">
-            <thead><tr><th>Category</th><th style="text-align:right">Entries</th><th style="text-align:right">Total</th><th style="text-align:right">Share</th></tr></thead>
+            <thead><tr><th><?php echo $langs->trans('Category'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptEntries'); ?></th><th style="text-align:right"><?php echo $langs->trans('Total'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptShare'); ?></th></tr></thead>
             <tbody>
             <?php foreach($exp_by_cat as $ec):
                 $cat_info = isset($cat_meta[$ec->lbl]) ? $cat_meta[$ec->lbl] : array('icon'=>'fa-tag','label'=>ucfirst($ec->lbl));
@@ -1319,10 +1355,10 @@ $cat_meta = array(
 <!-- Expenses by Vehicle -->
 <?php if (!empty($exp_by_vehicle)): $mx_ev=max(1,max(array_map(function($r){return (float)$r->total;},$exp_by_vehicle))); ?>
 <div class="rpt-section">
-    <div class="rpt-sec-hdr"><h2 class="rpt-sec-title"><i class="fa fa-car"></i> Expenses by Vehicle</h2><span class="rpt-sec-meta">Top 10 via linked bookings</span></div>
+    <div class="rpt-sec-hdr"><h2 class="rpt-sec-title"><i class="fa fa-car"></i> <?php echo $langs->trans('RptExpensesByVehicle'); ?></h2><span class="rpt-sec-meta"><?php echo $langs->trans('RptTop10LinkedBookings'); ?></span></div>
     <div class="card">
         <table class="rpt-table">
-            <thead><tr><th>#</th><th>Vehicle</th><th style="text-align:right">Entries</th><th style="text-align:right">Total Expense</th><th style="width:140px">Share</th></tr></thead>
+            <thead><tr><th>#</th><th><?php echo $langs->trans('Vehicle'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptEntries'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptTotalExpenses'); ?></th><th style="width:140px"><?php echo $langs->trans('RptShare'); ?></th></tr></thead>
             <tbody>
             <?php foreach($exp_by_vehicle as $idx=>$ev): $pct=round(($ev->total/$mx_ev)*100); ?>
             <tr>
@@ -1342,36 +1378,36 @@ $cat_meta = array(
 <!-- Recent expenses table -->
 <div class="rpt-section">
     <div class="rpt-sec-hdr">
-        <h2 class="rpt-sec-title"><i class="fa fa-clock"></i> Recent Expenses</h2>
+        <h2 class="rpt-sec-title"><i class="fa fa-clock"></i> <?php echo $langs->trans('RptRecentExpenses'); ?></h2>
         <div style="display:flex;gap:10px;align-items:center;">
             <?php if (!empty($user->rights->flotte->write)): ?>
-            <a href="<?php echo dol_buildpath('/flotte/expenses_card.php',1).'?action=create'; ?>" class="btn-apply" style="padding:7px 16px;font-size:12px;"><i class="fa fa-plus"></i> New Expense</a>
+            <a href="<?php echo dol_buildpath('/flotte/expenses_card.php',1).'?action=create'; ?>" class="btn-apply" style="padding:7px 16px;font-size:12px;"><i class="fa fa-plus"></i> <?php echo $langs->trans('RptNewExpense'); ?></a>
             <?php endif; ?>
-            <a href="<?php echo dol_buildpath('/flotte/expenses_list.php',1); ?>" class="export-btn"><i class="fa fa-external-link-alt"></i> View All</a>
+            <a href="<?php echo dol_buildpath('/flotte/expenses_list.php',1); ?>" class="export-btn"><i class="fa fa-external-link-alt"></i> <?php echo $langs->trans('RptViewAll'); ?></a>
         </div>
     </div>
     <?php if (empty($exp_recent)): ?>
-    <div class="card"><div class="empty-state"><i class="fa fa-receipt"></i><p>No expenses recorded for this period. <a href="<?php echo dol_buildpath('/flotte/expenses_card.php',1).'?action=create'; ?>">Add one now →</a></p></div></div>
+    <div class="card"><div class="empty-state"><i class="fa fa-receipt"></i><p><?php echo $langs->trans('RptNoExpensesRecorded'); ?> <a href="<?php echo dol_buildpath('/flotte/expenses_card.php',1).'?action=create'; ?>"><?php echo $langs->trans('RptAddOneNow'); ?></a></p></div></div>
     <?php else: ?>
     <div class="card" style="padding:0;overflow:hidden;">
         <table class="rpt-table">
             <thead><tr>
-                <th>Ref</th>
-                <th>Date</th>
-                <th>Category</th>
-                <th>Booking</th>
-                <th>Notes / Label</th>
-                <th style="text-align:right">Amount</th>
+                <th><?php echo $langs->trans('Ref'); ?></th>
+                <th><?php echo $langs->trans('Date'); ?></th>
+                <th><?php echo $langs->trans('Category'); ?></th>
+                <th><?php echo $langs->trans('Booking'); ?></th>
+                <th><?php echo $langs->trans('RptNotesOrLabel'); ?></th>
+                <th style="text-align:right"><?php echo $langs->trans('Amount'); ?></th>
                 <th style="text-align:center"></th>
             </tr></thead>
             <tbody>
             <?php
             $cat_badge_map = array(
-                'fuel'       => array('sbadge-warning',   'fa-gas-pump',  'Fuel'),
-                'road'       => array('sbadge-info',      'fa-road',      'Road'),
-                'driver'     => array('sbadge-secondary', 'fa-user-tie',  'Driver'),
-                'commission' => array('sbadge-success',   'fa-coins',     'Commission'),
-                'other'      => array('sbadge-secondary', 'fa-tag',       'Other'),
+                'fuel'       => array('sbadge-warning',   'fa-gas-pump',  $langs->trans('Fuel')),
+                'road'       => array('sbadge-info',      'fa-road',      $langs->trans('RptRoad')),
+                'driver'     => array('sbadge-secondary', 'fa-user-tie',  $langs->trans('Driver')),
+                'commission' => array('sbadge-success',   'fa-coins',     $langs->trans('RptCommission')),
+                'other'      => array('sbadge-secondary', 'fa-tag',       $langs->trans('Other')),
             );
             foreach ($exp_recent as $er):
                 $cbm = isset($cat_badge_map[$er->category]) ? $cat_badge_map[$er->category] : array('sbadge-secondary','fa-tag',ucfirst($er->category));
@@ -1389,7 +1425,7 @@ $cat_meta = array(
                 </td>
                 <td style="text-align:right;font-weight:700;color:#e53e3e;"><?php echo !empty($er->amount)?rpt_fmt((float)$er->amount,2):'<span style="color:#c4c9d8;">—</span>'; ?></td>
                 <td style="text-align:center;">
-                    <a href="<?php echo dol_buildpath('/flotte/expenses_card.php',1).'?id='.(int)$er->rowid; ?>" class="det-action-btn view" title="View"><i class="fa fa-eye"></i></a>
+                    <a href="<?php echo dol_buildpath('/flotte/expenses_card.php',1).'?id='.(int)$er->rowid; ?>" class="det-action-btn view" title="<?php echo dol_escape_htmltag($langs->trans('View')); ?>"><i class="fa fa-eye"></i></a>
                 </td>
             </tr>
             <?php endforeach; ?>
@@ -1403,32 +1439,33 @@ $cat_meta = array(
 // TAB: FLEET
 // ═══════════════════════════════════════════ ?>
 <?php elseif ($report_tab == 'fleet'): ?>
-    <div class="kpi-card kpi-fleet"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-car"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo $fleet_total; ?></div><div class="kpi-lbl">Total Vehicles</div><div class="kpi-sub"><span><?php echo $fleet_util; ?>% availability</span></div></div></div>
-    <div class="kpi-card kpi-revenue"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-check-circle"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo $fleet_active; ?></div><div class="kpi-lbl">In Service</div></div></div>
-    <div class="kpi-card kpi-maint"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-times-circle"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo $fleet_inactive; ?></div><div class="kpi-lbl">Out of Service</div></div></div>
-    <div class="kpi-card kpi-margin"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-users"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo $total_drivers; ?></div><div class="kpi-lbl">Drivers</div><div class="kpi-sub"><span><?php echo $total_customers; ?> customers</span></div></div></div>
+<div class="kpi-grid">
+    <div class="kpi-card kpi-fleet"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-car"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo $fleet_total; ?></div><div class="kpi-lbl"><?php echo $langs->trans('RptTotalVehicles'); ?></div><div class="kpi-sub"><span><?php echo $langs->trans('RptAvailability', $fleet_util); ?></span></div></div></div>
+    <div class="kpi-card kpi-revenue"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-check-circle"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo $fleet_active; ?></div><div class="kpi-lbl"><?php echo $langs->trans('RptInService'); ?></div></div></div>
+    <div class="kpi-card kpi-maint"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-times-circle"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo $fleet_inactive; ?></div><div class="kpi-lbl"><?php echo $langs->trans('RptOutOfService'); ?></div></div></div>
+    <div class="kpi-card kpi-margin"><div class="kpi-shine"></div><div class="kpi-icon"><i class="fa fa-users"></i></div><div class="kpi-body"><div class="kpi-val"><?php echo $total_drivers; ?></div><div class="kpi-lbl"><?php echo $langs->trans('RptDrivers'); ?></div><div class="kpi-sub"><span><?php echo $langs->trans('RptCustomersCount', $total_customers); ?></span></div></div></div>
 </div>
 
 <div class="two-col" style="margin-bottom:20px;">
     <div class="card">
-        <h3 class="card-title"><i class="fa fa-traffic-light"></i> Fleet Availability</h3>
+        <h3 class="card-title"><i class="fa fa-traffic-light"></i> <?php echo $langs->trans('RptFleetAvailability'); ?></h3>
         <div class="fleet-mini">
-            <div class="fmc blue"><div class="fmc-val"><?php echo $fleet_total; ?></div><div class="fmc-lbl">Total</div></div>
-            <div class="fmc green"><div class="fmc-val"><?php echo $fleet_active; ?></div><div class="fmc-lbl">In Service</div></div>
-            <div class="fmc red"><div class="fmc-val"><?php echo $fleet_inactive; ?></div><div class="fmc-lbl">Out of Service</div></div>
+            <div class="fmc blue"><div class="fmc-val"><?php echo $fleet_total; ?></div><div class="fmc-lbl"><?php echo $langs->trans('Total'); ?></div></div>
+            <div class="fmc green"><div class="fmc-val"><?php echo $fleet_active; ?></div><div class="fmc-lbl"><?php echo $langs->trans('RptInService'); ?></div></div>
+            <div class="fmc red"><div class="fmc-val"><?php echo $fleet_inactive; ?></div><div class="fmc-lbl"><?php echo $langs->trans('RptOutOfService'); ?></div></div>
         </div>
         <div style="margin-bottom:10px;">
-            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span style="color:#718096;font-weight:600;">Fleet Availability Rate</span><span style="font-weight:800;color:#1a202c;"><?php echo $fleet_util; ?>%</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;"><span style="color:#718096;font-weight:600;"><?php echo $langs->trans('RptFleetAvailabilityRate'); ?></span><span style="font-weight:800;color:#1a202c;"><?php echo $fleet_util; ?>%</span></div>
             <div class="prog" style="height:10px;"><div class="prog-fill <?php echo $fleet_util>=70?'green':($fleet_util>=40?'orange':'pink'); ?>" style="width:<?php echo $fleet_util; ?>%"></div></div>
         </div>
         <div class="chart-wrap sm"><canvas id="rptFleetStatus"></canvas></div>
     </div>
     <div class="card">
-        <h3 class="card-title"><i class="fa fa-layer-group"></i> Fleet by Vehicle Type</h3>
-        <?php if(empty($fleet_by_type)): ?><div class="empty-state"><i class="fa fa-car-side"></i><p>No type data</p></div>
+        <h3 class="card-title"><i class="fa fa-layer-group"></i> <?php echo $langs->trans('RptFleetByType'); ?></h3>
+        <?php if(empty($fleet_by_type)): ?><div class="empty-state"><i class="fa fa-car-side"></i><p><?php echo $langs->trans('RptNoTypeData'); ?></p></div>
         <?php else: ?>
         <table class="rpt-table">
-            <thead><tr><th>Type</th><th style="text-align:right">Total</th><th style="text-align:right">Active</th><th style="text-align:right">Rate</th></tr></thead>
+            <thead><tr><th><?php echo $langs->trans('Type'); ?></th><th style="text-align:right"><?php echo $langs->trans('Total'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptActiveLabel'); ?></th><th style="text-align:right"><?php echo $langs->trans('RptRate'); ?></th></tr></thead>
             <tbody>
             <?php foreach($fleet_by_type as $ft): $rate=$ft->cnt>0?round($ft->active/$ft->cnt*100):0; ?>
             <tr><td class="num"><?php echo htmlspecialchars($ft->lbl); ?></td><td style="text-align:right" class="num"><?php echo $ft->cnt; ?></td><td style="text-align:right" class="num"><?php echo $ft->active; ?></td><td style="text-align:right"><span class="sbadge <?php echo $rate>=70?'sbadge-success':($rate>=40?'sbadge-warning':'sbadge-danger'); ?>"><?php echo $rate; ?>%</span></td></tr>
@@ -1440,7 +1477,7 @@ $cat_meta = array(
 </div>
 
 <div class="card">
-    <h3 class="card-title"><i class="fa fa-car-side"></i> Fleet by Manufacturer</h3>
+    <h3 class="card-title"><i class="fa fa-car-side"></i> <?php echo $langs->trans('RptFleetByManufacturer'); ?></h3>
     <div class="chart-wrap"><canvas id="rptMaker"></canvas></div>
 </div>
 
@@ -1454,6 +1491,7 @@ $cat_meta = array(
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
 <script>
 (function(){
+var RPT = <?php echo json_encode($rptChart); ?>;
 var GRAD_BLUE   = ['rgba(102,126,234,.8)','rgba(118,75,162,.8)'];
 var GRAD_GREEN  = ['rgba(17,153,142,.8)','rgba(56,239,125,.8)'];
 var GRAD_ORANGE = ['rgba(247,151,30,.8)','rgba(255,210,0,.8)'];
@@ -1479,17 +1517,17 @@ if (tEl) {
         data: {
             labels: <?php echo json_encode(array_column($trend_data,'month')); ?>,
             datasets: [
-                { label:'Revenue', data:tRevenue, backgroundColor:'rgba(56,239,125,.65)', borderColor:'#38ef7d', borderWidth:0, borderRadius:6, yAxisID:'y1' },
-                { label:'Cost',    data:tCost,    backgroundColor:'rgba(245,87,108,.55)', borderColor:'rgba(245,87,108,.8)', borderWidth:0, borderRadius:6, yAxisID:'y1' },
-                { label:'Profit',  data:tProfit,  type:'line', tension:.4, fill:false, borderColor:'#667eea', backgroundColor:'rgba(102,126,234,.1)', pointBackgroundColor:'#667eea', pointRadius:5, borderWidth:2.5, yAxisID:'y1' },
-                { label:'Trips',   data:<?php echo json_encode(array_column($trend_data,'bookings')); ?>, type:'line', tension:.4, fill:false, borderColor:'rgba(255,210,0,.9)', pointBackgroundColor:'rgba(255,210,0,.9)', pointRadius:4, borderWidth:2, borderDash:[4,3], yAxisID:'y' }
+                { label:RPT.revenue, data:tRevenue, backgroundColor:'rgba(56,239,125,.65)', borderColor:'#38ef7d', borderWidth:0, borderRadius:6, yAxisID:'y1' },
+                { label:RPT.cost,    data:tCost,    backgroundColor:'rgba(245,87,108,.55)', borderColor:'rgba(245,87,108,.8)', borderWidth:0, borderRadius:6, yAxisID:'y1' },
+                { label:RPT.profit,  data:tProfit,  type:'line', tension:.4, fill:false, borderColor:'#667eea', backgroundColor:'rgba(102,126,234,.1)', pointBackgroundColor:'#667eea', pointRadius:5, borderWidth:2.5, yAxisID:'y1' },
+                { label:RPT.trips,   data:<?php echo json_encode(array_column($trend_data,'bookings')); ?>, type:'line', tension:.4, fill:false, borderColor:'rgba(255,210,0,.9)', pointBackgroundColor:'rgba(255,210,0,.9)', pointRadius:4, borderWidth:2, borderDash:[4,3], yAxisID:'y' }
             ]
         },
         options: Object.assign({}, DEFAULTS, {
             interaction:{ mode:'index', intersect:false },
             scales:{
-                y:  { type:'linear', position:'right', grid:{drawOnChartArea:false}, title:{display:true,text:'Trips',font:{size:11}}, ticks:{color:'rgba(255,210,0,.9)'} },
-                y1: { type:'linear', position:'left',  grid:{color:'rgba(0,0,0,.04)'}, title:{display:true,text:'Amount',font:{size:11}} }
+                y:  { type:'linear', position:'right', grid:{drawOnChartArea:false}, title:{display:true,text:RPT.trips,font:{size:11}}, ticks:{color:'rgba(255,210,0,.9)'} },
+                y1: { type:'linear', position:'left',  grid:{color:'rgba(0,0,0,.04)'}, title:{display:true,text:RPT.amount,font:{size:11}} }
             }
         })
     });
@@ -1501,7 +1539,7 @@ if (cbEl) {
     new Chart(cbEl, {
         type:'doughnut',
         data:{
-            labels:['Booking Cost','Fuel','Expenses','Maintenance'],
+            labels:[RPT.bookingCost, RPT.fuel, RPT.expenses, RPT.maintenance],
             datasets:[{ data:[<?php echo $total_cost; ?>,<?php echo $total_fuel_cost; ?>,<?php echo $exp_total_amount; ?>,<?php echo $wo_cost; ?>], backgroundColor:['rgba(102,126,234,.8)','rgba(247,151,30,.8)','rgba(245,87,108,.8)','rgba(252,74,26,.8)'], borderWidth:3, borderColor:'#fff', hoverOffset:8 }]
         },
         options: Object.assign({},DEFAULTS,{ cutout:'62%', plugins:{ legend:{display:false} } })
@@ -1516,7 +1554,7 @@ if (dowEl) {
         data: {
             labels: <?php echo json_encode(array_column($dow_data,'day')); ?>,
             datasets: [
-                { label:'Trips', data:<?php echo json_encode(array_column($dow_data,'cnt')); ?>, backgroundColor:PALETTE, borderRadius:8 }
+                { label:RPT.trips, data:<?php echo json_encode(array_column($dow_data,'cnt')); ?>, backgroundColor:PALETTE, borderRadius:8 }
             ]
         },
         options: Object.assign({},DEFAULTS,{ plugins:{ legend:{display:false} }, scales:{ x:{grid:{display:false}}, y:{grid:{color:'rgba(0,0,0,.04)'}} } })
@@ -1541,11 +1579,11 @@ if (ftEl) {
         data:{
             labels:<?php echo json_encode(array_column($fuel_trend,'month')); ?>,
             datasets:[
-                { label:'Litres', data:<?php echo json_encode(array_column($fuel_trend,'qty')); ?>, backgroundColor:'rgba(247,151,30,.75)', borderColor:'#f7971e', borderWidth:0, borderRadius:6, yAxisID:'y' },
-                { label:'Cost',   data:<?php echo json_encode(array_column($fuel_trend,'cost')); ?>, type:'line', tension:.4, borderColor:'rgba(245,87,108,.8)', backgroundColor:'rgba(245,87,108,.08)', fill:true, pointRadius:4, borderWidth:2.5, yAxisID:'y1' }
+                { label:RPT.litres, data:<?php echo json_encode(array_column($fuel_trend,'qty')); ?>, backgroundColor:'rgba(247,151,30,.75)', borderColor:'#f7971e', borderWidth:0, borderRadius:6, yAxisID:'y' },
+                { label:RPT.cost,   data:<?php echo json_encode(array_column($fuel_trend,'cost')); ?>, type:'line', tension:.4, borderColor:'rgba(245,87,108,.8)', backgroundColor:'rgba(245,87,108,.08)', fill:true, pointRadius:4, borderWidth:2.5, yAxisID:'y1' }
             ]
         },
-        options: Object.assign({},DEFAULTS,{ interaction:{mode:'index',intersect:false}, scales:{ y:{type:'linear',position:'left',title:{display:true,text:'Litres',font:{size:11}},grid:{color:'rgba(0,0,0,.04)'}}, y1:{type:'linear',position:'right',grid:{drawOnChartArea:false},title:{display:true,text:'Cost',font:{size:11}}} } })
+        options: Object.assign({},DEFAULTS,{ interaction:{mode:'index',intersect:false}, scales:{ y:{type:'linear',position:'left',title:{display:true,text:RPT.litres,font:{size:11}},grid:{color:'rgba(0,0,0,.04)'}}, y1:{type:'linear',position:'right',grid:{drawOnChartArea:false},title:{display:true,text:RPT.cost,font:{size:11}}} } })
     });
 }
 
@@ -1570,13 +1608,13 @@ if (wsEl) {
 // ── Fleet status doughnut ──
 var flEl = document.getElementById('rptFleetStatus');
 if (flEl) {
-    new Chart(flEl, { type:'doughnut', data:{ labels:['In Service','Out of Service'], datasets:[{ data:[<?php echo $fleet_active; ?>,<?php echo $fleet_inactive; ?>], backgroundColor:['rgba(56,239,125,.8)','rgba(245,87,108,.8)'], borderWidth:3, borderColor:'#fff', hoverOffset:8 }] }, options:Object.assign({},DEFAULTS,{ cutout:'60%', plugins:{legend:{position:'right'}} }) });
+    new Chart(flEl, { type:'doughnut', data:{ labels:[RPT.inService, RPT.outOfService], datasets:[{ data:[<?php echo $fleet_active; ?>,<?php echo $fleet_inactive; ?>], backgroundColor:['rgba(56,239,125,.8)','rgba(245,87,108,.8)'], borderWidth:3, borderColor:'#fff', hoverOffset:8 }] }, options:Object.assign({},DEFAULTS,{ cutout:'60%', plugins:{legend:{position:'right'}} }) });
 }
 
 // ── Fleet by maker ──
 var mkEl = document.getElementById('rptMaker');
 if (mkEl) {
-    new Chart(mkEl, { type:'bar', data:{ labels:<?php echo json_encode(array_column($fleet_by_maker,'lbl')); ?>, datasets:[{ label:'Vehicles', data:<?php echo json_encode(array_column($fleet_by_maker,'cnt')); ?>, backgroundColor:PALETTE, borderRadius:8 }] }, options:Object.assign({},DEFAULTS,{ indexAxis:'y', plugins:{legend:{display:false}}, scales:{ x:{grid:{color:'rgba(0,0,0,.04)'}}, y:{grid:{display:false}} } }) });
+    new Chart(mkEl, { type:'bar', data:{ labels:<?php echo json_encode(array_column($fleet_by_maker,'lbl')); ?>, datasets:[{ label:RPT.vehicles, data:<?php echo json_encode(array_column($fleet_by_maker,'cnt')); ?>, backgroundColor:PALETTE, borderRadius:8 }] }, options:Object.assign({},DEFAULTS,{ indexAxis:'y', plugins:{legend:{display:false}}, scales:{ x:{grid:{color:'rgba(0,0,0,.04)'}}, y:{grid:{display:false}} } }) });
 }
 
 // ── Expense trend chart ──
@@ -1588,20 +1626,20 @@ if (expTrEl) {
         data:{
             labels:<?php echo json_encode(array_column($exp_trend,'month')); ?>,
             datasets:[
-                { label:'Total',      data:<?php echo json_encode(array_column($exp_trend,'total')); ?>,  backgroundColor:'rgba(229,62,62,.75)',  borderColor:'#e53e3e', borderWidth:0, borderRadius:6, yAxisID:'y' },
-                { label:'Fuel',       data:<?php echo json_encode(array_column($exp_trend,'fuel')); ?>,   type:'line', tension:.4, borderColor:'rgba(247,151,30,.9)',  backgroundColor:'rgba(247,151,30,.08)',  fill:false, pointRadius:4, borderWidth:2.5, yAxisID:'y' },
-                { label:'Road',       data:<?php echo json_encode(array_column($exp_trend,'road')); ?>,   type:'line', tension:.4, borderColor:'rgba(79,172,254,.9)',   backgroundColor:'rgba(79,172,254,.08)',   fill:false, pointRadius:4, borderWidth:2, yAxisID:'y' },
-                { label:'Driver',     data:<?php echo json_encode(array_column($exp_trend,'driver')); ?>, type:'line', tension:.4, borderColor:'rgba(102,126,234,.9)',  backgroundColor:'rgba(102,126,234,.08)', fill:false, pointRadius:4, borderWidth:2, yAxisID:'y' }
+                { label:RPT.total,      data:<?php echo json_encode(array_column($exp_trend,'total')); ?>,  backgroundColor:'rgba(229,62,62,.75)',  borderColor:'#e53e3e', borderWidth:0, borderRadius:6, yAxisID:'y' },
+                { label:RPT.fuel,       data:<?php echo json_encode(array_column($exp_trend,'fuel')); ?>,   type:'line', tension:.4, borderColor:'rgba(247,151,30,.9)',  backgroundColor:'rgba(247,151,30,.08)',  fill:false, pointRadius:4, borderWidth:2.5, yAxisID:'y' },
+                { label:RPT.road,       data:<?php echo json_encode(array_column($exp_trend,'road')); ?>,   type:'line', tension:.4, borderColor:'rgba(79,172,254,.9)',   backgroundColor:'rgba(79,172,254,.08)',   fill:false, pointRadius:4, borderWidth:2, yAxisID:'y' },
+                { label:RPT.driver,     data:<?php echo json_encode(array_column($exp_trend,'driver')); ?>, type:'line', tension:.4, borderColor:'rgba(102,126,234,.9)',  backgroundColor:'rgba(102,126,234,.08)', fill:false, pointRadius:4, borderWidth:2, yAxisID:'y' }
             ]
         },
-        options: Object.assign({},DEFAULTS,{ interaction:{mode:'index',intersect:false}, scales:{ y:{type:'linear',position:'left',grid:{color:'rgba(0,0,0,.04)'},title:{display:true,text:'Amount',font:{size:11}}} } })
+        options: Object.assign({},DEFAULTS,{ interaction:{mode:'index',intersect:false}, scales:{ y:{type:'linear',position:'left',grid:{color:'rgba(0,0,0,.04)'},title:{display:true,text:RPT.amount,font:{size:11}}} } })
     });
 }
 
 // ── Expense category doughnut ──
 var expCatEl = document.getElementById('rptExpCat');
 if (expCatEl) {
-    var expCatLabels = <?php echo json_encode(array_map(function($r){ $m=array('fuel'=>'Fuel','road'=>'Road','driver'=>'Driver','commission'=>'Commission','other'=>'Other'); return isset($m[$r->lbl])?$m[$r->lbl]:ucfirst($r->lbl); },$exp_by_cat)); ?>;
+    var expCatLabels = <?php echo json_encode(array_map(function($r) use ($rptExpCatLabels) { return isset($rptExpCatLabels[$r->lbl]) ? $rptExpCatLabels[$r->lbl] : ucfirst($r->lbl); }, $exp_by_cat)); ?>;
     var expCatData   = <?php echo json_encode(array_column($exp_by_cat,'total')); ?>;
     new Chart(expCatEl, {
         type:'doughnut',
@@ -1616,11 +1654,13 @@ if (expCatEl) {
 <script>
 // Filter panel toggle
 var _filterOpen = true;
+var _rptCollapse = <?php echo json_encode($rptChart['collapse']); ?>;
+var _rptExpand = <?php echo json_encode($rptChart['expand']); ?>;
 function toggleFilters() {
     _filterOpen = !_filterOpen;
     document.getElementById('filterBody').classList.toggle('collapsed', !_filterOpen);
     document.getElementById('filterChevron').className = _filterOpen ? 'fa fa-chevron-up' : 'fa fa-chevron-down';
-    document.getElementById('filterToggleText').textContent = _filterOpen ? 'Collapse' : 'Expand';
+    document.getElementById('filterToggleText').textContent = _filterOpen ? _rptCollapse : _rptExpand;
 }
 
 // Custom date range toggle
@@ -1795,7 +1835,7 @@ if (!empty($filter_status))       $filter_desc_parts[] = '<i class="fa fa-tag"><
 if (!empty($filter_fuel_src))     $filter_desc_parts[] = '<i class="fa fa-gas-pump"></i> '.htmlspecialchars(ucfirst($filter_fuel_src));
 if (!empty($filter_wo_priority))  $filter_desc_parts[] = '<i class="fa fa-flag"></i> '.htmlspecialchars($filter_wo_priority);
 if (!empty($filter_vehicle_type)) $filter_desc_parts[] = '<i class="fa fa-car-side"></i> '.htmlspecialchars($filter_vehicle_type);
-if (!empty($filter_min_revenue)||!empty($filter_max_revenue)) $filter_desc_parts[] = '<i class="fa fa-dollar-sign"></i> Revenue range';
+if (!empty($filter_min_revenue)||!empty($filter_max_revenue)) $filter_desc_parts[] = '<i class="fa fa-dollar-sign"></i> '.$langs->trans('RptRevenueRangeFilter');
 if ($period != 'month') $filter_desc_parts[] = '<i class="fa fa-calendar-alt"></i> '.htmlspecialchars($period_label);
 
 ?>
@@ -1868,12 +1908,12 @@ if ($period != 'month') $filter_desc_parts[] = '<i class="fa fa-calendar-alt"></
 <div class="det-section">
     <div class="det-divider">
         <div class="det-divider-line"></div>
-        <h2><i class="fa fa-<?php echo $filter_icon; ?>"></i> <?php echo $filter_label ? htmlspecialchars($filter_label).' — All Records' : 'Filtered Records'; ?></h2>
+        <h2><i class="fa fa-<?php echo $filter_icon; ?>"></i> <?php echo $filter_label ? dol_escape_htmltag($filter_label).' — '.$langs->trans('RptAllRecords') : $langs->trans('RptFilteredRecords'); ?></h2>
         <div class="det-divider-line right"></div>
     </div>
 
     <div class="det-filter-chips">
-        <span class="label">Showing results for:</span>
+        <span class="label"><?php echo $langs->trans('RptShowingResultsFor'); ?></span>
         <?php foreach ($filter_desc_parts as $part): ?>
         <span class="det-chip"><?php echo $part; ?></span>
         <?php endforeach; ?>
@@ -1883,47 +1923,47 @@ if ($period != 'month') $filter_desc_parts[] = '<i class="fa fa-calendar-alt"></
     <div class="det-unified-bar">
         <div class="det-unified-bar-left">
             <span class="det-bar-icon"><i class="fa fa-<?php echo $filter_icon; ?>"></i></span>
-            <div><strong><?php echo count($unified_rows); ?></strong> record<?php echo count($unified_rows)!=1?'s':''; ?> found<?php if(count($unified_rows)==400) echo ' (showing first 400)'; ?></div>
+            <div><strong><?php echo count($unified_rows); ?></strong> <?php echo $langs->trans('RptRecordsFound', count($unified_rows)); ?><?php if(count($unified_rows)==400) echo ' '.$langs->trans('RptShowingFirst400'); ?></div>
         </div>
-        <button class="det-export-btn" onclick="detExportUnified()"><i class="fa fa-file-csv"></i> Export CSV</button>
+        <button class="det-export-btn" onclick="detExportUnified()"><i class="fa fa-file-csv"></i> <?php echo $langs->trans('RptExportCSV'); ?></button>
     </div>
 
     <div class="det-table-wrap">
     <?php if (empty($unified_rows)): ?>
-        <div class="det-empty"><i class="fa fa-search"></i><p>No records match the current filters.</p></div>
+        <div class="det-empty"><i class="fa fa-search"></i><p><?php echo $langs->trans('RptNoRecordsMatch'); ?></p></div>
     <?php else: ?>
     <div class="det-scroll-wrap">
     <table class="det-tbl" id="det-unified-tbl">
         <thead>
             <tr>
-                <th>Type</th>
-                <th>Ref</th>
-                <th>Date</th>
+                <th><?php echo $langs->trans('RptType'); ?></th>
+                <th><?php echo $langs->trans('Ref'); ?></th>
+                <th><?php echo $langs->trans('Date'); ?></th>
                 <?php if ($unified_mode === 'vehicle'): ?>
-                <th>Driver</th>
-                <th>Customer</th>
-                <th>Vendor</th>
+                <th><?php echo $langs->trans('Driver'); ?></th>
+                <th><?php echo $langs->trans('Customer'); ?></th>
+                <th><?php echo $langs->trans('Vendor'); ?></th>
                 <?php elseif ($unified_mode === 'driver'): ?>
-                <th>Vehicle</th>
-                <th>Customer / Task</th>
-                <th>Vendor</th>
+                <th><?php echo $langs->trans('Vehicle'); ?></th>
+                <th><?php echo $langs->trans('RptCustomerTask'); ?></th>
+                <th><?php echo $langs->trans('Vendor'); ?></th>
                 <?php elseif ($unified_mode === 'customer'): ?>
-                <th>Vehicle</th>
-                <th>Driver</th>
-                <th>Vendor</th>
+                <th><?php echo $langs->trans('Vehicle'); ?></th>
+                <th><?php echo $langs->trans('Driver'); ?></th>
+                <th><?php echo $langs->trans('Vendor'); ?></th>
                 <?php elseif ($unified_mode === 'vendor'): ?>
-                <th>Vehicle</th>
-                <th>Driver</th>
-                <th>Customer</th>
+                <th><?php echo $langs->trans('Vehicle'); ?></th>
+                <th><?php echo $langs->trans('Driver'); ?></th>
+                <th><?php echo $langs->trans('Customer'); ?></th>
                 <?php else: ?>
-                <th>Vehicle</th>
-                <th>Driver</th>
-                <th>Customer</th>
-                <th>Vendor</th>
+                <th><?php echo $langs->trans('Vehicle'); ?></th>
+                <th><?php echo $langs->trans('Driver'); ?></th>
+                <th><?php echo $langs->trans('Customer'); ?></th>
+                <th><?php echo $langs->trans('Vendor'); ?></th>
                 <?php endif; ?>
-                <th style="text-align:right">Amount</th>
-                <th style="text-align:center">Status / Priority</th>
-                <th style="text-align:center">View</th>
+                <th style="text-align:right"><?php echo $langs->trans('Amount'); ?></th>
+                <th style="text-align:center"><?php echo $langs->trans('RptStatusPriority'); ?></th>
+                <th style="text-align:center"><?php echo $langs->trans('View'); ?></th>
             </tr>
         </thead>
         <tbody>
@@ -1939,9 +1979,9 @@ if ($period != 'month') $filter_desc_parts[] = '<i class="fa fa-calendar-alt"></
         ?>
         <tr>
             <td>
-                <?php if ($rec_type === 'booking'):   ?><span class="det-type-badge det-type-booking"><i class="fa fa-calendar-check" style="font-size:10px;"></i> Booking</span>
-                <?php elseif ($rec_type === 'fuel'):  ?><span class="det-type-badge det-type-fuel"><i class="fa fa-gas-pump" style="font-size:10px;"></i> Fuel</span>
-                <?php else:                           ?><span class="det-type-badge det-type-workorder"><i class="fa fa-tools" style="font-size:10px;"></i> Work Order</span>
+                <?php if ($rec_type === 'booking'):   ?><span class="det-type-badge det-type-booking"><i class="fa fa-calendar-check" style="font-size:10px;"></i> <?php echo $langs->trans('RptBookingLabel'); ?></span>
+                <?php elseif ($rec_type === 'fuel'):  ?><span class="det-type-badge det-type-fuel"><i class="fa fa-gas-pump" style="font-size:10px;"></i> <?php echo $langs->trans('Fuel'); ?></span>
+                <?php else:                           ?><span class="det-type-badge det-type-workorder"><i class="fa fa-tools" style="font-size:10px;"></i> <?php echo $langs->trans('RptWorkOrderLabel'); ?></span>
                 <?php endif; ?>
             </td>
             <td>

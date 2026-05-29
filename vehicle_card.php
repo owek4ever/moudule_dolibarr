@@ -658,8 +658,146 @@ print '    </div></div>';
 print '  <div class="dc-field">';
 print '    <div class="dc-field-label required">'.$langs->trans('Maker').'</div>';
 print '    <div class="dc-field-value">';
-if ($isCreate || $isEdit) print '<input type="text" name="maker" value="'.(isset($object->maker) ? dol_escape_htmltag($object->maker) : '').'" required>';
-else print dol_escape_htmltag($object->maker);
+if ($isCreate || $isEdit) {
+    $maker_options = array(
+        // European
+        'Alfa Romeo'       => 'Alfa Romeo',
+        'Aston Martin'     => 'Aston Martin',
+        'Audi'             => 'Audi',
+        'Bentley'          => 'Bentley',
+        'BMW'              => 'BMW',
+        'Bugatti'          => 'Bugatti',
+        'Citroën'          => 'Citroën',
+        'DAF'              => 'DAF',
+        'Dacia'            => 'Dacia',
+        'Ferrari'          => 'Ferrari',
+        'Fiat'             => 'Fiat',
+        'Iveco'            => 'Iveco',
+        'Jaguar'           => 'Jaguar',
+        'Lamborghini'      => 'Lamborghini',
+        'Land Rover'       => 'Land Rover',
+        'MAN'              => 'MAN',
+        'Maserati'         => 'Maserati',
+        'McLaren'          => 'McLaren',
+        'Mercedes-Benz'    => 'Mercedes-Benz',
+        'MINI'             => 'MINI',
+        'Opel'             => 'Opel',
+        'Peugeot'          => 'Peugeot',
+        'Porsche'          => 'Porsche',
+        'Renault'          => 'Renault',
+        'Rolls-Royce'      => 'Rolls-Royce',
+        'Saab'             => 'Saab',
+        'SEAT'             => 'SEAT',
+        'Škoda'            => 'Škoda',
+        'Scania'           => 'Scania',
+        'Stellantis'       => 'Stellantis',
+        'Vauxhall'         => 'Vauxhall',
+        'Volkswagen'       => 'Volkswagen',
+        'Volvo'            => 'Volvo',
+        // American
+        'Buick'            => 'Buick',
+        'Cadillac'         => 'Cadillac',
+        'Chevrolet'        => 'Chevrolet',
+        'Chrysler'         => 'Chrysler',
+        'Dodge'            => 'Dodge',
+        'Ford'             => 'Ford',
+        'GMC'              => 'GMC',
+        'Jeep'             => 'Jeep',
+        'Lincoln'          => 'Lincoln',
+        'RAM'              => 'RAM',
+        'Tesla'            => 'Tesla',
+        // Japanese
+        'Daihatsu'         => 'Daihatsu',
+        'Honda'            => 'Honda',
+        'Isuzu'            => 'Isuzu',
+        'Lexus'            => 'Lexus',
+        'Mazda'            => 'Mazda',
+        'Mitsubishi'       => 'Mitsubishi',
+        'Nissan'           => 'Nissan',
+        'Subaru'           => 'Subaru',
+        'Suzuki'           => 'Suzuki',
+        'Toyota'           => 'Toyota',
+        // Korean
+        'Hyundai'          => 'Hyundai',
+        'Kia'              => 'Kia',
+        'SsangYong'        => 'SsangYong',
+        // Chinese
+        'BYD'              => 'BYD',
+        'Chery'            => 'Chery',
+        'DFAC'             => 'DFAC',
+        'Dongfeng'         => 'Dongfeng',
+        'Geely'            => 'Geely',
+        'Great Wall'       => 'Great Wall',
+        'JAC'              => 'JAC',
+        'SAIC'             => 'SAIC',
+        // Trucks / Heavy
+        'DAF Trucks'       => 'DAF Trucks',
+        'FUSO'             => 'FUSO',
+        'Hino'             => 'Hino',
+        'Mack'             => 'Mack',
+        'Navistar'         => 'Navistar',
+        'Peterbilt'        => 'Peterbilt',
+        'Renault Trucks'   => 'Renault Trucks',
+        'Kenworth'         => 'Kenworth',
+        'Western Star'     => 'Western Star',
+    );
+    ksort($maker_options);
+    print '<div style="display:flex;align-items:center;gap:6px;">';
+    print $form->selectarray('maker', $maker_options, (isset($object->maker) ? $object->maker : ''), 1);
+    print '<button type="button" onclick="dcToggleAddMaker()" title="'.$langs->trans('AddType').'" style="background:none;border:none;cursor:pointer;padding:0;line-height:1;">';
+    print '<i id="dc-add-maker-icon" class="fa fa-plus-circle" style="font-size:18px;color:#0d8aff;flex-shrink:0;"></i>';
+    print '</button>';
+    print '</div>';
+    print '<div id="dc-add-maker-row" style="display:none;margin-top:6px;">';
+    print '  <div style="display:flex;gap:6px;align-items:center;">';
+    print '    <input type="text" id="dc-new-maker-input" placeholder="'.$langs->trans('NewTypeName').'" style="flex:1;" onkeydown="if(event.key===\'Enter\'){event.preventDefault();dcAddMaker();}">';
+    print '    <button type="button" onclick="dcAddMaker()" class="dc-btn dc-btn-primary" style="padding:6px 12px;font-size:12px;white-space:nowrap;"><i class="fa fa-check"></i> '.$langs->trans('Add').'</button>';
+    print '    <button type="button" onclick="dcToggleAddMaker()" class="dc-btn dc-btn-ghost" style="padding:6px 10px;font-size:12px;"><i class="fa fa-times"></i></button>';
+    print '  </div>';
+    print '  <div id="dc-add-maker-error" style="color:#dc2626;font-size:11.5px;margin-top:4px;display:none;">'.$langs->trans('PleaseEnterATypeName').'</div>';
+    print '</div>';
+    print '<script>';
+    print 'function dcToggleAddMaker() {';
+    print '  var row  = document.getElementById("dc-add-maker-row");';
+    print '  var icon = document.getElementById("dc-add-maker-icon");';
+    print '  var isOpen = row.style.display === "flex";';
+    print '  row.style.display = isOpen ? "none" : "flex";';
+    print '  icon.style.color  = isOpen ? "#0d8aff" : "#dc2626";';
+    print '  icon.className    = isOpen ? "fa fa-plus-circle" : "fa fa-times-circle";';
+    print '  if (!isOpen) { document.getElementById("dc-new-maker-input").focus(); }';
+    print '  document.getElementById("dc-add-maker-error").style.display = "none";';
+    print '}';
+    print 'function dcAddMaker() {';
+    print '  var input = document.getElementById("dc-new-maker-input");';
+    print '  var errEl = document.getElementById("dc-add-maker-error");';
+    print '  var val   = input.value.trim();';
+    print '  if (!val) { errEl.style.display = "block"; input.focus(); return; }';
+    print '  errEl.style.display = "none";';
+    print '  var sel = document.querySelector("select[name=\'maker\']");';
+    print '  for (var i = 0; i < sel.options.length; i++) {';
+    print '    if (sel.options[i].value.toLowerCase() === val.toLowerCase()) {';
+    print '      sel.value = sel.options[i].value;';
+    print '      dcToggleAddMaker(); input.value = ""; return;';
+    print '    }';
+    print '  }';
+    print '  var opt = document.createElement("option");';
+    print '  opt.value = val; opt.text = val;';
+    // Insert in alphabetical order
+    print '  var inserted = false;';
+    print '  for (var j = 0; j < sel.options.length; j++) {';
+    print '    if (sel.options[j].value && sel.options[j].value.toLowerCase() > val.toLowerCase()) {';
+    print '      sel.insertBefore(opt, sel.options[j]);';
+    print '      inserted = true; break;';
+    print '    }';
+    print '  }';
+    print '  if (!inserted) sel.appendChild(opt);';
+    print '  sel.value = val;';
+    print '  dcToggleAddMaker(); input.value = "";';
+    print '}';
+    print '</script>';
+} else {
+    print dol_escape_htmltag($object->maker);
+}
 print '    </div></div>';
 
 // Model

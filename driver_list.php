@@ -625,6 +625,8 @@ foreach ($rows as $r) {
 .vl-btn-primary:hover  { background: #2a3346 !important; color: #fff !important; }
 .vl-btn-secondary { background: #3c4758 !important; color: #fff !important; border: none !important; }
 .vl-btn-secondary:hover { background: #2a3346 !important; color: #fff !important; }
+.vl-btn-import  { background: #4a6cf7 !important; color: #fff !important; border: none !important; }
+.vl-btn-import:hover  { background: #3a5ce6 !important; color: #fff !important; }
 
 /* Filters */
 .vl-filters {
@@ -1426,9 +1428,6 @@ function dlToggleFields(btn) {
     dz.addEventListener('drop',      function(){ dz.classList.remove('drag-over'); });
 })();
 document.addEventListener('keydown', function(e){ if (e.key === 'Escape') { dlCloseImport(); } });
-    var dz = document.getElementById('dl-dropzone');
-    if (!dz) return;
-
 </script>
 
 
