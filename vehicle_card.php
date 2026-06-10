@@ -814,12 +814,37 @@ print '    <div class="dc-field-label">'.$langs->trans('Type').'</div>';
 print '    <div class="dc-field-value">';
 if ($isCreate || $isEdit) {
     $type_options = array(
-        'TractorUnit'      => $langs->trans('TractorUnit'),
-        'Curtainsider'     => $langs->trans('Curtainsider'),
-        'RefrigeratedTruck'=> $langs->trans('RefrigeratedTruck'),
-        'TankerTruck'      => $langs->trans('TankerTruck'),
-        'Distributor'      => $langs->trans('Distributor'),
-        'BoxTruck'         => $langs->trans('BoxTruck'),
+        // Cab / Flat / Refrigerated
+        'Pickup'           => 'Pickup',
+        '3T Cab'           => '3T Cab',
+        '3T Flat'          => '3T Flat',
+        '5T Cab'           => '5T Cab',
+        '5T Flat'          => '5T Flat',
+        '5T Refrigerated'  => '5T Refrigerated',
+        '7T Cab'           => '7T Cab',
+        '7T Flat'          => '7T Flat',
+        '8T Refrigerated'  => '8T Refrigerated',
+        '10T Cab'          => '10T Cab',
+        '10T Flat'         => '10T Flat',
+        '10T Refrigerated' => '10T Refrigerated',
+        '15T Cab'          => '15T Cab',
+        '15T Flat'         => '15T Flat',
+        '20T Cab'          => '20T Cab',
+        '20T Refrigerated' => '20T Refrigerated',
+        '20T Flat'         => '20T Flat',
+        '25T Cab'          => '25T Cab',
+        '25T Refrigerated' => '25T Refrigerated',
+        '25T Flat'         => '25T Flat',
+        // Dump Trucks
+        '15T Dump Truck'   => '15T Dump Truck',
+        '25T Dump Truck'   => '25T Dump Truck',
+        '30T Dump Truck'   => '30T Dump Truck',
+        // Tank Trucks
+        'Fuel Tank Truck'  => 'Fuel Tank Truck',
+        'Chemical Tank'    => 'Chemical Tank',
+        'Oil Tank'         => 'Oil Tank',
+        'Water Tank'       => 'Water Tank',
+        'Dry Tankers'      => 'Dry Tankers',
     );
     print '<div style="display:flex;align-items:center;gap:6px;">';
     print $form->selectarray('type', $type_options, (isset($object->type) ? $object->type : ''), 1);
