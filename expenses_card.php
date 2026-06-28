@@ -556,8 +556,8 @@ print '</div></div>';
 
 print '<div class="dc-field" style="background:#f7f8fc;"><div class="dc-field-label" style="color:#3c4758;font-weight:700;">'.$langs->trans('Total').'</div><div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="number" id="amount_display" class="dc-total-input" value="'.dol_escape_htmltag($object->amount??'').'" min="0" step="any" placeholder="0.00" readonly style="font-family:\'DM Mono\',monospace;font-weight:600;">';
-    print '<input type="hidden" name="amount" id="amount_hidden" value="'.dol_escape_htmltag($object->amount??'').'">';
+    print '<input type="number" name="amount" id="amount_display" value="'.dol_escape_htmltag($object->amount??'').'" min="0" step="any" placeholder="0.00" oninput="calcFuelFromTotal()" style="width:100%;border:1.5px solid #3c4758!important;border-radius:8px!important;padding:8px 12px!important;font-size:13px!important;font-family:\'DM Mono\',monospace!important;font-weight:600!important;color:#1a1f2e!important;background:#fff!important;outline:none;">';
+    print '<div style="font-size:11px;color:#8b92a9;margin-top:4px;"><i class="fa fa-calculator"></i>&nbsp;Fill any 2 fields — the 3rd is calculated automatically</div>';
 } else {
     print (!empty($object->amount) ? '<span class="dc-amount" style="font-size:15px;font-weight:700;">'.price($object->amount).'</span>' : '&mdash;');
 }
@@ -721,33 +721,82 @@ function switchCategory(cat) {
 }
 
 function v(id) { var el = document.getElementById(id); return el ? (parseFloat(el.value) || 0) : 0; }
-function setDisplay(id, val) { var el = document.getElementById(id); if (el) { el.value = val > 0 ? val.toFixed(2) : ''; } }
-function setHidden(id, val) { var el = document.getElementById(id); if (el) { el.value = val > 0 ? val.toFixed(2) : ''; } }
+function raw(id) { var el = document.getElementById(id); return el ? el.value.trim() : ''; }
 
+function setVal(id, val) {
+    var el = document.getElementById(id);
+    if (el) { el.value = (val > 0) ? val.toFixed(2) : ''; }
+}
+
+/**
+ * Called when fuel_qty or fuel_price changes.
+ * Rule: qty × price → total (forward calculation).
+ * If only total is set and one of qty/price is filled, derive the missing one.
+ */
 function calcTotal() {
-    var total = 0;
     if (currentCategory === 'fuel') {
-        var qty = v('fuel_qty'), price = v('fuel_price');
-        total = (qty > 0 && price > 0) ? Math.round(qty * price * 100) / 100 : 0;
-        setDisplay('amount_display', total);
-        setHidden('amount_hidden', total);
+        var qty   = v('fuel_qty');
+        var price = v('fuel_price');
+        var total = v('amount_display');
+
+        if (qty > 0 && price > 0) {
+            // Both qty and price known → compute total
+            var computed = Math.round(qty * price * 100) / 100;
+            setVal('amount_display', computed);
+        } else if (qty > 0 && total > 0) {
+            // qty + total known → price = total / qty
+            setVal('fuel_price', Math.round(total / qty * 10000) / 10000);
+        } else if (price > 0 && total > 0) {
+            // price + total known → qty = total / price
+            setVal('fuel_qty', Math.round(total / price * 10000) / 10000);
+        }
+        // If only one field is filled, nothing to derive yet — wait for the second.
     } else if (currentCategory === 'road') {
-        total = Math.round((v('road_toll') + v('road_parking') + v('road_other')) * 100) / 100;
-        setDisplay('road_total_display', total);
-        setHidden('road_amount_hidden', total);
+        var total = Math.round((v('road_toll') + v('road_parking') + v('road_other')) * 100) / 100;
+        setVal('road_total_display', total);
+        var rh = document.getElementById('road_amount_hidden'); if (rh) rh.value = total > 0 ? total.toFixed(2) : '';
     } else if (currentCategory === 'driver') {
-        total = Math.round((v('driver_salary') + v('driver_overnight') + v('driver_bonus')) * 100) / 100;
-        setDisplay('driver_total_display', total);
-        setHidden('driver_amount_hidden', total);
+        var total = Math.round((v('driver_salary') + v('driver_overnight') + v('driver_bonus')) * 100) / 100;
+        setVal('driver_total_display', total);
+        var dh = document.getElementById('driver_amount_hidden'); if (dh) dh.value = total > 0 ? total.toFixed(2) : '';
     } else if (currentCategory === 'commission') {
         var agent = v('commission_agent'), rate = v('commission_tax'), other = v('commission_other');
         var taxAmt = Math.round(agent * rate / 100 * 100) / 100;
-        total = Math.round((agent + taxAmt + other) * 100) / 100;
-        var taxEl = document.getElementById('comm_tax_amount');
+        var total  = Math.round((agent + taxAmt + other) * 100) / 100;
+        var taxEl  = document.getElementById('comm_tax_amount');
         if (taxEl) taxEl.textContent = taxAmt.toFixed(2);
-        setDisplay('comm_total_display', total);
-        setHidden('comm_amount_hidden', total);
+        setVal('comm_total_display', total);
+        var ch = document.getElementById('comm_amount_hidden'); if (ch) ch.value = total > 0 ? total.toFixed(2) : '';
     }
+}
+
+/**
+ * Called when the Total (amount_display) field itself is edited by the user.
+ * Derives the missing fuel field:
+ *   - qty filled  → price = total / qty
+ *   - price filled → qty  = total / price
+ *   - neither      → nothing (user must fill one more)
+ *   - both filled  → keep both, just update display (total overrides)
+ */
+function calcFuelFromTotal() {
+    var qty   = v('fuel_qty');
+    var price = v('fuel_price');
+    var total = v('amount_display');
+
+    if (total <= 0) return; // nothing to derive from an empty total
+
+    if (qty > 0 && price > 0) {
+        // Both already set — do nothing special, total stands as-is
+        return;
+    }
+    if (qty > 0 && price === 0) {
+        // Derive price
+        setVal('fuel_price', Math.round(total / qty * 10000) / 10000);
+    } else if (price > 0 && qty === 0) {
+        // Derive qty
+        setVal('fuel_qty', Math.round(total / price * 10000) / 10000);
+    }
+    // If neither is set yet, do nothing — user is just typing the total first.
 }
 
 document.addEventListener('DOMContentLoaded', function() { calcTotal(); });

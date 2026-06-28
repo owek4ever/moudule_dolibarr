@@ -30,6 +30,7 @@ if (!$res) { die("Include of main fails"); }
 
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
+require_once DOL_DOCUMENT_ROOT.'/core/lib/files.lib.php';
 
 // Load translation files
 $langs->loadLangs(array("flotte@flotte", "other"));
@@ -92,10 +93,40 @@ if (GETPOST('button_removefilter_x', 'alpha') || GETPOST('button_removefilter.x'
     $search_license_number = '';
 }
 
+// ── Ensure fk_socpeople column exists ────────────────────────────────────
+$_chk_sp = $db->query("SHOW COLUMNS FROM ".MAIN_DB_PREFIX."flotte_driver LIKE 'fk_socpeople'");
+if ($_chk_sp && $db->num_rows($_chk_sp) == 0) {
+    $db->query("ALTER TABLE ".MAIN_DB_PREFIX."flotte_driver ADD COLUMN fk_socpeople INT DEFAULT NULL");
+}
+
+// ── Ensure sync-exclusion table exists ────────────────────────────────────
+// Remembers contacts (socpeople) whose driver record was deliberately deleted,
+// so the auto-sync block below never recreates them. Must run before the
+// delete handler below, since deleting a driver writes into this table.
+$_chk_excl = $db->query("SHOW TABLES LIKE '".MAIN_DB_PREFIX."flotte_driver_sync_excluded'");
+if ($_chk_excl && $db->num_rows($_chk_excl) == 0) {
+    $db->query(
+        "CREATE TABLE ".MAIN_DB_PREFIX."flotte_driver_sync_excluded (".
+        "fk_socpeople INT NOT NULL PRIMARY KEY, ".
+        "entity INT DEFAULT 1, ".
+        "datec DATETIME DEFAULT NULL".
+        ") ENGINE=InnoDB"
+    );
+}
+
 // Handle confirmed delete from list page
 if ($action == 'confirm_delete' && GETPOST('confirm', 'alpha') == 'yes') {
     $id_to_delete = GETPOST('id', 'int');
     if ($id_to_delete > 0) {
+        // Capture the linked contact BEFORE deleting, so we can exclude it from auto-sync afterward
+        $fk_socpeople_deleted = 0;
+        $sql_lookup = "SELECT fk_socpeople FROM ".MAIN_DB_PREFIX."flotte_driver WHERE rowid = ".(int)$id_to_delete;
+        $resql_lookup = $db->query($sql_lookup);
+        if ($resql_lookup && $db->num_rows($resql_lookup) > 0) {
+            $obj_lookup = $db->fetch_object($resql_lookup);
+            $fk_socpeople_deleted = (int)$obj_lookup->fk_socpeople;
+        }
+
         $db->begin();
         $sql_del = "DELETE FROM ".MAIN_DB_PREFIX."flotte_driver WHERE rowid = ".(int)$id_to_delete." AND entity IN (".getEntity('flotte').")";
         $resql_del = $db->query($sql_del);
@@ -105,6 +136,15 @@ if ($action == 'confirm_delete' && GETPOST('confirm', 'alpha') == 'yes') {
             if (is_dir($uploadDir)) {
                 dol_delete_dir_recursive($uploadDir);
             }
+
+            // Permanently exclude the linked contact from auto-sync re-creation
+            if ($fk_socpeople_deleted > 0) {
+                $sql_excl = "INSERT INTO ".MAIN_DB_PREFIX."flotte_driver_sync_excluded (fk_socpeople, entity, datec)";
+                $sql_excl .= " VALUES (".$fk_socpeople_deleted.", ".(int)$conf->entity.", '".$db->idate(dol_now())."')";
+                $sql_excl .= " ON DUPLICATE KEY UPDATE datec = '".$db->idate(dol_now())."'";
+                $db->query($sql_excl);
+            }
+
             $db->commit();
             setEventMessages($langs->trans("DriverDeletedSuccessfully"), null, 'mesgs');
         } else {
@@ -130,12 +170,6 @@ if (!function_exists('getNextDriverRef')) {
     }
 }
 
-// ── Ensure fk_socpeople column exists ────────────────────────────────────
-$_chk_sp = $db->query("SHOW COLUMNS FROM ".MAIN_DB_PREFIX."flotte_driver LIKE 'fk_socpeople'");
-if ($_chk_sp && $db->num_rows($_chk_sp) == 0) {
-    $db->query("ALTER TABLE ".MAIN_DB_PREFIX."flotte_driver ADD COLUMN fk_socpeople INT DEFAULT NULL");
-}
-
 // ── Auto-sync from Contacts/Addresses (runs on every page load) ──────────
 if ($user->rights->flotte->write) {
     $cnt_added   = 0;
@@ -144,17 +178,22 @@ if ($user->rights->flotte->write) {
     $debug_msgs  = array();
 
     // Fetch all contacts — include all phone variants and address components
+    // Excludes contacts whose driver record was deliberately deleted (see flotte_driver_sync_excluded)
     $sql_sp  = "SELECT sp.rowid, sp.firstname, sp.lastname,";
     $sql_sp .= " sp.phone_mobile, sp.phone, sp.phone_perso,";
     $sql_sp .= " sp.email, sp.address, sp.zip, sp.town, sp.statut";
     $sql_sp .= " FROM ".MAIN_DB_PREFIX."socpeople AS sp";
+    $sql_sp .= " WHERE NOT EXISTS (";
+    $sql_sp .= "   SELECT 1 FROM ".MAIN_DB_PREFIX."flotte_driver_sync_excluded AS exc";
+    $sql_sp .= "   WHERE exc.fk_socpeople = sp.rowid";
+    $sql_sp .= " )";
     $resql_sp = $db->query($sql_sp);
 
     if (!$resql_sp) {
         $debug_msgs[] = '[ERROR] socpeople query failed: '.$db->lasterror();
     } else {
         $total_found = $db->num_rows($resql_sp);
-        $debug_msgs[] = '[DEBUG] Total contacts in socpeople (no filter): '.$total_found.' | conf->entity='.(int)$conf->entity;
+        $debug_msgs[] = '[DEBUG] Total contacts in socpeople (excluding deleted drivers): '.$total_found.' | conf->entity='.(int)$conf->entity;
 
         while ($sp = $db->fetch_object($resql_sp)) {
             if (empty(trim((string)$sp->lastname)) && empty(trim((string)$sp->firstname))) {

@@ -1355,3 +1355,36 @@ TimingBelt = Timing belt
 BatteryCheck = Battery check
 WheelAlignment = Wheel alignment
 AcService = AC service
+
+# ── Service Reminder Settings section title ──────────────────────────────────
+ServiceReminderSettings=Service Reminder Settings
+
+# ── Oil Change ────────────────────────────────────────────────────────────────
+FLOTTE_SERVICE_OIL_INTERVAL_KM=Oil Change — Interval (km)
+FlotteServiceOilKmHelp=Trigger an oil change reminder after this many kilometers.
+FLOTTE_SERVICE_OIL_INTERVAL_DAYS=Oil Change — Interval (days)
+FlotteServiceOilDaysHelp=Trigger an oil change reminder after this many days, regardless of mileage.
+FLOTTE_SERVICE_OIL_ALERT_KM=Oil Change — Alert threshold (km)
+FlotteServiceOilAlertKmHelp=Start showing a "Due Soon" warning this many kilometers before the interval is reached.
+FLOTTE_SERVICE_OIL_ALERT_DAYS=Oil Change — Alert threshold (days)
+FlotteServiceOilAlertDaysHelp=Start showing a "Due Soon" warning this many days before the interval is reached.
+
+# ── Filter Change ─────────────────────────────────────────────────────────────
+FLOTTE_SERVICE_FILTER_INTERVAL_KM=Filter Change — Interval (km)
+FlotteServiceFilterKmHelp=Trigger a filter change reminder after this many kilometers.
+FLOTTE_SERVICE_FILTER_INTERVAL_DAYS=Filter Change — Interval (days)
+FlotteServiceFilterDaysHelp=Trigger a filter change reminder after this many days, regardless of mileage.
+FLOTTE_SERVICE_FILTER_ALERT_KM=Filter Change — Alert threshold (km)
+FlotteServiceFilterAlertKmHelp=Start showing a "Due Soon" warning this many kilometers before the interval is reached.
+FLOTTE_SERVICE_FILTER_ALERT_DAYS=Filter Change — Alert threshold (days)
+FlotteServiceFilterAlertDaysHelp=Start showing a "Due Soon" warning this many days before the interval is reached.
+
+# ── General Service ───────────────────────────────────────────────────────────
+FLOTTE_SERVICE_GENERAL_INTERVAL_KM=General Service — Interval (km)
+FlotteServiceGeneralKmHelp=Trigger a general service reminder after this many kilometers.
+FLOTTE_SERVICE_GENERAL_INTERVAL_DAYS=General Service — Interval (days)
+FlotteServiceGeneralDaysHelp=Trigger a general service reminder after this many days, regardless of mileage.
+FLOTTE_SERVICE_GENERAL_ALERT_KM=General Service — Alert threshold (km)
+FlotteServiceGeneralAlertKmHelp=Start showing a "Due Soon" warning this many kilometers before the interval is reached.
+FLOTTE_SERVICE_GENERAL_ALERT_DAYS=General Service — Alert threshold (days)
+FlotteServiceGeneralAlertDaysHelp=Start showing a "Due Soon" warning this many days before the interval is reached.

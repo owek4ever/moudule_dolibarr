@@ -194,6 +194,116 @@ $item->fieldAttr['placeholder'] = '0.00';
 $item->cssClass = 'minwidth150';
 
 // ============================================================
+// SECTION 3b — Service Reminder Settings
+// ============================================================
+$formSetup->newItem('ServiceReminderSettings')->setAsTitle();
+
+// --- Oil Change ---
+$item = $formSetup->newItem('FLOTTE_SERVICE_OIL_INTERVAL_KM');
+$item->defaultFieldValue = '10000';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '0';
+$item->fieldAttr['step']        = '500';
+$item->fieldAttr['placeholder'] = '10000';
+$item->helpText = $langs->transnoentities('FlotteServiceOilKmHelp');
+$item->cssClass = 'minwidth150';
+
+$item = $formSetup->newItem('FLOTTE_SERVICE_OIL_INTERVAL_DAYS');
+$item->defaultFieldValue = '180';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '0';
+$item->fieldAttr['placeholder'] = '180';
+$item->helpText = $langs->transnoentities('FlotteServiceOilDaysHelp');
+$item->cssClass = 'minwidth100';
+
+$item = $formSetup->newItem('FLOTTE_SERVICE_OIL_ALERT_KM');
+$item->defaultFieldValue = '500';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '0';
+$item->fieldAttr['step']        = '100';
+$item->fieldAttr['placeholder'] = '500';
+$item->helpText = $langs->transnoentities('FlotteServiceOilAlertKmHelp');
+$item->cssClass = 'minwidth150';
+
+$item = $formSetup->newItem('FLOTTE_SERVICE_OIL_ALERT_DAYS');
+$item->defaultFieldValue = '14';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '0';
+$item->fieldAttr['placeholder'] = '14';
+$item->helpText = $langs->transnoentities('FlotteServiceOilAlertDaysHelp');
+$item->cssClass = 'minwidth100';
+
+// --- Filter Change ---
+$item = $formSetup->newItem('FLOTTE_SERVICE_FILTER_INTERVAL_KM');
+$item->defaultFieldValue = '15000';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '0';
+$item->fieldAttr['step']        = '500';
+$item->fieldAttr['placeholder'] = '15000';
+$item->helpText = $langs->transnoentities('FlotteServiceFilterKmHelp');
+$item->cssClass = 'minwidth150';
+
+$item = $formSetup->newItem('FLOTTE_SERVICE_FILTER_INTERVAL_DAYS');
+$item->defaultFieldValue = '365';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '0';
+$item->fieldAttr['placeholder'] = '365';
+$item->helpText = $langs->transnoentities('FlotteServiceFilterDaysHelp');
+$item->cssClass = 'minwidth100';
+
+$item = $formSetup->newItem('FLOTTE_SERVICE_FILTER_ALERT_KM');
+$item->defaultFieldValue = '1000';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '0';
+$item->fieldAttr['step']        = '100';
+$item->fieldAttr['placeholder'] = '1000';
+$item->helpText = $langs->transnoentities('FlotteServiceFilterAlertKmHelp');
+$item->cssClass = 'minwidth150';
+
+$item = $formSetup->newItem('FLOTTE_SERVICE_FILTER_ALERT_DAYS');
+$item->defaultFieldValue = '30';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '0';
+$item->fieldAttr['placeholder'] = '30';
+$item->helpText = $langs->transnoentities('FlotteServiceFilterAlertDaysHelp');
+$item->cssClass = 'minwidth100';
+
+// --- General Service ---
+$item = $formSetup->newItem('FLOTTE_SERVICE_GENERAL_INTERVAL_KM');
+$item->defaultFieldValue = '20000';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '0';
+$item->fieldAttr['step']        = '1000';
+$item->fieldAttr['placeholder'] = '20000';
+$item->helpText = $langs->transnoentities('FlotteServiceGeneralKmHelp');
+$item->cssClass = 'minwidth150';
+
+$item = $formSetup->newItem('FLOTTE_SERVICE_GENERAL_INTERVAL_DAYS');
+$item->defaultFieldValue = '365';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '0';
+$item->fieldAttr['placeholder'] = '365';
+$item->helpText = $langs->transnoentities('FlotteServiceGeneralDaysHelp');
+$item->cssClass = 'minwidth100';
+
+$item = $formSetup->newItem('FLOTTE_SERVICE_GENERAL_ALERT_KM');
+$item->defaultFieldValue = '1000';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '0';
+$item->fieldAttr['step']        = '100';
+$item->fieldAttr['placeholder'] = '1000';
+$item->helpText = $langs->transnoentities('FlotteServiceGeneralAlertKmHelp');
+$item->cssClass = 'minwidth150';
+
+$item = $formSetup->newItem('FLOTTE_SERVICE_GENERAL_ALERT_DAYS');
+$item->defaultFieldValue = '30';
+$item->fieldAttr['type']        = 'number';
+$item->fieldAttr['min']         = '0';
+$item->fieldAttr['placeholder'] = '30';
+$item->helpText = $langs->transnoentities('FlotteServiceGeneralAlertDaysHelp');
+$item->cssClass = 'minwidth100';
+
+// ============================================================
 // SECTION 4 — Fuel Tracking
 // ============================================================
 $formSetup->newItem('FuelTrackingSettings')->setAsTitle();
