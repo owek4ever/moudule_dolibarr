@@ -839,6 +839,21 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
     background: #f0f2fa; padding: 4px 10px; border-radius: 5px;
     display: inline-flex; align-items: center; gap: 5px;
 }
+.dc-file-preview {
+    margin-top: 10px; display: none;
+}
+.dc-file-preview img {
+    max-width: 120px; max-height: 90px; border-radius: 6px;
+    border: 1px solid #e8eaf0; display: block;
+}
+.dc-file-preview .dc-file-preview-badge {
+    font-size: 12px; color: #3c4758;
+    background: #f0f2fa; padding: 6px 10px; border-radius: 5px;
+    display: inline-flex; align-items: center; gap: 6px;
+}
+.dc-file-preview .dc-file-preview-badge i.fa-file-pdf { color: #e05252; font-size: 16px; }
+.dc-file-preview .dc-file-preview-badge i.fa-file-word { color: #2b6cb0; font-size: 16px; }
+.dc-file-preview .dc-file-preview-badge i.fa-file-alt { color: #5a6482; font-size: 16px; }
 
 /* ── Bottom action bar ── */
 .dc-action-bar {
@@ -1221,9 +1236,10 @@ foreach ($file_fields as $ff) {
     if ($isCreate || $isEdit) {
         print '<div class="dc-file-zone">';
         print '  <i class="fa fa-cloud-upload-alt"></i>';
-        print '  <input type="file" name="'.$ff['field'].'" accept="'.$ff['accept'].'" style="width:100%;cursor:pointer;">';
+        print '  <input type="file" id="input_'.$ff['field'].'" name="'.$ff['field'].'" accept="'.$ff['accept'].'" style="width:100%;cursor:pointer;" onchange="dcPreviewFile(this, \'preview_'.$ff['field'].'\')">';
         print '  <small>Accepted: '.str_replace('image/*','JPG, PNG',$ff['accept']).'</small>';
         print '</div>';
+        print '<div class="dc-file-preview" id="preview_'.$ff['field'].'"></div>';
         if (!empty($driver_data[$ff['field']])) {
             print '<div class="dc-file-current"><i class="fa fa-paperclip"></i> '.transLabel($langs, 'Current').': '.dol_escape_htmltag($driver_data[$ff['field']]).'</div>';
         }
@@ -1243,6 +1259,38 @@ foreach ($file_fields as $ff) {
     print '</div>';
 }
 print '  </div>';// inner grid
+
+if ($isCreate || $isEdit) {
+    print '<script>';
+    print 'function dcPreviewFile(input, previewId) {';
+    print '  var preview = document.getElementById(previewId);';
+    print '  preview.innerHTML = "";';
+    print '  preview.style.display = "none";';
+    print '  if (!input.files || !input.files[0]) return;';
+    print '  var file = input.files[0];';
+    print '  var ext = file.name.split(".").pop().toLowerCase();';
+    print '  if (["jpg","jpeg","png","gif"].indexOf(ext) !== -1) {';
+    print '    var reader = new FileReader();';
+    print '    reader.onload = function(e) {';
+    print '      var img = document.createElement("img");';
+    print '      img.src = e.target.result;';
+    print '      preview.innerHTML = "";';
+    print '      preview.appendChild(img);';
+    print '      preview.style.display = "block";';
+    print '    };';
+    print '    reader.readAsDataURL(file);';
+    print '  } else if (["pdf","doc","docx"].indexOf(ext) !== -1) {';
+    print '    var icon = ext === "pdf" ? "fa-file-pdf" : "fa-file-word";';
+    print '    var badge = document.createElement("div");';
+    print '    badge.className = "dc-file-preview-badge";';
+    print '    badge.innerHTML = "<i class=\\"fa " + icon + "\\"></i> " + file.name;';
+    print '    preview.appendChild(badge);';
+    print '    preview.style.display = "block";';
+    print '  }';
+    print '}';
+    print '</script>';
+}
+
 
 // ── Files inherited from linked Contact/Address ──────────────────────────
 if (!$isCreate && !empty($driver_data['fk_socpeople'])) {
