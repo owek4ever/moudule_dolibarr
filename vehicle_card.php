@@ -550,6 +550,19 @@ button.dc-btn-primary:hover { background: #2a3346 !important; }
     background: #f0f2fa; padding: 4px 10px; border-radius: 5px;
     display: inline-flex; align-items: center; gap: 5px;
 }
+.dc-file-preview {
+    margin-top: 10px; display: none;
+}
+.dc-file-preview img {
+    max-width: 120px; max-height: 90px; border-radius: 6px;
+    border: 1px solid #e8eaf0; display: block;
+}
+.dc-file-preview .dc-file-preview-pdf {
+    font-size: 12px; color: #3c4758;
+    background: #f0f2fa; padding: 6px 10px; border-radius: 5px;
+    display: inline-flex; align-items: center; gap: 6px;
+}
+.dc-file-preview .dc-file-preview-pdf i { color: #e05252; font-size: 16px; }
 
 /* ── Bottom action bar ── */
 .dc-action-bar {
@@ -1169,9 +1182,10 @@ foreach ($file_fields as $ff) {
     if ($isCreate || $isEdit) {
         print '<div class="dc-file-zone">';
         print '  <i class="fa fa-cloud-upload-alt"></i>';
-        print '  <input type="file" name="'.$ff['field'].'" accept="'.$ff['accept'].'" style="width:100%;cursor:pointer;">';
+        print '  <input type="file" id="input_'.$ff['field'].'" name="'.$ff['field'].'" accept="'.$ff['accept'].'" style="width:100%;cursor:pointer;" onchange="dcPreviewFile(this, \'preview_'.$ff['field'].'\')">';
         print '  <small>'.$langs->trans('AcceptedFormats').'</small>';
         print '</div>';
+        print '<div class="dc-file-preview" id="preview_'.$ff['field'].'"></div>';
         if (!empty($fieldVal)) {
             print '<div class="dc-file-current"><i class="fa fa-paperclip"></i> '.$langs->trans('Current').': '.dol_escape_htmltag($fieldVal).'</div>';
         }
@@ -1201,6 +1215,36 @@ foreach ($file_fields as $ff) {
 print '  </div>';// inner grid
 print '  </div>';// card-body
 print '</div>';   // dc-card
+
+if ($isCreate || $isEdit) {
+    print '<script>';
+    print 'function dcPreviewFile(input, previewId) {';
+    print '  var preview = document.getElementById(previewId);';
+    print '  preview.innerHTML = "";';
+    print '  preview.style.display = "none";';
+    print '  if (!input.files || !input.files[0]) return;';
+    print '  var file = input.files[0];';
+    print '  var ext = file.name.split(".").pop().toLowerCase();';
+    print '  if (["jpg","jpeg","png","gif"].indexOf(ext) !== -1) {';
+    print '    var reader = new FileReader();';
+    print '    reader.onload = function(e) {';
+    print '      var img = document.createElement("img");';
+    print '      img.src = e.target.result;';
+    print '      preview.innerHTML = "";';
+    print '      preview.appendChild(img);';
+    print '      preview.style.display = "block";';
+    print '    };';
+    print '    reader.readAsDataURL(file);';
+    print '  } else if (ext === "pdf") {';
+    print '    var badge = document.createElement("div");';
+    print '    badge.className = "dc-file-preview-pdf";';
+    print '    badge.innerHTML = "<i class=\\"fa fa-file-pdf\\"></i> " + file.name;';
+    print '    preview.appendChild(badge);';
+    print '    preview.style.display = "block";';
+    print '  }';
+    print '}';
+    print '</script>';
+}
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    BOTTOM ACTION BAR
