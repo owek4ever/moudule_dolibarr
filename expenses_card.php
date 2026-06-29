@@ -540,7 +540,7 @@ print '</div></div>';
 
 print '<div class="dc-field"><div class="dc-field-label">'.$langs->trans('Liters').'</div><div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="number" name="fuel_qty" id="fuel_qty" value="'.dol_escape_htmltag($object->fuel_qty??'').'" min="0" step="any" placeholder="0.00" oninput="calcTotal()">';
+    print '<input type="number" name="fuel_qty" id="fuel_qty" value="'.dol_escape_htmltag($object->fuel_qty??'').'" min="0" step="any" placeholder="0.00" oninput="handleFuelInput()">';
 } else {
     print (!empty($object->fuel_qty) ? '<span class="dc-amount">'.dol_escape_htmltag($object->fuel_qty).' L</span>' : '&mdash;');
 }
@@ -548,7 +548,7 @@ print '</div></div>';
 
 print '<div class="dc-field"><div class="dc-field-label">'.$langs->trans('PricePerLiter').'</div><div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="number" name="fuel_price" id="fuel_price" value="'.dol_escape_htmltag($object->fuel_price??'').'" min="0" step="any" placeholder="0.00" oninput="calcTotal()">';
+    print '<input type="number" name="fuel_price" id="fuel_price" value="'.dol_escape_htmltag($object->fuel_price??'').'" min="0" step="any" placeholder="0.00" oninput="handleFuelInput()">';
 } else {
     print (!empty($object->fuel_price) ? '<span class="dc-amount">'.price($object->fuel_price).'</span>' : '&mdash;');
 }
@@ -556,8 +556,8 @@ print '</div></div>';
 
 print '<div class="dc-field" style="background:#f7f8fc;"><div class="dc-field-label" style="color:#3c4758;font-weight:700;">'.$langs->trans('Total').'</div><div class="dc-field-value">';
 if ($isCreate || $isEdit) {
-    print '<input type="number" name="amount" id="amount_display" value="'.dol_escape_htmltag($object->amount??'').'" min="0" step="any" placeholder="0.00" oninput="calcFuelFromTotal()" style="width:100%;border:1.5px solid #3c4758!important;border-radius:8px!important;padding:8px 12px!important;font-size:13px!important;font-family:\'DM Mono\',monospace!important;font-weight:600!important;color:#1a1f2e!important;background:#fff!important;outline:none;">';
-    print '<div style="font-size:11px;color:#8b92a9;margin-top:4px;"><i class="fa fa-calculator"></i>&nbsp;Fill any 2 fields — the 3rd is calculated automatically</div>';
+    print '<input type="number" name="amount" id="amount_display" value="'.dol_escape_htmltag($object->amount??'').'" min="0" step="any" placeholder="0.00" oninput="handleFuelInput()" style="width:100%;border:1.5px solid #3c4758!important;border-radius:8px!important;padding:8px 12px!important;font-size:13px!important;font-family:\'DM Mono\',monospace!important;font-weight:600!important;color:#1a1f2e!important;background:#fff!important;outline:none;">';
+    print '<div id="amount_display_hint" style="font-size:11px;color:#8b92a9;margin-top:4px;"><i class="fa fa-calculator"></i>&nbsp;Fill any 2 fields — the 3rd is calculated automatically</div>';
 } else {
     print (!empty($object->amount) ? '<span class="dc-amount" style="font-size:15px;font-weight:700;">'.price($object->amount).'</span>' : '&mdash;');
 }
@@ -718,6 +718,7 @@ function switchCategory(cat) {
         if (el) el.style.display = (s === cat) ? '' : 'none';
     });
     calcTotal();
+    if (cat === 'fuel') initFuelLock();
 }
 
 function v(id) { var el = document.getElementById(id); return el ? (parseFloat(el.value) || 0) : 0; }
@@ -729,29 +730,105 @@ function setVal(id, val) {
 }
 
 /**
- * Called when fuel_qty or fuel_price changes.
- * Rule: qty × price → total (forward calculation).
- * If only total is set and one of qty/price is filled, derive the missing one.
+ * FUEL SECTION — "fill any 2 of 3, the 3rd is calculated" logic.
+ *
+ * Litres, Price/litre, and Total are mutually constrained by
+ * Total = Litres × Price. Exactly one of the three is always the
+ * "derived" field — locked (readonly) and recalculated automatically —
+ * while the other two stay freely editable as plain inputs.
+ *
+ * Which field is locked is NOT fixed (it isn't always Total): it's
+ * whichever field the user leaves empty. Fill Litres + Price → Total
+ * locks. Fill Total + Price → Litres locks. Fill Total + Litres → Price
+ * locks. Clearing one of the two source fields drops back to 1 field
+ * filled, which releases the lock so a new pair can be chosen.
  */
-function calcTotal() {
-    if (currentCategory === 'fuel') {
-        var qty   = v('fuel_qty');
-        var price = v('fuel_price');
-        var total = v('amount_display');
+var FUEL_FIELD_IDS  = ['fuel_qty', 'fuel_price', 'amount_display'];
+var fuelLockedField = null; // one of FUEL_FIELD_IDS, or null when nothing is locked yet
 
-        if (qty > 0 && price > 0) {
-            // Both qty and price known → compute total
-            var computed = Math.round(qty * price * 100) / 100;
-            setVal('amount_display', computed);
-        } else if (qty > 0 && total > 0) {
-            // qty + total known → price = total / qty
-            setVal('fuel_price', Math.round(total / qty * 10000) / 10000);
-        } else if (price > 0 && total > 0) {
-            // price + total known → qty = total / price
-            setVal('fuel_qty', Math.round(total / price * 10000) / 10000);
+function fuelFieldLabel(id) {
+    return id === 'fuel_qty' ? 'Litres' : (id === 'fuel_price' ? 'Price per litre' : 'Total');
+}
+
+function setFuelFieldLock(id, locked) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.readOnly = locked;
+    el.style.background = locked ? '#f0f1f5' : '#fff';
+    el.style.cursor = locked ? 'not-allowed' : (id === 'amount_display' ? 'text' : '');
+    el.title = locked ? ('Calculated automatically from the other two fields. Clear one of them to edit ' + fuelFieldLabel(id) + ' directly.') : '';
+}
+
+function updateFuelHint() {
+    var hintEl = document.getElementById('amount_display_hint');
+    if (!hintEl) return;
+    hintEl.innerHTML = fuelLockedField
+        ? '<i class="fa fa-lock"></i>&nbsp;' + fuelFieldLabel(fuelLockedField) + ' is locked — calculated automatically'
+        : '<i class="fa fa-calculator"></i>&nbsp;Fill any 2 fields — the 3rd is calculated automatically';
+}
+
+function fuelValues() {
+    return { fuel_qty: v('fuel_qty'), fuel_price: v('fuel_price'), amount_display: v('amount_display') };
+}
+
+function computeFuelField(target, vals) {
+    if (target === 'amount_display') return Math.round(vals.fuel_qty * vals.fuel_price * 100) / 100;
+    if (target === 'fuel_qty')        return vals.fuel_price > 0 ? Math.round(vals.amount_display / vals.fuel_price * 10000) / 10000 : 0;
+    if (target === 'fuel_price')      return vals.fuel_qty   > 0 ? Math.round(vals.amount_display / vals.fuel_qty   * 10000) / 10000 : 0;
+}
+
+function lockFuelField(id) {
+    fuelLockedField = id;
+    setVal(id, computeFuelField(id, fuelValues()));
+    setFuelFieldLock(id, true);
+}
+
+function unlockFuelField(id) {
+    setFuelFieldLock(id, false);
+    setVal(id, 0); // clear the now-stale derived value
+    fuelLockedField = null;
+}
+
+/** Fires on input in Litres, Price/litre, or Total (whichever isn't currently locked). */
+function handleFuelInput() {
+    if (currentCategory !== 'fuel') return;
+
+    if (fuelLockedField) {
+        var others  = FUEL_FIELD_IDS.filter(function (id) { return id !== fuelLockedField; });
+        var otherA  = v(others[0]), otherB = v(others[1]);
+        if (otherA > 0 && otherB > 0) {
+            // Both source fields still filled — keep the locked field in sync.
+            setVal(fuelLockedField, computeFuelField(fuelLockedField, fuelValues()));
+        } else {
+            // A source field was cleared — release the lock for a fresh pair.
+            unlockFuelField(fuelLockedField);
         }
-        // If only one field is filled, nothing to derive yet — wait for the second.
-    } else if (currentCategory === 'road') {
+    } else {
+        var filled = FUEL_FIELD_IDS.filter(function (id) { return v(id) > 0; });
+        if (filled.length >= 2) {
+            // Exactly 2 (or, defensively, all 3) filled — lock the empty/derived one.
+            var empty = FUEL_FIELD_IDS.filter(function (id) { return v(id) <= 0; })[0] || 'amount_display';
+            lockFuelField(empty);
+        }
+    }
+    updateFuelHint();
+}
+
+/** Re-syncs the lock state on page load and whenever the Fuel tab is shown. */
+function initFuelLock() {
+    var filled = FUEL_FIELD_IDS.filter(function (id) { return v(id) > 0; });
+    if (filled.length >= 2) {
+        var empty = FUEL_FIELD_IDS.filter(function (id) { return v(id) <= 0; })[0] || 'amount_display';
+        lockFuelField(empty);
+    } else {
+        FUEL_FIELD_IDS.forEach(function (id) { setFuelFieldLock(id, false); });
+        fuelLockedField = null;
+    }
+    updateFuelHint();
+}
+
+function calcTotal() {
+    if (currentCategory === 'road') {
         var total = Math.round((v('road_toll') + v('road_parking') + v('road_other')) * 100) / 100;
         setVal('road_total_display', total);
         var rh = document.getElementById('road_amount_hidden'); if (rh) rh.value = total > 0 ? total.toFixed(2) : '';
@@ -770,36 +847,7 @@ function calcTotal() {
     }
 }
 
-/**
- * Called when the Total (amount_display) field itself is edited by the user.
- * Derives the missing fuel field:
- *   - qty filled  → price = total / qty
- *   - price filled → qty  = total / price
- *   - neither      → nothing (user must fill one more)
- *   - both filled  → keep both, just update display (total overrides)
- */
-function calcFuelFromTotal() {
-    var qty   = v('fuel_qty');
-    var price = v('fuel_price');
-    var total = v('amount_display');
-
-    if (total <= 0) return; // nothing to derive from an empty total
-
-    if (qty > 0 && price > 0) {
-        // Both already set — do nothing special, total stands as-is
-        return;
-    }
-    if (qty > 0 && price === 0) {
-        // Derive price
-        setVal('fuel_price', Math.round(total / qty * 10000) / 10000);
-    } else if (price > 0 && qty === 0) {
-        // Derive qty
-        setVal('fuel_qty', Math.round(total / price * 10000) / 10000);
-    }
-    // If neither is set yet, do nothing — user is just typing the total first.
-}
-
-document.addEventListener('DOMContentLoaded', function() { calcTotal(); });
+document.addEventListener('DOMContentLoaded', function() { calcTotal(); initFuelLock(); });
 </script>
 <?php
 
