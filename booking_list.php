@@ -172,12 +172,12 @@ if ($action == 'export' && $user->rights->flotte->read) {
     $sql_export .= " IFNULL(t.buying_amount_ttc,  t.buying_amount)  as buying_amount_ttc,";
     $sql_export .= " v.ref as vehicle_ref, v.maker, v.model, v.license_plate,";
     $sql_export .= " d.ref as driver_ref, d.firstname as driver_firstname, d.lastname as driver_lastname,";
-    $sql_export .= " c.ref as customer_ref, c.firstname as customer_firstname, c.lastname as customer_lastname, c.company_name,";
+    $sql_export .= " c.code_client as customer_ref, c.nom as customer_firstname, '' as customer_lastname, '' as company_name,";
     $sql_export .= " vn.ref as vendor_ref, vn.name as vendor_name";
     $sql_export .= " FROM ".MAIN_DB_PREFIX."flotte_booking as t";
     $sql_export .= " LEFT JOIN ".MAIN_DB_PREFIX."flotte_vehicle  as v  ON t.fk_vehicle  = v.rowid";
     $sql_export .= " LEFT JOIN ".MAIN_DB_PREFIX."flotte_driver   as d  ON t.fk_driver   = d.rowid";
-    $sql_export .= " LEFT JOIN ".MAIN_DB_PREFIX."flotte_customer as c  ON t.fk_customer = c.rowid";
+    $sql_export .= " LEFT JOIN ".MAIN_DB_PREFIX."societe         as c  ON t.fk_customer = c.rowid";
     $sql_export .= " LEFT JOIN ".MAIN_DB_PREFIX."flotte_vendor   as vn ON t.fk_vendor   = vn.rowid";
     $sql_export .= " WHERE 1 = 1";
     $sql_export .= " AND t.entity IN (".getEntity('flotte').")";
@@ -192,7 +192,7 @@ if ($action == 'export' && $user->rights->flotte->read) {
         $sql_export .= " AND (d.firstname LIKE '%".$db->escape($search_driver)."%' OR d.lastname LIKE '%".$db->escape($search_driver)."%')";
     }
     if ($search_customer) {
-        $sql_export .= " AND (c.firstname LIKE '%".$db->escape($search_customer)."%' OR c.lastname LIKE '%".$db->escape($search_customer)."%' OR c.company_name LIKE '%".$db->escape($search_customer)."%')";
+        $sql_export .= " AND c.nom LIKE '%".$db->escape($search_customer)."%'";
     }
     if ($search_status) {
         $sql_export .= " AND t.status = '".$db->escape($search_status)."'";
@@ -425,12 +425,12 @@ $sql = 'SELECT t.rowid, t.ref, t.booking_date, t.status, t.distance, t.arriving_
 $sql .= ' t.fk_customer, t.fk_vendor,';
 $sql .= ' v.ref as vehicle_ref, v.maker, v.model, v.license_plate,';
 $sql .= ' d.firstname as driver_firstname, d.lastname as driver_lastname,';
-$sql .= ' c.firstname as customer_firstname, c.lastname as customer_lastname, c.company_name,';
+$sql .= ' c.nom as customer_firstname, \'\' as customer_lastname, \'\' as company_name,';
 $sql .= ' vn.name as vendor_name';
 $sql .= ' FROM '.MAIN_DB_PREFIX.'flotte_booking as t';
 $sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'flotte_vehicle as v ON t.fk_vehicle = v.rowid';
 $sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'flotte_driver as d ON t.fk_driver = d.rowid';
-$sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'flotte_customer as c ON t.fk_customer = c.rowid';
+$sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'societe as c ON t.fk_customer = c.rowid';
 $sql .= ' LEFT JOIN '.MAIN_DB_PREFIX.'flotte_vendor as vn ON t.fk_vendor = vn.rowid';
 $sql .= ' WHERE 1 = 1';
 $sql .= ' AND t.entity IN ('.getEntity('flotte').')';
@@ -445,7 +445,7 @@ if ($search_driver) {
     $sql .= " AND (d.firstname LIKE '%".$db->escape($search_driver)."%' OR d.lastname LIKE '%".$db->escape($search_driver)."%')";
 }
 if ($search_customer) {
-    $sql .= " AND (c.firstname LIKE '%".$db->escape($search_customer)."%' OR c.lastname LIKE '%".$db->escape($search_customer)."%' OR c.company_name LIKE '%".$db->escape($search_customer)."%')";
+    $sql .= " AND c.nom LIKE '%".$db->escape($search_customer)."%'";
 }
 if ($search_status) {
     $sql .= " AND t.status = '".$db->escape($search_status)."'";
