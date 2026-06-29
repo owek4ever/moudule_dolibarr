@@ -37,6 +37,9 @@ if (!$res) { die("Include of main fails"); }
 
 require_once DOL_DOCUMENT_ROOT.'/core/class/html.formcompany.class.php';
 require_once DOL_DOCUMENT_ROOT.'/core/lib/date.lib.php';
+require_once DOL_DOCUMENT_ROOT.'/societe/class/societe.class.php';
+require_once DOL_DOCUMENT_ROOT.'/compta/facture/class/facture.class.php';
+require_once DOL_DOCUMENT_ROOT.'/fourn/class/fournisseur.facture.class.php';
 
 // Load translation files
 $langs->loadLangs(array("flotte@flotte", "other"));
@@ -286,6 +289,114 @@ if ($action === 'sync_from_web' && $user->admin) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ACTION: DELETE CUSTOMER
+// ─────────────────────────────────────────────────────────────────────────────
+
+$socid_to_delete = GETPOST('socid', 'int');
+
+// Step 1: user clicked the trash icon -> ask for confirmation
+if ($action === 'delete' && $socid_to_delete > 0) {
+    $action = 'delete_confirm';
+}
+
+// Step 2: user confirmed in the dialog -> actually delete (invoices first, then the thirdparty)
+if ($action === 'confirm_delete' && $confirm === 'yes' && $socid_to_delete > 0) {
+    if (empty($user->rights->societe->supprimer)) {
+        setEventMessages($langs->trans("NotEnoughPermissions"), null, 'errors');
+    } elseif (empty($user->rights->facture->supprimer)) {
+        setEventMessages($langs->trans("NotEnoughPermissions")." (".$langs->trans("Invoices").")", null, 'errors');
+    } elseif (empty($user->rights->fournisseur->facture->supprimer)) {
+        setEventMessages($langs->trans("NotEnoughPermissions")." (".$langs->trans("SupplierInvoices").")", null, 'errors');
+    } else {
+        $soc = new Societe($db);
+        if ($soc->fetch($socid_to_delete) > 0) {
+            $cascade_errors  = array();
+            $invoices_deleted = 0;
+
+            // 1) Delete every customer invoice attached to this thirdparty.
+            //
+            //    We use raw SQL instead of the ORM (Facture::delete()) because the ORM
+            //    returns 0 with no error when $this->id ends up falsy after a re-fetch,
+            //    and returns -1 silently for non-draft invoices even after set_draft().
+            //    Raw SQL is the only reliable path for an admin-driven hard cascade delete.
+            //
+            //    Tables cleaned per invoice:
+            //      llx_paiement_facture   – payment-to-invoice links
+            //      llx_facturedet         – invoice lines
+            //      llx_facture_extrafields – extra fields
+            //      llx_facture            – the invoice itself
+            $sql_inv = "SELECT rowid, ref FROM ".MAIN_DB_PREFIX."facture WHERE fk_soc = ".(int)$socid_to_delete;
+            $resql_inv = $db->query($sql_inv);
+            if ($resql_inv) {
+                while ($obj_inv = $db->fetch_object($resql_inv)) {
+                    $inv_id  = (int)$obj_inv->rowid;
+                    $inv_ref = $obj_inv->ref;
+                    $db->query("DELETE FROM ".MAIN_DB_PREFIX."paiement_facture    WHERE fk_facture = ".$inv_id);
+                    $db->query("DELETE FROM ".MAIN_DB_PREFIX."facturedet          WHERE fk_facture = ".$inv_id);
+                    $db->query("DELETE FROM ".MAIN_DB_PREFIX."facture_extrafields WHERE fk_object  = ".$inv_id);
+                    $res_raw = $db->query("DELETE FROM ".MAIN_DB_PREFIX."facture  WHERE rowid      = ".$inv_id);
+                    if ($res_raw) {
+                        $invoices_deleted++;
+                    } else {
+                        $cascade_errors[] = 'Invoice '.$inv_ref.': '.$db->lasterror();
+                    }
+                }
+            } else {
+                $cascade_errors[] = 'DB error reading invoices: '.$db->lasterror();
+            }
+
+            // 1b) Delete every supplier invoice attached to this thirdparty.
+            //
+            //    Tables cleaned per supplier invoice:
+            //      llx_paiement_facture_fourn    – payment links
+            //      llx_facture_fourn_det         – invoice lines
+            //      llx_facture_fourn_extrafields – extra fields
+            //      llx_facture_fourn             – the invoice itself
+            $supplier_invoices_deleted = 0;
+            $sql_fourn = "SELECT rowid, ref FROM ".MAIN_DB_PREFIX."facture_fourn WHERE fk_soc = ".(int)$socid_to_delete;
+            $resql_fourn = $db->query($sql_fourn);
+            if ($resql_fourn) {
+                while ($obj_fourn = $db->fetch_object($resql_fourn)) {
+                    $invf_id  = (int)$obj_fourn->rowid;
+                    $invf_ref = $obj_fourn->ref;
+                    $db->query("DELETE FROM ".MAIN_DB_PREFIX."paiement_facture_fourn    WHERE fk_facture_fourn = ".$invf_id);
+                    $db->query("DELETE FROM ".MAIN_DB_PREFIX."facture_fourn_det         WHERE fk_facture       = ".$invf_id);
+                    $db->query("DELETE FROM ".MAIN_DB_PREFIX."facture_fourn_extrafields WHERE fk_object        = ".$invf_id);
+                    $res_raw = $db->query("DELETE FROM ".MAIN_DB_PREFIX."facture_fourn  WHERE rowid            = ".$invf_id);
+                    if ($res_raw) {
+                        $supplier_invoices_deleted++;
+                    } else {
+                        $cascade_errors[] = 'Supplier invoice '.$invf_ref.': '.$db->lasterror();
+                    }
+                }
+            } else {
+                $cascade_errors[] = 'DB error reading supplier invoices: '.$db->lasterror();
+            }
+
+            // 2) Only attempt to delete the thirdparty if all its invoices are gone
+            if (empty($cascade_errors)) {
+                $res_del = $soc->delete($socid_to_delete);
+                if ($res_del > 0) {
+                    $deleted_summary = array();
+                    if ($invoices_deleted > 0) { $deleted_summary[] = $invoices_deleted.' '.$langs->trans("Invoices"); }
+                    if ($supplier_invoices_deleted > 0) { $deleted_summary[] = $supplier_invoices_deleted.' '.$langs->trans("SupplierInvoices"); }
+                    setEventMessages($langs->trans("RecordDeleted").(!empty($deleted_summary) ? ' ('.implode(', ', $deleted_summary).' '.$langs->trans("Deleted").')' : ''), null, 'mesgs');
+                } else {
+                    $err_msg = !empty($soc->errors) ? implode('<br>', $soc->errors) : $soc->error;
+                    setEventMessages($langs->trans("ErrorRecordNotDeleted").($err_msg ? ' : '.$err_msg : ''), null, 'errors');
+                }
+            } else {
+                setEventMessages($langs->trans("ErrorRecordNotDeleted").' : '.implode('<br>', $cascade_errors), null, 'errors');
+            }
+        } else {
+            setEventMessages($langs->trans("ErrorRecordNotFound"), null, 'errors');
+        }
+    }
+    header('Location: '.$_SERVER['PHP_SELF'].(!empty($param) ? '?'.$param : ''));
+    exit;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ACTION: PUSH TO WEBSITE (Dolibarr → Django)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -431,6 +542,34 @@ if ($search_status !== '')  $param .= '&search_status='.urlencode($search_status
 
 // Page header
 llxHeader('', $langs->trans("Customers List"), '');
+
+// Delete confirmation dialog
+if ($action === 'delete_confirm' && $socid_to_delete > 0) {
+    $soc_tmp = new Societe($db);
+    $soc_tmp->fetch($socid_to_delete);
+    $nb_inv_tmp = 0;
+    $resql_cnt = $db->query("SELECT COUNT(*) as nb FROM ".MAIN_DB_PREFIX."facture WHERE fk_soc = ".(int)$socid_to_delete);
+    if ($resql_cnt) { $obj_cnt = $db->fetch_object($resql_cnt); $nb_inv_tmp = (int)$obj_cnt->nb; }
+    $nb_fourn_tmp = 0;
+    $resql_cnt_fourn = $db->query("SELECT COUNT(*) as nb FROM ".MAIN_DB_PREFIX."facture_fourn WHERE fk_soc = ".(int)$socid_to_delete);
+    if ($resql_cnt_fourn) { $obj_cnt_fourn = $db->fetch_object($resql_cnt_fourn); $nb_fourn_tmp = (int)$obj_cnt_fourn->nb; }
+    $confirm_msg = $langs->trans("ConfirmDeleteCustomer", $soc_tmp->name);
+    $warn_parts = array();
+    if ($nb_inv_tmp > 0)   { $warn_parts[] = $nb_inv_tmp.' '.$langs->trans("Invoices"); }
+    if ($nb_fourn_tmp > 0) { $warn_parts[] = $nb_fourn_tmp.' '.$langs->trans("SupplierInvoices"); }
+    if (!empty($warn_parts)) {
+        $confirm_msg .= '<br><br><span style="color:#dc2626;font-weight:600;">⚠ '.implode(' '.$langs->trans("and").' ', $warn_parts).' '.$langs->trans("WillAlsoBeDeleted").'</span>';
+    }
+    print $form->formconfirm(
+        $_SERVER["PHP_SELF"].'?socid='.$socid_to_delete.(!empty($param) ? '&'.$param : ''),
+        $langs->trans("DeleteCustomer"),
+        $confirm_msg,
+        'confirm_delete',
+        '',
+        '',
+        1
+    );
+}
 
 // Collect rows
 $rows = array();
@@ -639,6 +778,7 @@ table.vl-table tbody td.center { text-align: center; }
 .vl-action-btn { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; text-decoration: none; transition: all 0.15s; font-size: 13px; border: 1.5px solid transparent; }
 .vl-action-btn.view { color: #3c4758; background: #eaecf0; border-color: #c4c9d4; }
 .vl-action-btn.edit { color: #d97706; background: #fef9ec; border-color: #fde9a2; }
+.vl-action-btn.delete { color: #dc2626; background: #fef2f2; border-color: #fecaca; }
 .vl-action-btn:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.1); text-decoration: none; }
 .vl-empty { padding: 70px 20px; text-align: center; color: #9aa0b4; }
 .vl-empty-icon { font-size: 52px; opacity: 0.3; margin-bottom: 16px; }
@@ -912,6 +1052,9 @@ table.vl-table tbody td.center { text-align: center; }
                         <a href="<?php echo $cardUrl; ?>" class="vl-action-btn view" title="<?php echo $langs->trans('View'); ?>"><i class="fa fa-eye"></i></a>
                         <?php if ($user->rights->societe->creer): ?>
                         <a href="<?php echo $editUrl; ?>" class="vl-action-btn edit" title="<?php echo $langs->trans('Edit'); ?>"><i class="fa fa-pen"></i></a>
+                        <?php endif; ?>
+                        <?php if ($user->rights->societe->supprimer): ?>
+                        <a href="<?php echo $self.'?action=delete&socid='.$obj->rowid.(!empty($param) ? '&'.$param : ''); ?>" class="vl-action-btn delete" title="<?php echo $langs->trans('Delete'); ?>"><i class="fa fa-trash"></i></a>
                         <?php endif; ?>
                     </div>
                 </td>
